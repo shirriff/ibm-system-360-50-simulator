@@ -1,0 +1,9 @@
+env/
+*.swp
+*.png
+*.pdf
+*.json
+*.txt
+js/jquery.min.js
+js/tests/qunit*
+
