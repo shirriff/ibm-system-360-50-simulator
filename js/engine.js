@@ -7,17 +7,19 @@ function cycle(state, entry) {
   counters(state, entry);
   iar(state, entry);
   localStorage(state, entry);
+  stat(state, entry);
   mover(state, entry);
   localStorageWrite(state, entry);
-  stat(state, entry);
   adderLatch(state, entry);
+  roar(state, entry);
 }
 
 function adder(state, entry) {
-  var xg = undefined;
+  var xg = 0;
 
   switch (entry['LX']) { // left input to adder [XG]
     case 0: // No adder input
+      xg = 0;
       break;
     case 1: // L
       xg = state['L'];
@@ -26,7 +28,7 @@ function adder(state, entry) {
       alert('Unimplemented LX ' + entry['LX']);
       break;
     case 3: // E  // E is shifted left one bit
-      xg = state['E'] << 1;
+      xg = entry['CE'] << 1;
       break;
     case 4: // LRL // L23->XG01 QT115/0189
       alert('Unimplemented LX ' + entry['LX']);
@@ -47,10 +49,10 @@ function adder(state, entry) {
   }
 
   // Right input to adder Y
-  var y = undefined;
+  var y = 0;
   switch (entry['RY']) {
-    case 0: '0'
-      alert('Unexpected RY ' + entry['RY']);
+    case 0: '0' // No input
+      y = 0;
       break;
     case 1: // R
       y = state['R'];
@@ -75,27 +77,21 @@ function adder(state, entry) {
       break;
   }
 
-  var t = undefined;
+  var t;
 
-  if (xg == undefined && y == undefined) {
-    // No operation
-  } else if (xg == undefined || y == undefined) {
-    alert('Unexpected missing xg, y: ' + xg + ', ' + y);
-  } else {
-    if (entry['TC'] == 0) {
-      // Subtract
-      t = (-xg + y);
-      if (t < 0) {
-        // Carry?
-        t += 0x100000000;
-      }
-
-    } else {
-      // Add
-      t = xg + y;
+  if (entry['TC'] == 0) {
+    // Subtract
+    t = (-xg + y);
+    if (t < 0) {
+      // Carry?
+      t += 0x100000000;
     }
-    t = (t & 0xffffffff) >>> 0; // Force Javascript to give an unsigned result
+
+  } else {
+    // Add
+    t = xg + y;
   }
+  t = (t & 0xffffffff) >>> 0; // Force Javascript to give an unsigned result
  
   // Adder function
   switch (entry['AD']) {
@@ -277,14 +273,7 @@ function adder(state, entry) {
       break;
   }
 
-  if (t == undefined) {
-    if (entry['TR'] != 0) {
-      alert('Unexpected undefined t');
-    }
-  } else {
-    state['T'] = t;
-  }
-
+  state['T'] = t;
 }
 
 function adderLatch(state, entry) {
@@ -311,7 +300,7 @@ function adderLatch(state, entry) {
     case 6: // RA,       // stores to R and address reg. Starts read cycle.
       state['R'] = t;
       state['A'] = t;
-      fetch();
+      console.log("XXX need to implement fetch");
       break;
     case 7: // L
       state['L'] = t;
@@ -362,10 +351,10 @@ function adderLatch(state, entry) {
     case 22: // FOLD→D // under D // 50Maint p32. FLT reg bit 0 specifies fold; maps 36 bit registers (i.e. with 4 parity) onto two 32 bit storage. Accesses folded part of SCAN QY410
       alert('Unimplemented TR ' + entry['TR']);
       break;
-    case 23: // MSP,     // store to M register and Storage Protect QU100
-      alert('Unimplemented TR ' + entry['TR']);
+    case 23:
+      alert('Unexpected TR ' + entry['TR']);
       break;
-    case 24: // LM,
+    case 24: // L,M
       alert('Unimplemented TR ' + entry['TR']);
       break;
     case 25: // MLJK     // store to L, M, 12-15 to J, 16-19 to MD  QY310, QT110. 
@@ -377,8 +366,9 @@ function adderLatch(state, entry) {
     case 27: // MD
       state['MD'] = t & 0xf;
       break;
-    case 28: // MSP, // QT200/0193
-      alert('Unimplemented TR ' + entry['TR']);
+    case 28: // M,SP // QT200/0193
+      state['M'] = t;
+      state['SP'] = t & 0xf;
       break;
     case 29: // D*BS     // SDR bytes stats. Store bytes to D (i.e. main memory) where BS bit is high?
       alert('Unimplemented TR ' + entry['TR']);
@@ -401,9 +391,10 @@ byteshift = [24, 16, 8, 0];
 
 function mover(state, entry) {
   // Mover input left side -> U
-  var u = undefined;
+  var u;
   switch (entry['LU']) {
     case 0: // no value
+      u = 0;
       break;
     case 1: // MDF,      // MD and F registers (4 bits each)
       u = (state['MD'] << 4) | state['F'];
@@ -434,6 +425,7 @@ function mover(state, entry) {
   var v = undefined;
   switch (entry['MV']) {
     case 0: // no value
+      v = 0;
       break;
     case 1: // MLB
       v = (state['M'] & bytemask[state['LB']]) >> byteshift[state['LB']];
@@ -447,52 +439,36 @@ function mover(state, entry) {
       break;
   }
 
-  var wl = undefined; // wl is a 4-bit value
+  var wl = 0; // wl is a 4-bit value
   switch (entry['UL']) {
     case 0: // E // E->WL in d29
-      wl = state['E'];
+      wl = entry['CE'];
       break;
     case 1: // U   default: pass undefined through
-      if (u != undefined) {
-        wl = u >> 4;
-      }
+      wl = u >> 4;
       break;
     case 2: // V
-      if (v == undefined) {
-        alert('Undefined v')
-      }
       wl = v >> 4;
       break;
     case 3: // ? // AND operands together
-      if (u == undefined || v == undefined) {
-        alert('Undefined u, v')
-      }
       wl = (u & v) >> 4;
       break;
     default:
       alert('Unexpected UL ' + entry['UL']);
   }
 
-  var wr = undefined;
+  var wr;
   switch (entry['UR']) {
     case 0: // E
-      wr = state['E'];
+      wr = entry['CE'];
       break;
     case 1: // U   default: pass undefined through
-      if (u != undefined) {
-        wr = u & 0xf;
-      }
+      wr = u & 0xf;
       break;
     case 2: // V // or VR
-      if (v == undefined) {
-        alert('Undefined v')
-      }
       wr = v & 0xf;
       break;
     case 3: // ? // AND operands together
-      if (u == undefined || v == undefined) {
-        alert('Undefined u, v')
-      }
       wr = (u & v) & 0xf;
       break;
     default:
@@ -500,15 +476,8 @@ function mover(state, entry) {
       break;
   }
 
-  if (wl == undefined || wr == undefined) {
-    if (entry['WM'] != 0) {
-      alert('Using undefined mover output');
-    }
-    // No mover action
-    return;
-  }
-
-  state['W'] = (wl << 4) | wr;
+  var w = (wl << 4) | wr;
+  state['W'] = w;
   state['WL'] = wl;
   state['WR'] = wr;
 
@@ -517,7 +486,7 @@ function mover(state, entry) {
     case 0: // no action
       break;
     case 1: // W→MMB     // W to M indexed by MB
-      state['MB'][state['MB']] = w;
+      state['M'] = (state['M'] & ~bytemask[state['MB']]) | (w << byteshift[state['MB']]);
       break;
     case 2: // W67→MB    // W bits 6-7 to MB
       state['MB'] = w & 3;
@@ -538,7 +507,7 @@ function mover(state, entry) {
       alert('Unimplemented WM ' + entry['WM']);
       break;
     case 8: // WE→A(BUMP), // W,E(23) selects bump sector address. Bits shuffled, see 5- Maint p81.
-      alert('Unimplemented WM ' + entry['WM']);
+      // Ignore for now.
       break;
     case 9: // WL→G1
       state['G1'] = wl & 7;
@@ -590,7 +559,7 @@ function counters(state, entry) {
         state['MB'] = 3;
       }
       if (entry['MD']) {
-        state['MD'] = 0;
+        state['MD'] = 3;
       }
       break;
     case 2: // -   Should negative numbers wrap or be a flag?
@@ -634,7 +603,10 @@ function localStorage(state, entry) {
       alert('Unimplemented WS ' + entry['WS']);
       break;
     case 4: // FNJ→LSA,
-      state['LSAR'] = (state['LSFN'] << 4) | state['J'];
+      // SF=7 is only used with WS=4, and disables it
+      if (entry['SF'] != 7) {
+        state['LSAR'] = (state['LSFN'] << 4) | state['J'];
+      }
       break;
     case 5: // FNJΩ1→LSA,
       state['LSAR'] = (state['LSFN'] << 4) | state['J'] | 1;
@@ -672,6 +644,9 @@ function localStorage(state, entry) {
       state['L'] = state['LS'][state['LSAR']];
       break;
     case 7: // No storage function
+      if (entry['WS'] != 4) {
+        alert('Unexpected WS ' + entry['WS'] + ' with SF ' + entry['SF']);
+      }
       break;
     default:
       alert('Unexpected WS ' + entry['WS']);
@@ -715,34 +690,36 @@ function localStorageWrite(state, entry) {
 // Instruction address reg control
 function iar(state, entry) {
   switch (entry['IV']) {
+    case 0: // default
+      break;
     case 1: // WL→IVD
-      alert('Unimplemented WL ' + entry['WL']);
+      alert('Unimplemented IV ' + entry['IV']);
       break;
     case 2: // WR→IVD
-      alert('Unimplemented WL ' + entry['WL']);
+      alert('Unimplemented IV ' + entry['IV']);
       break;
     case 3: // W→IVD
-      alert('Unimplemented WL ' + entry['WL']);
+      alert('Unimplemented IV ' + entry['IV']);
       break;
     case 4: // IA/4→AIA,
-      alert('Unimplemented WL ' + entry['WL']);
+      alert('Unimplemented IV ' + entry['IV']);
       break;
     case 5 : // IA+2/4 // QT115/019B
-      alert('Unimplemented WL ' + entry['WL']);
+      alert('Unimplemented IV ' + entry['IV']);
       break;
     case 6 : // IA+2 // QT120/018B
-      alert('Unimplemented WL ' + entry['WL']);
+      alert('Unimplemented IV ' + entry['IV']);
       break;
     case 7: // IA+0/2→A // QP206/0D94 Also IA+0+2→A: QT115/0199 
-      alert('Unimplemented WL ' + entry['WL']);
+      alert('Unimplemented IV ' + entry['IV']);
       break;
     default:
-      alert('Unimplemented WL ' + entry['WL']);
+      alert('Unimplemented IV ' + entry['IV']);
       break;
   }
 }
 
-function stat() {
+function stat(state, entry) {
   // C: Stat setting and misc control
   switch (entry['SS']) {
     case 0:
@@ -753,7 +730,23 @@ function stat() {
       break;
     case 4: // E→SCANCTL // Performs scan operation controlled by E. See 50Maint p32. 0101 clears SCPS,SCFS QU100. 0011 ignore IO error. 0000 test for all ones, step bin trigger. 0001 sets SCPS,SCFS.
       // 1000 moves SDR(0-2) to CTR (clock advance counter) STR(5) to PSS (progressive scan stat), SDR(6) to SST (supervisory stat) QY110
-      alert('Unimplemented SS ' + entry['SS']);
+      switch (entry['CE']) {
+        case 1:
+          state['SCPS'] = 1;
+          state['SCFS'] = 1;
+          break
+        case 3:
+          // Ignore I/O error
+          break
+        case 5:
+          state['SCPS'] = 0;
+          state['SCFS'] = 0;
+          break;
+        default:
+          alert('Unimplemented SCANTRL ' + entry['CE']);
+          break;
+      }
+      if (entry['CE'] == 3)
       break;
     case 5: // LRSGNS,
       alert('Unimplemented SS ' + entry['SS']);
@@ -765,7 +758,11 @@ function stat() {
       alert('Unimplemented SS ' + entry['SS']);
       break;
     case 8: // E→S03             // S03 = stats 0-3 50Maint p183, QU100
-      alert('Unimplemented SS ' + entry['SS']);
+      var e = entry['CE'];
+      state['S'][0] = (e >> 3) & 1;
+      state['S'][1] = (e >> 2) & 1;
+      state['S'][2] = (e >> 1) & 1;
+      state['S'][3] = (e >> 0) & 1;
       break;
     case 9: // S03ΩE1→LSGN,
       alert('Unimplemented SS ' + entry['SS']);
@@ -858,10 +855,10 @@ function stat() {
       alert('Unimplemented SS ' + entry['SS']);
       break;
     case 39: // E(23)→LSFN // QT120/0102
-      alert('Unimplemented SS ' + entry['SS']);
+      state['LSFN'] = entry['CE'] & 3;
       break;
     case 40: // E(23)→CR
-      alert('Unimplemented SS ' + entry['SS']);
+      state['CR'] = entry['CE'] & 3;
       break;
     case 41: // SETCRALG
       // Save CAR(0) V CAR(1). If T=0 00->CR, if T<0, 01->CR, QE580/222. Part may be BCVC
@@ -892,7 +889,7 @@ function stat() {
       alert('Unexpected SS ' + entry['SS']);
       break;
     case 50: // E(0)→IBFULL      // Reset MPX Input Buffer Full stat QU100
-      alert('Unimplemented SS ' + entry['SS']);
+      state['IBFULL'] = (entry['CE'] >> 3) & 1;
       break;
     case 51:
       alert('Unexpected SS ' + entry['SS']);
@@ -906,14 +903,17 @@ function stat() {
     case 54: // 1→TIMERIRPT
       alert('Unimplemented SS ' + entry['SS']);
       break;
-    case 55: // T→PSWIPL→T,      // QU100, 50Maint
-      alert('Unimplemented SS ' + entry['SS']);
+    case 55: // T→PSW,IPL→T,      // QU100, 50Maint
+      // IPL UA -> 0-7, IPL CA -> 21-23
+      state['PSW'] = state['T']; // Probably?
+      state['T'] = 0x12000700; // Arbitrary IPL value
       break;
     case 56: // T→PSW            // T(12-15) to PSW QU100
       alert('Unimplemented SS ' + entry['SS']);
       break;
     case 57: // SCAN*E00,        // E -> SCANCTRL(2-5), 0->SCANCTRL(1), (FOLD)->SCANCTRL(0) // U100
-      alert('Unimplemented SS ' + entry['SS']);
+      var fold = 0;
+      state['SCANCTRL'] = (fold << 7) | entry['CE'] << 2;
       break;
     case 58: // 1→IOMODE // 50Maint p39. Sets I/O mode stat
       alert('Unimplemented SS ' + entry['SS']);
@@ -940,7 +940,7 @@ function stat() {
 }
 
 // Compute ROAR address
-function computeROAR(state, entry) {
+function roar(state, entry) {
   var roar;
   roar = entry['ZP'] << 6;
   if (entry['ZN'] != 0) {
@@ -1161,7 +1161,10 @@ function computeROAR(state, entry) {
       alert('Unexpected AB ' + entry['AB']);
       break;
     case 60: // PSS      // Test and reset Program Scan Stat QU100
-      alert('Unimplemented AB ' + entry['AB']);
+      if (state['PSS']) {
+        roar |= 2;
+        state['PSS'] = 0;
+      }
       break;
     case 61:
     case 62:

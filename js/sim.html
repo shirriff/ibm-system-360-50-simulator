@@ -9,6 +9,7 @@
 -->
 <script src="jquery.min.js"></script>
 <script src="decode.js"></script>
+<script src="engine.js"></script>
 <script src="sim.js"></script>
 <style type="text/css">
 #wrapper { position:relative; width:800px; height: 800px;}
@@ -27,18 +28,18 @@
 <button id="step">Step</button>
 <br/>
 <div id="wrapper">
-  <canvas class="layer" style="z-index:-1; border: 1px solid #eee" id="can"></canvas>
+  <canvas class="layer" style="z-index:-1;" id="can"></canvas>
   <div id="data" class="layer">
-    <div id="LSFRc" class="elt" style="top:10px;left:300px;">LSFR
+    <div id="LSFRc" class="elt" style="top:10px;left:350px;">LSFR
       <div id="LSFR">3</div>
     </div>
-    <div id="Jc" class="elt" style="top:100px;left:100px;">J
+    <div id="Jc" class="elt" style="top:10px;left:400px;">J
       <div id="J">3</div>
     </div>
-    <div id="LSARc" class="elt" style="top:100px;left:100px;">LSAR
+    <div id="LSARc" class="elt" style="top:55px;left:350px;">LSAR
       <div id="LSAR">13</div>
     </div>
-    <div id="LSc" class="elt" style="top:60px;left:150px;min-width:48;">Local Storage
+    <div id="LSc" class="elt" style="top:90px;left:20px;min-width:48;">Local Storage
       <div style="border: 1px solid #ccc; font-size: 60%;">
         <div id="LS0">L123</div>
         <div id="LS1">L123</div>
@@ -91,10 +92,15 @@
     G2: <span id="G2"></span>
     LB: <span id="LB"></span>
     MB: <span id="MB"></span>
+    SP: <span id="SP"></span>
+    </div>
+    <div class="elt" style="top:377px">
+    Next ROAR: <span id="ROAR"></span>
     </div>
 
     <div class="elt" style="top: 400px;display:block;">Microcode
     <div id="div2" style="white-space:pre;"/></div>
+    <div id="div3" style="white-space:pre;"/></div>
   </div>
 </div>
 <pre id="div"></pre>

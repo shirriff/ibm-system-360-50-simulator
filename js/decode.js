@@ -56,7 +56,7 @@ var labels = {
 20: 'H',
 21: 'IA',
 22: 'FOLD→D', // under D // 50Maint p32. FLT reg bit 0 specifies fold; maps 36 bit registers (i.e. with 4 parity) onto two 32 bit storage. Accesses folded part of SCAN QY410
-23: 'M,SP',     // store to M register and Storage Protect QU100
+// 23 not found
 24: 'L,M',
 25: 'MLJK',     // store to L, M, 12-15 to J, 16-19 to MD  QY310, QT110. 
 // 0 -> REFETCH, (X=0)->S0, (B=0)->S1, set ILC,1SYL: QT110, QT115
@@ -64,7 +64,7 @@ var labels = {
 // T->L, T(0-3)->MD, T(0-15)->M, (B=0)->S1, set 1SYL QT115/0184
 // T->L, T(0-3)->MD, T(0-15)->M, L(0-15) to M(16-31) QE180/709
 27: 'MD',
-28: 'M,SP', // QT200/0193
+28: 'M,SP', // store to M register and Storage Protect QU100
 29: 'D*BS',     // SDR bytes stats. Store bytes to D (i.e. main memory) where BS bit is high?
 30: 'L13', // QP206/0D95
 31: 'J',
@@ -219,7 +219,7 @@ var labels = {
 1: 'WS1→LSA', // Select WS1 address from local storage. WS7 is PSW0 backup
 2: 'WS2→LSA', // Select WS2 address from local storage
 3: 'WS,E→LSA', // QP206/D94
-4: 'FN,J→LSA',
+4: 'FN,J→LSA', // NOP if SF==7
 5: 'FN,JΩ1→LSA',
 6: 'FN,MD→LSA',
 7: 'FN,MDΩ1→LSA',
@@ -234,7 +234,7 @@ var labels = {
 4: 'L→LS', // QP206/D95
 5: 'LS→R,L→LS',
 6: 'LS→L→LS', // QP206/D94
-7: '',
+7: '', // Only used with WS 4: disables WS 4 for nop
 },
 
 // Instruction address reg control
