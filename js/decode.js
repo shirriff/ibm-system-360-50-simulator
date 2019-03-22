@@ -76,9 +76,9 @@ var labels = {
 // 1 is default
 2: 'BCFO',
 // 3: not found
-4: 'BCO',
+4: 'BCO',       // Save CAR from 0, QG501
 5: 'BCVC',
-6: 'BC1B', // BC for 489
+6: 'BC1B',      // Save CAR from 1, Block CAR from 8, QG501
 7: 'BC8',
 8: 'DHL',
 9: 'DC0',
@@ -174,10 +174,10 @@ var labels = {
 9: 'WL→G1',
 10: 'WR→G2',
 11: 'W→G',
-12: 'WM→MMB(E?)', // d29
+12: 'W→MMB(E?)', // d29
 13: 'WL→MD',
 14: 'WR→F',
-15: 'WM→MD,F',
+15: 'W→MD,F',
 },
 
 // D

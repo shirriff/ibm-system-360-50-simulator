@@ -14,8 +14,10 @@
 #wrapper { position:relative; width:800px; height: 800px;}
 .layer { position:absolute; top: 0px; left: 0px; width:800px; height: 800px;}
 .elt { position:absolute; font-size: 80%; font-family: sans-serif; text-align:center;}
-.elt div { font-size: 120%; font-family: monospace; border: 1px solid #ccc;}
+.elt div { font-size: 120%; font-family: monospace; border: 1px solid #fff; white-space:nowrap}
 .elt div div { border: none;}
+#regbox div {padding: 0 10px;}
+#regbox div div {border: 1px solid green;}
 .label { position:absolute; font-family: monospace}
 .hilite { background-color: yellow; }
 </style>
@@ -31,47 +33,68 @@
       <div id="LSFR">3</div>
     </div>
     <div id="Jc" class="elt" style="top:100px;left:100px;">J
-      <div id="L">3</div>
+      <div id="J">3</div>
     </div>
     <div id="LSARc" class="elt" style="top:100px;left:100px;">LSAR
       <div id="LSAR">13</div>
     </div>
-    <div id="LSc" class="elt" style="top:20px;left:150px;min-width:48;">Local Storage
-      <div style="border: 1px solid #ccc">
-        <div id="LSAR0">L123</div>
-        <div id="LSAR1">L123</div>
-        <div id="LSAR2">L123</div>
-        <div id="LSAR3">L123</div>
+    <div id="LSc" class="elt" style="top:60px;left:150px;min-width:48;">Local Storage
+      <div style="border: 1px solid #ccc; font-size: 60%;">
+        <div id="LS0">L123</div>
+        <div id="LS1">L123</div>
+        <div id="LS2">L123</div>
+        <div id="LS3">L123</div>
       </div>
     </div>
-    <div id="PSWc" class="elt" style="top:220px;left:100px;min-width:4em;"><span>PSW</span>
-      <div>MK K AMWP ILC CC  Prog Mask</div>
-      <div id="PSW">00 1   2  3   4     5</div>
-    </div>
-    <div id="Lc" class="elt" style="top:100px;left:100px;min-width:4em;"><span>L Register</span>
-      <div id="L">L123</div>
-    </div>
-    <div id="Rc" class="elt" style="top:100px;left:150px;min-width:4em;">R Register
-      <div id="R">L123</div>
-    </div>
-    <div id="MDc" class="elt" style="top:100px;left:200px;min-width:1em;">MD
-      <div id="MD">3</div>
-    </div>
-    <div id="Fc" class="elt" style="top:100px;left:250px;min-width:1em;">F
-      <div id="F">3</div>
-    </div>
-    <div id="Qc" class="elt" style="top:100px;left:300px;min-width:1em;">Q
-      <div id="Q">3</div>
-    </div>
-    <div id="Mc" class="elt" style="top:100px;left:350px;min-width:1em;">M
-      <div id="M">00112233</div>
-    </div>
-    <div id="Hc" class="elt" style="top:100px;left:400px;min-width:1em;">H
-      <div id="H">00112233</div>
+    
+    <div id="storage">
     </div>
 
-    <div class="elt" style="text-align:left; top:300px;left:350px;display:block;white-space:pre;">Microcode
-    <div id="div2"/></div>
+    <div id="regbox" class="elt" style="display:flex;justify-content:space-between;top:200px;left:100px;position:absolute;">
+      <div id="PSWc"  style=""><span>PSW</span>
+
+        <div style="font:100%">MK K AMWP ILC CC  Prog Mask</div>
+        <div id="PSW">00 1   2  3   4     5</div>
+      </div>
+      <div id="Lc"  style=""><span>L Register</span>
+        <div id="L">L123</div>
+      </div>
+      <div id="Rc"  style="">R Register
+        <div id="R">L123</div>
+      </div>
+      <div id="MDc"  style="">MD
+        <div id="MD">3</div>
+      </div>
+      <div id="Fc"  style="">F
+        <div id="F">3</div>
+      </div>
+      <div id="Qc"  style="">Q
+        <div id="Q">3</div>
+      </div>
+      <div id="Mc"  style="">M
+        <div id="M">00112233</div>
+      </div>
+      <div id="Hc"  style="">H
+        <div id="H">00112233</div>
+      </div>
+    </div>
+    <div class="elt" style="top:350px">
+    T: <span id="T"></span>
+    IA: <span id="IA"></span>
+    XG: <span id="XG"></span>
+    Y: <span id="Y"></span>
+    U: <span id="U"></span>
+    V: <span id="V"></span>
+    W: <span id="W"></span>
+    S: <span id="S"></span>
+    G1: <span id="G1"></span>
+    G2: <span id="G2"></span>
+    LB: <span id="LB"></span>
+    MB: <span id="MB"></span>
+    </div>
+
+    <div class="elt" style="top: 400px;display:block;">Microcode
+    <div id="div2" style="white-space:pre;"/></div>
   </div>
 </div>
 <pre id="div"></pre>

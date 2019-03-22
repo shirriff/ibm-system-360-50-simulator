@@ -39,18 +39,21 @@ $(document).ready(function() {
 function search() {
   var keys = Object.keys(data);
   keys.sort();
+  var found = '';
   for (var i = 0; i < keys.length; i++) {
     var addr = keys[i];
     var entry = data[addr];
     if ( 1 &&
-        entry['TR'] == 26) {
+        parseInt(entry['ZN']) != 4 && entry['ZN'] != 0) {
       if (entry['AD'] == undefined) {
-        console.log("I/O: " + addr + ' ' + entry['BB']);
+        // console.log("I/O: " + addr + ' ' + entry['TR']);
       } else {
-        console.log("Found: " + addr + ' ' + entry['SS']);
+        console.log("Found: " + addr + ' ' + entry['ZN'] + ' ' + entry['ZF']);
+        found = addr;
       }
     }
   }
+  redraw(found, false);
 }
 
 function diff() {
