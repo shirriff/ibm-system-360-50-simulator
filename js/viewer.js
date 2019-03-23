@@ -20,10 +20,19 @@ $(document).ready(function() {
         diff();
       }
     });
+    $("#label").keypress(function(e) {
+      if (e.which == 13) {
+        search();
+      }
+    });
+    $("#values").keypress(function(e) {
+      if (e.which == 13) {
+        search();
+      }
+    });
     $("#next").click(function(e) {
       redraw(window.nextaddr, true);
     });
-    search();
 
     redraw(window.location.hash.substr(1), false);
   }).fail(function() { alert('fail');});
@@ -35,25 +44,30 @@ $(document).ready(function() {
 
 });
 
-// Ad hoc search
+// Search
 function search() {
+  var label = $("#label").val()
+  var values = $("#values").val().split(',').map(parseInt);
   var keys = Object.keys(data);
   keys.sort();
   var found = '';
+  var results = [];
   for (var i = 0; i < keys.length; i++) {
     var addr = keys[i];
     var entry = data[addr];
-    if ( 1 &&
-        parseInt(entry['ZN']) != 4 && entry['ZN'] != 0) {
+    var val = entry[label];
+    if (values.includes(val)) {
       if (entry['AD'] == undefined) {
         // console.log("I/O: " + addr + ' ' + entry['TR']);
       } else {
-        console.log("Found: " + addr + ' ' + entry['ZN'] + ' ' + entry['ZF']);
+        if (entry['SS'] != 38) continue;
+        results.push(["Found: " + addr + ' ' + val + ', CE: ' + entry['CE']]);
         found = addr;
       }
     }
   }
   redraw(found, false);
+  $("#div3")[0].innerHTML = results.join('\n');
 }
 
 function diff() {

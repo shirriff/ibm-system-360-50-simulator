@@ -1,4 +1,5 @@
 env/
+*.swo
 *.swp
 *.png
 *.pdf
@@ -6,4 +7,6 @@ env/
 *.txt
 js/jquery.min.js
 js/tests/qunit*
-
+js/display.html
+parsem.py
+scanner/microcode

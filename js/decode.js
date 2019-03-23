@@ -77,11 +77,11 @@ var labels = {
 2: 'BCFO',
 // 3: not found
 4: 'BCO',       // Save CAR from 0, QG501
-5: 'BCVC',
+5: 'BCVC',      // Save CAR(0) CAR(1) QB100:0219
 6: 'BC1B',      // Save CAR from 1, Block CAR from 8, QG501
-7: 'BC8',
+7: 'BC8',       // Save carry out of pos 8  QP800:064A
 8: 'DHL',
-9: 'DC0',
+9: 'DC0',       // Decimal add correction QG900/0e3c
 10: 'DDC0',
 11: 'DHH',
 12: 'DCBS',
@@ -150,7 +150,7 @@ var labels = {
 0: 'E', // E->WL in d29
 1: 'U', // E->WR in 61b
 2: 'V',
-3: '?', // AND operands together
+3: '?', // Use mover function
 },
 
 'UR': {
@@ -251,7 +251,7 @@ var labels = {
 // Suppress memory instruction fetch / ROS address control
 'ZN': {
 0: '--ROAR--', // QT115/019B
-1: 'SMIF',
+1: 'SMIF',      // Suppress Memory IF off bnds and ¬refetch. QB100:0219
 2: 'AΩ(B=0)→A', // hypothesis
 3: 'AΩ(B=1)→A',
 4: '2', // QP206/0D94
@@ -301,9 +301,10 @@ var labels = {
 38: 'E(13)→WFN',
 39: 'E(23)→LSFN', // QT120/0102
 40: 'E(23)→CR',
-41: 'SETCRALG',
-// Save CAR(0) V CAR(1). If T=0, 00->CR, if T<0, 01->CR, QE580/222. Part may be BCVC
-42: 'SETCRLOG',
+41: 'SETCRALG', // Set CR algebraic
+// T=0, 00->CR, if T<0, 01->CR, if 0<T, 10->CR QB100:0284, QE580/222.
+42: 'SETCRLOG', // Set CR logical
+// QP102/0641: If T*BS=0: 00->CR. If T*BS != 0 and CAR(0) =0: 01->CR. If T*BS != 0 and CAR(0)=1: 10->CR
 43: '¬S4,S4→CR',
 44: 'S4,¬S4→CR',
 45: '1→REFETCH',
@@ -313,7 +314,7 @@ var labels = {
 // 49 not found
 50: 'E(0)→IBFULL',      // Reset MPX Input Buffer Full stat QU100
 // 51 not found
-52: 'E→CH',             // QY430 E=0110 resets common and mpx channel
+52: 'E→CH',             // QY430 E=0110 resets common and mpx channel, QK702:099f 0001 resets common channel.)
 // 53 not found
 54: '1→TIMERIRPT',
 55: 'T→PSW,IPL→T',      // QU100, 50Maint
@@ -346,7 +347,7 @@ var labels = {
 7: 'S5',        // stat 5: channel ?
 8: 'S6', // QT200/0209
 9: 'S7',        // stat 7: 0 for test I/O, 1 for start I/O
-10: 'CSTAT',
+10: 'CSTAT',    // test saved carry stat (e.g. BC8 in prev instruction) QP800:064E
 // 11 not found
 12: '1SYLS', // QT115/0189. One syllable instruction
 // QT110: (X=0) -> S0, (B=0)->S1, set ILC,1SYL
@@ -372,7 +373,7 @@ var labels = {
 33: 'UNORM',
 34: 'TZ*BS',
 35: 'EDITPAT',
-36: 'PROB',     // Privileged op? QY110
+36: 'PROB',     // Privileged op? QY110 QK700:0932
 37: 'TIMUP',
 // 38 not found
 39: 'GZ/MB3',
@@ -390,8 +391,8 @@ var labels = {
 // 51: I/O
 // 52: I/O
 // 53: I/O
-54: 'CANG',
-55: 'CHLOG',
+54: 'CANG', // CA(29-31) != 0, CA(4-7) != 0? QK700:0995
+55: 'CHLOG', // Select channel log out QK700:018d
 56: 'I-FETCH', // QP206/D94
 57: 'IA(30)',
 58: 'EXT,CHIRPT',
@@ -429,10 +430,10 @@ var labels = {
 24: 'G2<0',
 25: 'G2LB2',
 // 26: I/O
-27: 'MD/JI',
-28: 'IVA', // QT110/0149
+27: 'MD/JI', // QG400:0307
+28: 'IVA', // CA all right or invalid. QK700:09bd
 // 29: I/O
-30: '(CAR)',
+30: '(CAR)',    // Test carry. QP800:0650
 31: '(Z00)',
 },
 
@@ -440,6 +441,7 @@ var labels = {
 
 // Generates the info box for the given entry at addr.
 // Returns array of strings.
+// Addr is a 4-digit hex string.
 function decode(addr, entry) {
   function get(label) {
     if (!(label in labels)) {

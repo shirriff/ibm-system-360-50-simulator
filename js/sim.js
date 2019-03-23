@@ -20,11 +20,20 @@ $(document).ready(function() {
       stopAnimate();
       step();
     });
+    $("#skip").click(function(e) {
+      stopAnimate();
+      skip();
+    });
     $("#control").click(function(e) {
       if ($("#control").text() == 'Stop') {
         stopAnimate();
       } else {
         startAnimate();
+      }
+    });
+    $("#addr").keypress(function(e) {
+      if (e.which == 13) {
+        step();
       }
     });
 
@@ -33,13 +42,11 @@ $(document).ready(function() {
 });
 
 function init() {
-  addr = 0x0240; // IPL
-  $("#LS0").html("00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff");
-  $("#LS1").html("00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff");
-  $("#LS2").html("00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff");
-  $("#LS3").html("00 11 22 <span class='hilite'>33</span> 44 55 66 77 88 99 aa bb cc dd ee ff");
+  count = 0;
+  speed = 500; // ms
+  seenInstructions = {};
   state = getInitialState();
-  displayOp(state, div2);
+  displayOp(getAddrFromField(), div2);
   displayState(state);
 }
 
@@ -73,29 +80,60 @@ function animate() {
   requestAnimationFrame(animate);
   var now = Date.now();
   var elapsed = now - then;
-  if (elapsed > 500) {
-    then = now;
+  if (elapsed < speed) {
+    return;
+  }
+  // Do the frame(s)
+  then = now;
+  var count = skipping ? 50 : 1;
+  for (var i = 0; i < count; i++) {
     step();
+    if (skipping && !(state['ROAR'] in seenInstructions)) {
+      skipping = 0;
+      speed = 500;
+      console.log('done skipping');
+      stopAnimate();
+      return;
+    }
   }
 }
 
-function getAddr(state) {
-  var addr = state['ROAR'];
-  return addr.toString(16).padStart(4, '0').toLowerCase();
+// Return the addr in the addr UI field as a string. Also reformats field.
+function getAddrFromField() {
+  var iaddr = parseInt($("#addr").val(), 16);
+  var saddr = iaddr.toString(16).padStart(4, '0').toLowerCase();
+  $("#addr").val(saddr);
+  return saddr;
 }
 
+// Perform a single microinstruction step
 function step() {
-    displayOp(state, div3);
-    cycle(state, data[getAddr(state)]);
-    displayOp(state, div2);
-    displayState(state);
+  var saddr = getAddrFromField();
+  var iaddr = parseInt(saddr, 16);
+  state['ROAR'] = iaddr;
+  count += 1;
+  $("#count").text(count);
+  seenInstructions[iaddr] = 1;
+  displayOp(saddr, div3);
+  cycle(state, data[saddr]);
+  doio(state, data[saddr]);
+  // Update address
+  saddr = state['ROAR'].toString(16).padStart(4, '0').toLowerCase();
+  $("#addr").val(saddr);
+  displayOp(saddr, div2);
+  displayState(state);
 }
 
-function displayOp(state, div) {
-    var entry = data[addr];
-    // Display microinstruction that just ran.
-    var addr = getAddr(state);
-    var result = decode(addr, data[addr]);
+// Run at high speed until a new instruction is encountered
+function skip() {
+  speed = 0;
+  skipping = 1;
+  startAnimate();
+}
+
+// Display micro-operation with given address; put into div
+function displayOp(saddr, div) {
+    var result = decode(saddr, data[saddr]);
     result.pop();
     div.innerHTML = result.join('\n');
 }
@@ -104,10 +142,11 @@ function getInitialState() {
   var state = {'FN': 3, 'J': 3, 'lSAR': 3, 'PSW': 3, 'L': 3, 'R': 3, 'MD': 3, 'F': 3, 'Q': 3,
   'M': 3, 'H': 3, 'T': 3,
   'A': 3, 'IA': 3, 'D': 3, 'XG': 3, 'Y': 3, 'U': 3, 'V': 3, 'W': 3,
-  'G1': 3, 'G2': 3, 'LB': 3, 'MB': 3, 'ROAR': 0x240, 'SP': 5};
+  'G1': 3, 'G2': 3, 'LB': 3, 'MB': 3, 'SP': 5};
   state['LS'] = new Array(64).fill(0x42);
   state['MS'] = new Array(8192).fill(0); // Words
   state['S'] = new Array(8).fill(0); // Words
+  state['ROAR'] = parseInt(getAddrFromField(), 16);
   return state;
 }
 
@@ -187,6 +226,8 @@ formatters = {
  'WL': fmtN,
  'WR': fmtN,
  'IBFULL': fmtB,
+ 'SCFS': fmtB,
+ 'SCPS': fmtB,
 };
 
 function displayState(state) {

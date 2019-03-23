@@ -8,6 +8,7 @@ This file holds unittests for engine.js, using qunit
   <title>Engine unittests</title>
   <link rel="stylesheet" href="qunit-2.6.2.css" >
   <script src="data.js"></script>
+  <script src="../decode.js"></script>
   <script src="../engine.js"></script>
 </head>
 <body>
@@ -36,6 +37,19 @@ This file holds unittests for engine.js, using qunit
     var entry = {'CE': 0x1234, 'LX': 3 /* E */, 'RY': 3 /* M23 */, 'TC': 1 /* add */, 'AD': 1 /* default op */, 'AL': 0 /* shift */, 'DG': 0 /* default */};
     adder(state, entry);
     assert.equal(state['T'], (0x1234 << 1) + 0x5678);
+    });
+
+    QUnit.test( "adder dg2 HOT1→ADDER", function(assert) {
+    var state = {'L': 0x12345678};
+    adder(state, {'LX': 1 /* L */, 'RY': 0 /* 0 */, 'TC': 1 /* add */, 'AD': 1 /* default op */, 'DG': 2 /* HOT1→ADDER */});
+    assert.equal(state['T'], 0x12345679);
+    });
+
+    // Based on 02D3
+    QUnit.test( "adder-dec", function(assert) {
+    var state = {'R': 0};
+    adder(state, {'RY': 1, 'TC': 0, 'LX': 0, 'TR': 1, 'AD': 1, 'AL': 0, 'DG': 0});
+    assert.equal(state['T'], 0xffffffff);
     });
 
     // The default adder inputs when nothing happens
@@ -138,6 +152,40 @@ This file holds unittests for engine.js, using qunit
     assert.equal(state['M'], 0x07345678);
     });
 
+    QUnit.test( "movers", function(assert) {
+    // E->WR, W->MMB
+    var state = { 'LB': 0, 'L': 0x34000000, 'MB': 0, 'M': 0x12000000};
+    // LLB -> U, MLB -> V, ?->WL, ?->WR
+    var entry = {'LU': 7, 'MV': 2, 'UL': 3, 'UR': 3, 'WM': 0};
+    state['WFN'] = 1; // or
+    mover(state, entry);
+    assert.equal(state['W'], 0x12 | 0x34);
+
+    state['WFN'] = 2; // and
+    mover(state, entry);
+    assert.equal(state['W'], 0x12 & 0x34);
+
+    state['WFN'] = 3; // xor
+    mover(state, entry);
+    assert.equal(state['W'], 0x12 ^ 0x34);
+
+    state['WFN'] = 4; // char
+    mover(state, entry);
+    assert.equal(state['W'], 0x34);
+
+    state['WFN'] = 5; // zone
+    mover(state, entry);
+    assert.equal(state['W'], 0x30);
+
+    state['WFN'] = 6; // numeric
+    mover(state, entry);
+    assert.equal(state['W'], 0x04);
+
+    state['WFN'] = 0; // cross
+    mover(state, entry);
+    assert.equal(state['W'], 0x43);
+    });
+
     QUnit.test( "counters", function(assert) {
     var state = {'LB': 1, 'MB': 1, 'MD': 1};
     var entry = {'UP': 0 /* 0 -> */, 'LB': 1, 'MB': 0, 'MD': 0};
@@ -227,6 +275,30 @@ This file holds unittests for engine.js, using qunit
     assert.deepEqual(state['S'], [0, 0, 1, 1, 0, 0, 0, 1]);
     });
 
+    QUnit.test( "stat24: E→S47", function(assert) {
+    var state = {'S': [0, 0, 1, 1, 0, 0, 0, 1]};
+    stat(state, {'CE': 6, 'SS': 24});
+    assert.deepEqual(state['S'], [0, 0, 1, 1, 0, 1, 1, 0]);
+    });
+
+    QUnit.test( "stat25: S47ΩE", function(assert) {
+    var state = {'S': [0, 0, 1, 1, 0, 0, 0, 1]};
+    stat(state, {'CE': 6, 'SS': 25});
+    assert.deepEqual(state['S'], [0, 0, 1, 1, 0, 1, 1, 1]);
+    });
+
+    QUnit.test( "stat38: E(13)→WFN", function(assert) {
+    var state = {};
+    stat(state, {'SS': 38, 'CE': 0xe});
+    assert.equal(state['WFN'], 6);
+    });
+
+    QUnit.test( "stat26: S47.¬E", function(assert) {
+    var state = {'S': [0, 0, 1, 1, 0, 0, 1, 1]};
+    stat(state, {'CE': 6, 'SS': 26});
+    assert.deepEqual(state['S'], [0, 0, 1, 1, 0, 0, 0, 1]);
+    });
+
     QUnit.test( "stat55", function(assert) {
     // 55: T->PSW,IPL->T
     var state = {'PSW': 42, 'T': 0};
@@ -240,6 +312,22 @@ This file holds unittests for engine.js, using qunit
     var state = {};
     stat(state, {'SS': 57, 'CE': 0x3});
     assert.equal(state['SCANCTRL'], 0x0c);
+    });
+
+    QUnit.test( "al16 SL4→F", function(assert) {
+    // SL4->F
+    var state = {'T': 0x12345678, 'F': 0x3};
+    aldg(state, {'AL': 16, 'DG': 0});
+    assert.equal(state['T'], 0x23456780);
+    assert.equal(state['F'], 0x1);
+    });
+
+    QUnit.test( "al21", function(assert) {
+    // F->SR4->F: guess as to function
+    var state = {'T': 0x12345678, 'F': 0x3};
+    aldg(state, {'AL': 21, 'DG': 0});
+    assert.equal(state['T'], 0x31234567);
+    assert.equal(state['F'], 0x8);
     });
 
   </script>

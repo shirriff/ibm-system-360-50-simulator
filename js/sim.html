@@ -8,6 +8,7 @@
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
 -->
 <script src="jquery.min.js"></script>
+<script src="io.js"></script>
 <script src="decode.js"></script>
 <script src="engine.js"></script>
 <script src="sim.js"></script>
@@ -26,12 +27,14 @@
 <body>
 <button id="control">Stop</button>
 <button id="step">Step</button>
-<br/>
+<button id="skip">Skip</button>
+&nbsp;Next addr: <input type="text" id="addr" value="0240" style="width:4em"></input>
+Op count: <span style="margin-left: 20px;font-family:sans-serif;font-size:80%;" id="count">0</span>
 <div id="wrapper">
   <canvas class="layer" style="z-index:-1;" id="can"></canvas>
   <div id="data" class="layer">
-    <div id="LSFRc" class="elt" style="top:10px;left:350px;">LSFR
-      <div id="LSFR">3</div>
+    <div id="FNc" class="elt" style="top:10px;left:350px;">LSFR
+      <div id="FN">3</div>
     </div>
     <div id="Jc" class="elt" style="top:10px;left:400px;">J
       <div id="J">3</div>
@@ -95,7 +98,6 @@
     SP: <span id="SP"></span>
     </div>
     <div class="elt" style="top:377px">
-    Next ROAR: <span id="ROAR"></span>
     </div>
 
     <div class="elt" style="top: 400px;display:block;">Microcode
