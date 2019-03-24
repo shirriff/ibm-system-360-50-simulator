@@ -4,8 +4,9 @@ var ioactions = {}; // Dictionary of pending I/O actions
 
 function doio(state, entry) {
   if (count in ioactions) {
-    ioactions[count](state);
+    var status = ioactions[count](state);
     delete ioactions[count];
+    return status;
   }
 }
 
@@ -18,7 +19,8 @@ function chctl(state, entry) {
       // 0001 -> CHCTL: start IO QK800:09b4 QK700:9be
       ioactions[count+2] = function(state) {
         state['S'][3] = 1; // Channel response QK800:0988
-        state['CR'] = 0; // for CRMD. 0 = start IO accepted? QK800
+        state['CR'] = 0; // for CRMD. 0 = CC for start IO accepted? QK800
+        return "IO accepted";
       };
       break;
     case 2:
@@ -30,6 +32,16 @@ function chctl(state, entry) {
       ioactions[count+2] = function(state) {
         state['S'][3] = 1; // Channel response QK800:0988
         state['S'][2] = 1; // Channel end status received QK800:09b5
+        // 50Maint page 156: CC=1 for channel end, CC=2 for channel busy
+        var us = 0x6c; // Unit status must be 0xx01x00 for success
+        var cs = 0x80; // Channel status must be xx000000 for success
+        state['M'] = (us << 24) | (cs << 16);
+        for (var i = 0; i < 24; i += 4) {
+          // IPL card
+          state['MS'][i] = [0x00000000, 0x00000400, 0x02000400, 0x00000050,
+          0x00020000, 0x00000000][i >> 2];
+        }
+        return "IO test complete";
       };
       break;
     case 8:

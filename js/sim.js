@@ -1,14 +1,15 @@
 var data = undefined;
 var div = undefined;
-var div2 = undefined;
+var divop1 = undefined;
 
 $(document).ready(function() {
   can = $("#can")[0];
   ctx = can.getContext('2d');
   div = $("#div")[0];
-  div2 = $("#div2")[0];
-  div3 = $("#div3")[0];
+  divop1 = $("#divop1")[0];
+  divop2 = $("#divop2")[0];
   div.innerHTML = '---loading---';
+  memactive = false;
 
   // Load data and then start up
   $.getJSON("data.json", function(indata) {
@@ -16,6 +17,9 @@ $(document).ready(function() {
     div.innerHTML = '';
 
     // Actions
+    $("#mem").click(function(e) {
+      mem();
+    });
     $("#step").click(function(e) {
       stopAnimate();
       step();
@@ -41,12 +45,30 @@ $(document).ready(function() {
   }).fail(function() { alert('fail');});
 });
 
+function mem() {
+  memactive = true;
+  var result = [];
+
+  var line = [];
+  for (var i = 0; i < 256; i += 4) {
+    if (line.length == 0) {
+      line.push(fmt4(i) + ': ');
+    }
+    line.push(fmt4(state['MS'][i]));
+    if ((line.length % 8) == 1) {
+      result.push(line.join(' '));
+      line = [];
+    }
+  }
+  $('#divmem').html(result.join('\n'));
+}
+
 function init() {
   count = 0;
   speed = 500; // ms
   seenInstructions = {};
   state = getInitialState();
-  displayOp(getAddrFromField(), div2);
+  displayOp(getAddrFromField(), divop1);
   displayState(state);
 }
 
@@ -114,14 +136,18 @@ function step() {
   count += 1;
   $("#count").text(count);
   seenInstructions[iaddr] = 1;
-  displayOp(saddr, div3);
-  cycle(state, data[saddr]);
-  doio(state, data[saddr]);
+  displayOp(saddr, divop2);
+  var msg1 = cycle(state, data[saddr]);
+  var msg2 = doio(state, data[saddr]);
   // Update address
   saddr = state['ROAR'].toString(16).padStart(4, '0').toLowerCase();
   $("#addr").val(saddr);
-  displayOp(saddr, div2);
+  displayOp(saddr, divop1);
   displayState(state);
+  $("#divmsg").html(msg1 || msg2 || '');
+  if (memactive) {
+    mem();
+  }
 }
 
 // Run at high speed until a new instruction is encountered
@@ -139,10 +165,12 @@ function displayOp(saddr, div) {
 }
 
 function getInitialState() {
-  var state = {'FN': 3, 'J': 3, 'lSAR': 3, 'PSW': 3, 'L': 3, 'R': 3, 'MD': 3, 'F': 3, 'Q': 3,
-  'M': 3, 'H': 3, 'T': 3,
+  var state = {'FN': 3, 'J': 3, 'lSAR': 3, 'PSW': 3, 'L': 0xffffffff, 'R': 0xffffffff, 'MD': 3, 'F': 3, 'Q': 3,
+  'M': 0xffffffff, 'H': 0xffffffff, 'T': 3,
   'A': 3, 'IA': 3, 'D': 3, 'XG': 3, 'Y': 3, 'U': 3, 'V': 3, 'W': 3,
-  'G1': 3, 'G2': 3, 'LB': 3, 'MB': 3, 'SP': 5};
+  'G1': 3, 'G2': 3, 'LB': 3, 'MB': 3, 'SP': 5,
+  'WFN': 2, // Set up at QK801:0988 during IPL
+  };
   state['LS'] = new Array(64).fill(0x42);
   state['MS'] = new Array(8192).fill(0); // Words
   state['S'] = new Array(8).fill(0); // Words
@@ -228,6 +256,10 @@ formatters = {
  'IBFULL': fmtB,
  'SCFS': fmtB,
  'SCPS': fmtB,
+ 'SAR': fmt4,
+ 'BS': fmtN,
+ 'WFN': fmtN,
+ 'CR': fmtN,
 };
 
 function displayState(state) {

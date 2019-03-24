@@ -18,6 +18,15 @@ This file holds unittests for engine.js, using qunit
   <script src="qunit-2.6.2.js"></script>
   <script>
 
+  // Format d as 4 hex bytes
+  function fmt4(d) {
+    return d.toString(16).padStart(8, '0');
+  }
+
+  function alert(msg) {
+    QUnit.assert.equal(0, 1, msg);
+  }
+
     QUnit.test( "adder", function(assert) {
     var state = {'L': 0x12345678, 'R': 0x23456789};
     var entry = {'LX': 1 /* L */, 'RY': 1 /* R */, 'TC': 1 /* add */, 'AD': 1 /* default op */, 'AL': 0 /* shift */, 'DG': 0 /* default */};
@@ -87,9 +96,11 @@ This file holds unittests for engine.js, using qunit
     });
 
     QUnit.test( "latch4", function(assert) {
-    var state = {'T': 0x12345678, 'R': 0x56781234};
+    var state = {'T': 0x12345678, 'R': 0x56781234, 'SAR': 0x20};
+    state['MS'] = [];
     adderLatch(state, {'TR': 4 /* M */});
-    assert.equal(state['D'], 0x12345678);
+    assert.equal(state['SDR'], 0x12345678);
+    assert.equal(state['MS'][0x20], 0x12345678);
     });
 
     QUnit.test( "latch5", function(assert) {
@@ -100,10 +111,9 @@ This file holds unittests for engine.js, using qunit
 
     QUnit.test( "latch6", function(assert) {
     var state = {'T': 0x12345678, 'R': 0x56781234};
-    adderLatch(state, {'TR': 6 /* RA */});
-    // TODO: handle read
+    adderLatch(state, {'TR': 6 /* R,A */});
     assert.equal(state['R'], 0x12345678);
-    assert.equal(state['A'], 0x12345678);
+    assert.equal(state['SAR'], 0x12345678);
     });
 
     QUnit.test( "latch7", function(assert) {
@@ -113,15 +123,27 @@ This file holds unittests for engine.js, using qunit
     });
 
     QUnit.test( "latch12", function(assert) {
-    var state = {'T': 0x12345678, 'D': 0x87654321};
+    var state = {'T': 0x12345678, 'SAR': 0x10};
+    state['MS'] = [];
+    state['MS'][0x10] = 0x3456789a;
     adderLatch(state, {'TR': 12 /* IAR */});
-    assert.equal(state['IAR'], 0x00654321);
+    assert.equal(state['IAR'], 0x0006789a);
     });
 
     QUnit.test( "latch20", function(assert) {
     var state = {'T': 0x12345678};
     adderLatch(state, {'TR': 20 /* H */});
     assert.equal(state['H'], 0x12345678);
+    });
+
+    QUnit.test( "latch29 D*BS", function(assert) {
+    // BS = 0011: only modify last two memory words
+    var state = {'T': 0x12345678, 'BS': 3, 'SAR': 0x30};
+    state['MS'] = [];
+    state['MS'][0x30] = 0x9abcdef0;
+    adderLatch(state, {'TR': 29});
+    assert.equal(state['SDR'], 0x9abc5678);
+    assert.equal(state['MS'][0x30], 0x9abc5678);
     });
 
     QUnit.test( "latch31", function(assert) {
@@ -186,6 +208,14 @@ This file holds unittests for engine.js, using qunit
     assert.equal(state['W'], 0x43);
     });
 
+    QUnit.test( "WM 4 W27→PSW4", function(assert) {
+    var state = {'PSW': 0x12345668, 'R': 0x876543fe};
+    var entry = {'LU': 2 /* U<-R3 */, 'MV': 0, 'UL': 1 /* U */, 'UR': 1 /* U */}; // R3->W
+    entry['WM'] = 4; // W27→PSW4
+    mover(state, entry);
+    assert.equal(state['PSW'], 0x1234567e);
+    });
+
     QUnit.test( "counters", function(assert) {
     var state = {'LB': 1, 'MB': 1, 'MD': 1};
     var entry = {'UP': 0 /* 0 -> */, 'LB': 1, 'MB': 0, 'MD': 0};
@@ -223,6 +253,13 @@ This file holds unittests for engine.js, using qunit
     state['R'] = 123;
     localStorageWrite(state, entry);
     assert.equal(state['LS'][49], 123);
+    });
+
+
+    QUnit.test( "ls3  WS,E→LSA", function(assert) {
+    var state = {};
+    localStorage(state, {'WS': 3, 'CE': 5, 'SF': 0});
+    assert.equal(state['LSAR'], 0x35); // LSFN = 0b110101
     });
 
     QUnit.test( "roar1", function(assert) {
@@ -307,6 +344,12 @@ This file holds unittests for engine.js, using qunit
     assert.equal(state['PSW'], 0);
     });
 
+    QUnit.test( "stat56 T→PSW", function(assert) {
+    var state = {'PSW': 0x12345678, 'T': 0x456789ab};
+    stat(state, {'SS': 56,});
+    assert.equal(state['PSW'], 0x12375678);
+    });
+
     QUnit.test( "stat57", function(assert) {
     // 57: SCAN*E00
     var state = {};
@@ -314,12 +357,53 @@ This file holds unittests for engine.js, using qunit
     assert.equal(state['SCANCTRL'], 0x0c);
     });
 
+    QUnit.test( "al12 SR1→F", function(assert) {
+    var state = {'T': 0x12345679};
+    aldg(state, {'AL': 12, 'DG': 0});
+    assert.equal(state['T'], 0x12345679 >> 1);
+    assert.equal(state['F'], 0x1);
+    });
+
+    QUnit.test( "al13 SR1→Q", function(assert) {
+    var state = {'T': 0x12345679};
+    aldg(state, {'AL': 13, 'DG': 0});
+    assert.equal(state['T'], 0x12345679 >> 1);
+    assert.equal(state['Q'], 0x1);
+    });
+
     QUnit.test( "al16 SL4→F", function(assert) {
-    // SL4->F
     var state = {'T': 0x12345678, 'F': 0x3};
     aldg(state, {'AL': 16, 'DG': 0});
     assert.equal(state['T'], 0x23456780);
     assert.equal(state['F'], 0x1);
+    });
+
+    QUnit.test( "al17 F→SL4→F", function(assert) {
+    var state = {'T': 0x12345678, 'F': 0x3};
+    aldg(state, {'AL': 17, 'DG': 0});
+    assert.equal(state['T'], 0x23456783);
+    assert.equal(state['F'], 0x1);
+    });
+
+    QUnit.test( "al18 FPSL4", function(assert) {
+    var state = {'T': 0x12345678, 'F': 0x3};
+    aldg(state, {'AL': 18, 'DG': 0});
+    assert.equal(state['T'], 0x23456780);
+    assert.equal(state['F'], 0x3);
+    });
+
+    QUnit.test( "al19 F→FPSL4", function(assert) {
+    var state = {'T': 0x12345678, 'F': 0x3};
+    aldg(state, {'AL': 19, 'DG': 0});
+    assert.equal(state['T'], 0x23456783);
+    assert.equal(state['F'], 0x3);
+    });
+
+    QUnit.test( "al20 SR4→F", function(assert) {
+    var state = {'T': 0x12345678, 'F': 0x3};
+    aldg(state, {'AL': 20, 'DG': 0});
+    assert.equal(state['T'], 0x01234567);
+    assert.equal(state['F'], 0x8);
     });
 
     QUnit.test( "al21", function(assert) {
@@ -330,6 +414,34 @@ This file holds unittests for engine.js, using qunit
     assert.equal(state['F'], 0x8);
     });
 
+    QUnit.test( "al23 1→FPSR4→F", function(assert) {
+    var state = {'T': 0x12345678, 'F': 0x3};
+    aldg(state, {'AL': 23, 'DG': 0});
+    assert.equal(state['T'], 0x11234567);
+    assert.equal(state['F'], 0x8);
+    });
+
+    QUnit.test( "al25 F→SR4", function(assert) {
+    var state = {'T': 0x12345678, 'F': 0x3};
+    aldg(state, {'AL': 25, 'DG': 0});
+    assert.equal(state['T'], 0x31234567);
+    assert.equal(state['F'], 0x3);
+    });
+
+    QUnit.test( "al26 E→FPSL4", function(assert) {
+    var state = {'T': 0x12345678, 'F': 0x3};
+    aldg(state, {'AL': 26, 'DG': 0, 'CE': 0x4});
+    assert.equal(state['T'], 0x23456784);
+    assert.equal(state['F'], 0x3);
+    });
+
+    QUnit.test( "al30 D→", function(assert) {
+    var state = {'SAR': 0x30};
+    state['MS'] = [];
+    state['MS'][0x30] = 0x12345678;
+    aldg(state, {'AL': 30, 'DG': 0, 'CE': 0x4});
+    assert.equal(state['T'], 0x12345678);
+    });
   </script>
 </body>
 </html>
