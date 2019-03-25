@@ -234,13 +234,13 @@ function fmtPsw(d) {
   var cc = (psw1 >>> 28) & 0x3;
   var pmask = (psw1 >>> 24) & 0xf;
   var ia = psw1 & 0xffffff;
-  var psw = smask.toString(16).padStart(2, '0') + ' ' +
-      key.toString(16) + ' ' +
-      amwp.toString(16) + ' ' +
-      ilc.toString(16) + ' ' +
-      cc.toString(16) + ' ' +
-      pmask.toString(16) + ' ' +
-      ia.toString(16);
+  var psw = '[smask:' + smask.toString(16).padStart(2, '0') +
+      ' key:' + key.toString(16) +
+      ' amwp:' + amwp.toString(16) +
+      ' ilc:' + ilc.toString(16) +
+      ' cc:' + cc.toString(16) +
+      ' pmask:' + pmask.toString(16) +
+      ' ia:' + ia.toString(16) + ']';
   return psw;
 }
 
@@ -248,7 +248,6 @@ formatters = {
   'FN': fmtN,
  'J': fmtN,
  'lSAR': fmt1,
- 'PSW': fmtPsw,
  'L': fmt4,
  'R': fmt4,
  'MD': fmtN,
@@ -308,6 +307,10 @@ function displayState(state) {
     } else if (key == 'S') {
       var line = state['S'].join(' ');
       $("#S").html(line);
+    } else if (key == 'PSW') {
+      // PSW is stored in several state variables so reconstruct it.
+      var psw1 = state['PSW'][1] | (state['ILC'] << 30) | (state['CC'] << 28) | state['IAR'];
+      misc.push(key + ': ' + fmtPsw([state['PSW'][0], psw1]));
     } else if (key in formatters) {
       if ( $("#" + key).length) {
         $("#" + key).html(formatters[key](state[key]));

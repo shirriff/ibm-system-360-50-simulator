@@ -17,6 +17,16 @@ function cycle(state, entry) {
   return msg || msg2;
 }
 
+// Return PSW word 0 or 1.
+// This is used because IAR and CC are split out of state['PSW']
+function getPSW(n) {
+  if (n == 0) {
+    return state['PSW'][0];
+  } else {
+    return state['PSW'][1] | (state['ILC'] << 30) | (state['CC'] << 28) | state['IAR'];
+  }
+}
+
 // uses LX (left input xg), RY (right input y), DG, TC (-/+), AD (adder function)
 function adder(state, entry) {
   var xg = 0;
@@ -41,8 +51,7 @@ function adder(state, entry) {
       break;
     case 4: // LRL // L23→XG01 QT115/0189, QC301/003F
       // and L(16-13) to M(16-31) via BUS (0-15) LRL→MHL QE580/070b
-      xg = (l & 0xffff) << 16;
-      alert('Unimplemented LX ' + entry['LX'] + " " + labels['LX'][entry['LX']]);
+      xg = (state['L'] & 0xffff) << 16;
       break;
     case 5: // LWA
       alert('Unimplemented LX ' + entry['LX'] + " " + labels['LX'][entry['LX']]);
@@ -466,14 +475,13 @@ function adderLatch(state, entry) {
       x0(state);
       syl1(state);
       var op0 = state['T'] >>> 28;
-      if (op0 <= 3) {
+      // See PrincOpsDec67 page 89 for information on ILC
+      if (op0 <= 3) { // Instruction starts with 00
         state['ILC'] = 1;
-      } else if (op0 <= 9) {
+      } else if (op0 <= 0xb) { // Instruction starts with 01 or 10
         state['ILC'] = 2;
-      } else if (op0 == 0xd || op0 == 0xf) {
+      } else { // Instruction starts with 11
         state['ILC'] = 3;
-      } else {
-        state['ILC'] = 0;
       }
       break;
     case 26: // MHL  T(0-3)→MD, T(0-15)→M(16,31) QC301/003F
@@ -538,7 +546,7 @@ function mover(state, entry) {
       u = 0;
       break;
     case 5: // PSW4      // PSW word 4.
-      u = state['PSW'][1] >>> 24;
+      u = getPSW(1) >>> 24;
       break;
     case 6: // LMB       // L indexed by MB
       u = (state['L'] & bytemask[state['MB']]) >> byteshift[state['MB']];
@@ -683,7 +691,7 @@ function mover(state, entry) {
       // i.e. CC and program mask
       state['PSW'][1] = ((state['PSW'][1] & ~0x3f000000) | ((w & 0x3f) << 24)) >>> 0;
       break;
-    case 5: // W→PSW0    // PSW bits 0-7 (left)
+    case 5: // W→PSW0    // PSW bits 0-7, system mask
       state['PSW'][0] = ((state['PSW'][0] & ~0xff000000) | (w << 24)) >>> 0;
       break;
     case 6: // WL→J
@@ -893,10 +901,9 @@ function iar(state, entry) {
       break;
     case 5 : // IA+2/4 // QT115/019B
       // CLF 001: IAR += 2 if ILC = 01, IAR += 4 if ILC = 1X
-      var ilc = (state['PSW'][1] >>> 30) & 0x3;
-      if (ilc == 1) {
+      if (state['ILC'] == 1) {
         state['IAR'] += 2;
-      } else if (ilc == 2 || ilc == 3) {
+      } else if (state['ILC'] == 2 || state['ILC'] == 3) {
         state['IAR'] += 4;
       }
       break;
@@ -1080,7 +1087,13 @@ function stat(state, entry) {
       break;
     case 41: // SETCRALG
       // Save CAR(0) V CAR(1). If T=0 00→CR, if T<0, 01→CR, QE580/222. Part may be BCVC
-      alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
+      if (state['T'] == 0) {
+        state['CAR'] = 0;
+      } else if (state['T'] & 0x80000000) {
+        state['CAR'] = 1; // Negative
+      } else {
+        state['CAR'] = 2; // Positive
+      }
       break;
     case 42: // SETCRLOG
       alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
@@ -1124,7 +1137,7 @@ function stat(state, entry) {
       break;
     case 55: // T→PSW,IPL→T,      // QU100, 50Maint
       // IPL UA → 0-7, IPL CA → 21-23
-      // T 12-15 to PSW control bits
+      // T 12-15 to PSW AMWP control bits
       state['PSW'][0] = ((state['PSW'][0] & ~0x000f0000) | state['T'] & 0x000f0000) >>> 0;
       // Card reader = 00C: channel 0, device 0C
       var ca = 0

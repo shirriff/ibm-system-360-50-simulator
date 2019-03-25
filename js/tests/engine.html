@@ -56,6 +56,12 @@ This file holds unittests for engine.js, using qunit
     assert.equal(state['T'], 0x12345679);
     });
 
+    QUnit.test( "adder lx 4 LRL", function(assert) {
+    var state = {'L': 0x12345678};
+    adder(state, {'LX': 4 /* LRL */, 'RY': 0 /* 0 */, 'TC': 1 /* add */, 'AD': 1 /* default op */, 'DG': 0 /* default */});
+    assert.equal(state['T'], 0x56780000);
+    });
+
     // Based on 02D3
     QUnit.test( "adder-dec", function(assert) {
     var state = {'R': 0};
@@ -93,6 +99,13 @@ This file holds unittests for engine.js, using qunit
     state = {'PSW': [0, 3<<30], 'IAR': 0x12340000};
     iar(state, {'IV': 5})
     assert.equal(state['IAR'], 0x12340004); // +4
+    });
+
+    QUnit.test( "iar iv 7 IA+0/2→A", function(assert) {
+    // instruction length << 30
+    var state = {'PSW': [0, 0<<30], 'IAR': 0x12340000};
+    iar(state, {'IV': 7})
+    assert.equal(state['IAR'], 0x2340004);
     });
 
     QUnit.test( "latch1", function(assert) {
@@ -249,19 +262,16 @@ This file holds unittests for engine.js, using qunit
     for (var i = 0; i < 16; i++) {
       state = {'T': i << 28, 'S': []};
       adderLatch(state, {'TR': 25});
-      // See page 333 of Understanding the IBM 360 and 370 computers.
-      if (i <= 3) {
+      var top2 = i >> 2;
+      if (top2 == 0) {
         assert.equal(state['1SYL'], 1);
         assert.equal(state['ILC'], 1);
-      } else if (i <= 9) {
+      } else if (top2 == 1 || top2 == 2) {
         assert.equal(state['1SYL'], 0);
         assert.equal(state['ILC'], 2);
-      } else if (i == 0xd || i == 0xf) {
-        assert.equal(state['1SYL'], 0);
-        assert.equal(state['ILC'], 3);
       } else {
         assert.equal(state['1SYL'], 0);
-        assert.equal(state['ILC'], 0);
+        assert.equal(state['ILC'], 3);
       }
     }
     });
@@ -521,6 +531,18 @@ This file holds unittests for engine.js, using qunit
     }
     });
 
+    QUnit.test( "roar AB 56 I-FETCH", function(assert) {
+    var state = {};
+    roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 56, 'BB': 0});
+    assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2));
+    });
+
+    QUnit.test( "roar ZN 1 SMIF", function(assert) {
+    var state = {};
+    roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 1, 'AB': 0, 'BB': 0});
+    assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2));
+    });
+
     QUnit.test( "stat15: B0,1SYL", function(assert) {
     // X=0, B=0
     var state = {'T': 0x12300678, 'S': [0, 0, 0, 0, 0, 0, 0, 0]};
@@ -587,16 +609,30 @@ This file holds unittests for engine.js, using qunit
     assert.deepEqual(state['S'], [0, 0, 1, 1, 0, 1, 1, 1]);
     });
 
+    QUnit.test( "stat26: S47.¬E", function(assert) {
+    var state = {'S': [0, 0, 1, 1, 0, 0, 1, 1]};
+    stat(state, {'CE': 6, 'SS': 26});
+    assert.deepEqual(state['S'], [0, 0, 1, 1, 0, 0, 0, 1]);
+    });
+
     QUnit.test( "stat38: E(13)→WFN", function(assert) {
     var state = {};
     stat(state, {'SS': 38, 'CE': 0xe});
     assert.equal(state['WFN'], 6);
     });
 
-    QUnit.test( "stat26: S47.¬E", function(assert) {
-    var state = {'S': [0, 0, 1, 1, 0, 0, 1, 1]};
-    stat(state, {'CE': 6, 'SS': 26});
-    assert.deepEqual(state['S'], [0, 0, 1, 1, 0, 0, 0, 1]);
+    QUnit.test( "stat41: SETCRALG", function(assert) {
+    var state = {'T': 0};
+    stat(state, {'SS': 41, 'CE': 0xe});
+    assert.equal(state['CAR'], 0); // Zero
+
+    state = {'T': 0x80000001};
+    stat(state, {'SS': 41, 'CE': 0xe});
+    assert.equal(state['CAR'], 1); // Negative
+
+    state = {'T': 0x7fffffff};
+    stat(state, {'SS': 41, 'CE': 0xe});
+    assert.equal(state['CAR'], 2); // Positive
     });
 
     QUnit.test( "stat55  T→PSW,IPL→T", function(assert) {
