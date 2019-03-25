@@ -50,7 +50,11 @@ function mem() {
   var result = [];
 
   var line = [];
-  for (var i = 0; i < 256; i += 4) {
+  for (var i = 0; i < 1024 + 64; i += 4) {
+    if (i == 64) {
+      result.push('');
+      i = 1024;
+    }
     if (line.length == 0) {
       line.push(fmt4(i) + ': ');
     }
@@ -66,6 +70,8 @@ function mem() {
 function init() {
   count = 0;
   speed = 500; // ms
+  skipping = 0;
+  stopAnimate();
   seenInstructions = {};
   state = getInitialState();
   displayOp(getAddrFromField(), divop1);
@@ -74,6 +80,7 @@ function init() {
 
 function stopAnimate() {
   running = 0;
+  skipping = 0;
   $("#control").text('Run');
 }
 
@@ -107,15 +114,18 @@ function animate() {
   }
   // Do the frame(s)
   then = now;
-  var count = skipping ? 50 : 1;
+  var count = skipping ? 100 : 1;
   for (var i = 0; i < count; i++) {
     step();
-    if (skipping && !(state['ROAR'] in seenInstructions)) {
-      skipping = 0;
-      speed = 500;
-      console.log('done skipping');
-      stopAnimate();
-      return;
+    if (skipping) {
+      var breakpoint = parseInt($("#breakpoint").val(), 16);
+      if ((breakpoint && state['ROAR'] == breakpoint) ||
+          (!breakpoint && !(state['ROAR'] in seenInstructions))) {
+        skipping = 0;
+        speed = 500;
+        stopAnimate();
+        return;
+      }
     }
   }
 }
@@ -123,7 +133,7 @@ function animate() {
 // Return the addr in the addr UI field as a string. Also reformats field.
 function getAddrFromField() {
   var iaddr = parseInt($("#addr").val(), 16);
-  var saddr = iaddr.toString(16).padStart(4, '0').toLowerCase();
+  var saddr = fmtAddress(iaddr);
   $("#addr").val(saddr);
   return saddr;
 }
@@ -140,7 +150,7 @@ function step() {
   var msg1 = cycle(state, data[saddr]);
   var msg2 = doio(state, data[saddr]);
   // Update address
-  saddr = state['ROAR'].toString(16).padStart(4, '0').toLowerCase();
+  saddr = fmtAddress(state['ROAR']);
   $("#addr").val(saddr);
   displayOp(saddr, divop1);
   displayState(state);
@@ -162,20 +172,30 @@ function displayOp(saddr, div) {
     var result = decode(saddr, data[saddr]);
     result.pop();
     div.innerHTML = result.join('\n');
+    if (div == divop2) {
+      console.log(div.innerHTML);
+      console.log('L=' + state['L']);
+    }
 }
 
 function getInitialState() {
-  var state = {'FN': 3, 'J': 3, 'lSAR': 3, 'PSW': 3, 'L': 0xffffffff, 'R': 0xffffffff, 'MD': 3, 'F': 3, 'Q': 3,
+  var state = {'FN': 3, 'J': 3, 'lSAR': 3, 'PSW': [0xffffffff, 0xffffffff], 'L': 0xffffffff, 'R': 0xffffffff, 'MD': 3, 'F': 3, 'Q': 3,
   'M': 0xffffffff, 'H': 0xffffffff, 'T': 3,
   'A': 3, 'IA': 3, 'D': 3, 'XG': 3, 'Y': 3, 'U': 3, 'V': 3, 'W': 3,
   'G1': 3, 'G2': 3, 'LB': 3, 'MB': 3, 'SP': 5,
   'WFN': 2, // Set up at QK801:0988 during IPL
+  'SAR': 0xffffff, 'SDR': 0xffffffff,
   };
   state['LS'] = new Array(64).fill(0x42);
   state['MS'] = new Array(8192).fill(0); // Words
   state['S'] = new Array(8).fill(0); // Words
   state['ROAR'] = parseInt(getAddrFromField(), 16);
   return state;
+}
+
+// Convert string to hex roar address string
+function fmtAddress(d) {
+  return d.toString(16).padStart(4, '0').toLowerCase();
 }
 
 // Format d as a bit
@@ -205,19 +225,22 @@ function fmt4(d) {
 
 // Fmt d as PSW
 function fmtPsw(d) {
-  var smask = (d >> 32) & 0xff;
-  var key = (d >> 28) & 0xf;
-  var amwp = (d >> 24) & 0xf;
-  var ilc = (d >> 6) & 0x3;
-  var cc = (d >> 4) & 0x3;
-  var pmask = d & 0xf;
+  var psw0 = d[0];
+  var psw1 = d[1];
+  var smask = (psw0 >>> 24) & 0xff;
+  var key = (psw0 >>> 20) & 0xf;
+  var amwp = (psw0 >>> 16) & 0xf;
+  var ilc = (psw1 >>> 30) & 0x3;
+  var cc = (psw1 >>> 28) & 0x3;
+  var pmask = (psw1 >>> 24) & 0xf;
+  var ia = psw1 & 0xffffff;
   var psw = smask.toString(16).padStart(2, '0') + ' ' +
       key.toString(16) + ' ' +
       amwp.toString(16) + ' ' +
       ilc.toString(16) + ' ' +
       cc.toString(16) + ' ' +
-      pmask.toString(16);
-  console.log("PSW: " + psw);
+      pmask.toString(16) + ' ' +
+      ia.toString(16);
   return psw;
 }
 
@@ -260,15 +283,19 @@ formatters = {
  'BS': fmtN,
  'WFN': fmtN,
  'CR': fmtN,
+ 'SDR': fmt4,
+ 'SAR': fmt4,
+ 'IAR': fmt4,
 };
 
 function displayState(state) {
   var keys = Object.keys(state);
-  keys.sort();
+  keys = keys.sort();
+  var misc = [];
   for (var i = 0; i < keys.length; i++) {
     var key = keys[i];
     if (state[key] == undefined) {
-      alert('Undefined state ' + key);
+      throw('Undefined state ' + key);
     }
     if (key == 'MS') {
       // Main storage
@@ -277,16 +304,19 @@ function displayState(state) {
       for (var ls = 0; ls < 4; ls++) {
         var line = state['LS'].slice(ls * 16, (ls + 1) * 16).map(fmt4).join(' ');
         $("#LS" + ls).html(line);
-        console.log("#LS" + ls + " " + line);
       }
     } else if (key == 'S') {
       var line = state['S'].join(' ');
       $("#S").html(line);
-      console.log("#S" + " " + line);
     } else if (key in formatters) {
-      $("#" + key).html(formatters[key](state[key]));
+      if ( $("#" + key).length) {
+        $("#" + key).html(formatters[key](state[key]));
+      } else {
+        misc.push(key + ': ' + formatters[key](state[key]));
+      }
     } else {
-      console.log("No formatter for " + key);
+      // console.log("No formatter for " + key);
     }
   }
+  $("#misc").html(misc.join(', '));
 }

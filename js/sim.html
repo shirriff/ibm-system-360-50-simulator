@@ -30,6 +30,7 @@
 <button id="step">Step</button>
 <button id="skip">Skip</button>
 &nbsp;Next addr: <input type="text" id="addr" value="0240" style="width:4em"></input>
+&nbsp;Breakpoint: <input type="text" id="breakpoint" ="0240" style="width:4em"></input>
 Op count: <span style="margin-left: 20px;font-family:sans-serif;font-size:80%;" id="count">0</span>
 <div id="wrapper">
   <canvas class="layer" style="z-index:-1;" id="can"></canvas>
@@ -83,20 +84,7 @@ Op count: <span style="margin-left: 20px;font-family:sans-serif;font-size:80%;" 
         <div id="H">00112233</div>
       </div>
     </div>
-    <div class="elt" style="top:350px">
-    T: <span id="T"></span>
-    IA: <span id="IA"></span>
-    XG: <span id="XG"></span>
-    Y: <span id="Y"></span>
-    U: <span id="U"></span>
-    V: <span id="V"></span>
-    W: <span id="W"></span>
-    S: <span id="S"></span>
-    G1: <span id="G1"></span>
-    G2: <span id="G2"></span>
-    LB: <span id="LB"></span>
-    MB: <span id="MB"></span>
-    SP: <span id="SP"></span>
+    <div class="elt" id = "misc" style="top:350px">
     </div>
     <div class="elt" style="top:377px">
     </div>

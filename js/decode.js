@@ -278,7 +278,7 @@ var labels = {
 15: 'B0,1SYL', // (B=0)->S1, set 1SYL QT115/0189
 16: 'S03.¬E',           // Clear S03 bits from E
 17: '(T=0)→S3',
-18: 'E→B3,T30→S3',
+18: 'E→BS,T30→S3',
 19: 'E→BS',             // Store E to byte stats (i.e. byte mask)
 20: '1→BS*MB',
 // 21 not found
@@ -399,7 +399,7 @@ var labels = {
 // 59 not found
 60: 'PSS',      // Test and reset Program Scan Stat QU100
 // 61, 62 not found
-63: 'RX,S0',
+63: 'RX.S0',
 },
 
 'BB': {
@@ -649,8 +649,6 @@ function decode(addr, entry) {
   window.nextaddr = nextaddr;
     
   result.push(nextlabel + nextaddr);
-  // Log info for unittest
-  console.log(JSON.stringify(addr) + ": " + JSON.stringify(result) + ",");
   return result;
 }
 

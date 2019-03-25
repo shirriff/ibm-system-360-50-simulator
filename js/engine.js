@@ -13,8 +13,8 @@ function cycle(state, entry) {
   mover(state, entry);
   counters(state, entry); // Need counters after mover, see QK801:0992
   localStorageWrite(state, entry);
-  msg = msg || adderLatch(state, entry);
-  return msg;
+  var msg2 = adderLatch(state, entry);
+  return msg || msg2;
 }
 
 // uses LX (left input xg), RY (right input y), DG, TC (-/+), AD (adder function)
@@ -39,8 +39,8 @@ function adder(state, entry) {
     case 3: // E  // E is shifted left one bit
       xg = entry['CE'] << 1;
       break;
-    case 4: // LRL // L23->XG01 QT115/0189, QC301/003F
-      // and L(16-13) to M(16-31) via BUS (0-15) LRL->MHL QE580/070b
+    case 4: // LRL // L23→XG01 QT115/0189, QC301/003F
+      // and L(16-13) to M(16-31) via BUS (0-15) LRL→MHL QE580/070b
       xg = (l & 0xffff) << 16;
       alert('Unimplemented LX ' + entry['LX'] + " " + labels['LX'][entry['LX']]);
       break;
@@ -206,7 +206,7 @@ function aldg(state, entry) {
       alert('Unimplemented AL ' + entry['AL'] + " " + labels['AL'][entry['AL']]);
       break;
     case 6: // IA→H // Handled by D
-      alert('Unimplemented AL ' + entry['AL'] + " " + labels['AL'][entry['AL']]);
+      state['H'] = state['IAR'];
       break;
     case 7: // Q→SL→F
       alert('Unimplemented AL ' + entry['AL'] + " " + labels['AL'][entry['AL']]);
@@ -218,7 +218,8 @@ function aldg(state, entry) {
       alert('Unimplemented AL ' + entry['AL'] + " " + labels['AL'][entry['AL']]);
       break;
     case 10: // SL1→Q
-      alert('Unimplemented AL ' + entry['AL'] + " " + labels['AL'][entry['AL']]);
+      state['Q'] = (state['T'] & 0x80000000) ? 1 : 0;
+      state['T'] = (state['T'] << 1) >>> 0;
       break;
     case 11: // Q→SL1
       alert('Unimplemented AL ' + entry['AL'] + " " + labels['AL'][entry['AL']]);
@@ -326,6 +327,35 @@ function read(state) {
   return 'Read ' + fmt4(state['SDR']) + ' from ' + fmt4(state['SAR']);
 }
 
+function checkaddr(state, alignment) {
+  if (state['SAR'] & (alignment-1)) {
+    state['IVA'] = 1;
+  } else {
+    state['IVA'] = 0;
+  }
+}
+
+// Helper functions
+function x0(state) {
+  // (X=0)→S0, where X = T(12-15)
+  state['S'][0] = (state['T'] & 0x000f0000) == 0 ? 1 : 0;
+}
+
+function b0(state) {
+  // (B=0)→S1, where B = T(16-19)
+  state['S'][1] = (state['T'] & 0x0000f000) == 0 ? 1 : 0;
+}
+
+function syl1(state) {
+  // Set 1SYL
+  var op0 = state['T'] >>> 28;
+  if (op0 <= 3) {
+    state['1SYL'] = 1; // RR
+  } else {
+    state['1SYL'] = 0;
+  }
+}
+
 function adderLatch(state, entry) {
   // Adder latch destination
   var msg = '';
@@ -352,21 +382,32 @@ function adderLatch(state, entry) {
     case 6: // R,A       // stores to R and address reg.
       state['R'] = t;
       state['SAR'] = t;
+      checkaddr(state, 8);
       break;
     case 7: // L
       state['L'] = t;
+      console.log('*** L updated ' + t);
       break;
     case 8: // HA→A   Complicated hardware address implementation.
       alert('Unimplemented TR ' + entry['TR'] + " " + labels['TR'][entry['TR']]);
       break;
-    case 9: // R,AN // QT220/02bf
-      alert('Unimplemented TR ' + entry['TR'] + " " + labels['TR'][entry['TR']]);
+    case 9: // R,AN // QT220/20d
+      // AN means No IV addr trap 
+      state['R'] = t;
+      state['SAR'] = t;
+      checkaddr(state, 1);
       break;
     case 10: // R,AW
-      alert('Unimplemented TR ' + entry['TR'] + " " + labels['TR'][entry['TR']]);
+      // QA111: check word adr
+      state['R'] = t;
+      state['SAR'] = t;
+      checkaddr(state, 4);
       break;
     case 11: // R,AD
-      alert('Unimplemented TR ' + entry['TR'] + " " + labels['TR'][entry['TR']]);
+      // QG010: check double word adr
+      state['R'] = t;
+      state['SAR'] = t;
+      checkaddr(state, 8);
       break;
     case 12: // D→IAR // under D
       msg = read(state);
@@ -379,10 +420,13 @@ function adderLatch(state, entry) {
       alert('Unimplemented TR ' + entry['TR'] + " " + labels['TR'][entry['TR']]);
       break;
     case 15: // A // QP100/614
-      alert('Unimplemented TR ' + entry['TR'] + " " + labels['TR'][entry['TR']]);
+      state['SAR'] = t;
+      checkaddr(state, 2);
       break;
     case 16: // L,A
-      alert('Unimplemented TR ' + entry['TR'] + " " + labels['TR'][entry['TR']]);
+      state['L'] = t;
+      state['SAR'] = t;
+      checkaddr(state, 2);
       break;
     case 17:
       alert('Unimplemented I/O TR ' + entry['TR'] + " " + labels['TR'][entry['TR']]);
@@ -409,9 +453,30 @@ function adderLatch(state, entry) {
       alert('Unimplemented TR ' + entry['TR'] + " " + labels['TR'][entry['TR']]);
       break;
     case 25: // MLJK     // store to L, M, 12-15 to J, 16-19 to MD  QY310, QT110. 
-      alert('Unimplemented TR ' + entry['TR'] + " " + labels['TR'][entry['TR']]);
+    // CLF 001: L16-31 (i.e. LRL) → M 0-15, L28-31 (X) → J, ILC = length, 
+    // S1 on, S0 on if X=0.
+    // QT115:14e: T → L, M. 0→Refetch, T(12-15)→J, T(16-19)→MD, (X=0)→ S0,
+    // 16-19(B) → MD, 12-15 (X) → J, set ILC, 1SYL. (B=0)→S1
+      state['L'] = state['T'];
+      state['M'] = state['T'];
+      state['REFETCH'] = 0;
+      state['J'] = (state['T'] >>> 16) & 0xf;
+      state['MD'] = (state['T'] >>> 12) & 0xf;
+      b0(state);
+      x0(state);
+      syl1(state);
+      var op0 = state['T'] >>> 28;
+      if (op0 <= 3) {
+        state['ILC'] = 1;
+      } else if (op0 <= 9) {
+        state['ILC'] = 2;
+      } else if (op0 == 0xd || op0 == 0xf) {
+        state['ILC'] = 3;
+      } else {
+        state['ILC'] = 0;
+      }
       break;
-    case 26: // MHL  T(0-3)->MD, T(0-15)->M(16,31) QC301/003F
+    case 26: // MHL  T(0-3)→MD, T(0-15)→M(16,31) QC301/003F
       state['MD'] = (state['T'] >> 28) & 0xf;
       state['M'] = (state['T'] >> 16) & 0xfffff;
       break;
@@ -454,7 +519,7 @@ bytemask = [0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff];
 byteshift = [24, 16, 8, 0];
 
 function mover(state, entry) {
-  // Mover input left side -> U
+  // Mover input left side → U
   var u;
   switch (entry['LU']) {
     case 0: // no value
@@ -470,9 +535,10 @@ function mover(state, entry) {
       alert('Unimplemented LU ' + entry['LU'] + " " + labels['LU'][entry['LU']]);
       break;
     case 4: // XTR       // Parity error (extra bit)? Reset by reading. QU100
+      u = 0;
       break;
-    case 5: // PSW4      // PSW word 4 (right).
-      u = state['PSW'] & 0xff;
+    case 5: // PSW4      // PSW word 4.
+      u = state['PSW'][1] >>> 24;
       break;
     case 6: // LMB       // L indexed by MB
       u = (state['L'] & bytemask[state['MB']]) >> byteshift[state['MB']];
@@ -485,7 +551,7 @@ function mover(state, entry) {
       break;
   }
 
-  // Mover input right side -> V
+  // Mover input right side → V
   var v = undefined;
   switch (entry['MV']) {
     case 0: // no value
@@ -505,7 +571,7 @@ function mover(state, entry) {
 
   var wl = 0; // wl is a 4-bit value
   switch (entry['UL']) {
-    case 0: // E // E->WL in d29
+    case 0: // E // E→WL in d29
       wl = entry['CE'];
       break;
     case 1: // U   default: pass undefined through
@@ -535,7 +601,7 @@ function mover(state, entry) {
           wl = u >>> 4; // move uppwer nybble
           break;
         case 6: // numeric
-          wl = 0; // Don't move lower nybble
+          wl = v >>> 4; // Don't move lower nybble
           break;
         case 7: //unused
         default:
@@ -577,7 +643,7 @@ function mover(state, entry) {
           wr = u & 0xf;
           break;
         case 5: // zone
-          wr = 0; // Don't move low nybble
+          wr = v & 0xf; // Don't move low nybble
           break;
         case 6: // numeric
           wr = u & 0xf;
@@ -600,7 +666,7 @@ function mover(state, entry) {
   var w = (wl << 4) | wr;
   state['W'] = w;
 
-  // Mover output destination W ->
+  // Mover output destination W →
   switch (entry['WM']) {
     case 0: // no action
       break;
@@ -614,10 +680,11 @@ function mover(state, entry) {
       state['LB'] = w & 3;
       break;
     case 4: // W27→PSW4 // W bits 2-7 to PSW bits 34-39 QJ200. Turns off load light too.
-      state['PSW'] = ((state['PSW'] & 0xffffffc0) | (w & 0x3f)) >>> 0;
+      // i.e. CC and program mask
+      state['PSW'][1] = ((state['PSW'][1] & ~0x3f000000) | ((w & 0x3f) << 24)) >>> 0;
       break;
     case 5: // W→PSW0    // PSW bits 0-7 (left)
-      state['PSW'] = ((state['PSW'] & 0x00ffffff) | (w << 24)) >>> 0;
+      state['PSW'][0] = ((state['PSW'][0] & ~0xff000000) | (w << 24)) >>> 0;
       break;
     case 6: // WL→J
       state['J'] = wl;
@@ -626,7 +693,8 @@ function mover(state, entry) {
       chctl(state, entry); // in io.js
       break;
     case 8: // W,E→A(BUMP) // W,E(23) selects bump sector address. Bits shuffled, see 5- Maint p81.
-      // Ignore for now.
+      // Fake the bump address for now
+      state['SAR'] = 0x10000000 | (w << 4) | ((entry['CE'] & 3) << 2);
       break;
     case 9: // WL→G1
       state['G1'] = wl & 7;
@@ -648,7 +716,8 @@ function mover(state, entry) {
       state['F'] = wr & 0xf;
       break;
     case 15: // W→MD,F
-      alert('Unimplemented WM ' + entry['WM'] + " " + labels['WM'][entry['WM']]);
+      state['MD'] = wl;
+      state['F'] = wr;
       break;
     default:
       alert('Unexpected WM ' + entry['WM'] + " " + labels['WM'][entry['WM']]);
@@ -823,7 +892,13 @@ function iar(state, entry) {
       alert('Unimplemented IV ' + entry['IV'] + " " + labels['IV'][entry['IV']]);
       break;
     case 5 : // IA+2/4 // QT115/019B
-      alert('Unimplemented IV ' + entry['IV'] + " " + labels['IV'][entry['IV']]);
+      // CLF 001: IAR += 2 if ILC = 01, IAR += 4 if ILC = 1X
+      var ilc = (state['PSW'][1] >>> 30) & 0x3;
+      if (ilc == 1) {
+        state['IAR'] += 2;
+      } else if (ilc == 2 || ilc == 3) {
+        state['IAR'] += 4;
+      }
       break;
     case 6 : // IA+2 // QT120/018B
       alert('Unimplemented IV ' + entry['IV'] + " " + labels['IV'][entry['IV']]);
@@ -891,14 +966,10 @@ function stat(state, entry) {
     case 11: // S03ΩE,0→BS
       alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
       break;
-    case 12: // B0,1SYL      (B=0)->S1, set 1 SYL. QC031/003F
-      if (b==0) { // what is B?
-        state['S'][1] = 1;
-      } else {
-        state['S'][1] = 0;
-      }
-      state['1SYL'] = 1;
-      alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
+    case 12: // X0,B0,1SYL      (B=0)→S1, set 1 SYL. QC031/003F
+      x0(state);
+      b0(state);
+      syl1(state);
       break;
     case 13: // FPZERO
       alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
@@ -906,17 +977,22 @@ function stat(state, entry) {
     case 14: // FPZERO,E→FN
       alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
       break;
-    case 15: // B0,1SYL // (B=0)->S1, set 1SYL QT115/0189
-      alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
+    case 15: // B0,1SYL // (B=0)→S1, set 1SYL QT115/0189
+      b0(state);
+      syl1(state);
       break;
     case 16: // S03.¬E           // Clear S03 bits from E
-      alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
+      for (var i = 0; i < 3; i++) {
+        state['S'][i] &= ~(entry['CE']>>(3-i));
+      }
       break;
     case 17: // (T=0)→S3
       alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
       break;
-    case 18: // E→B3,T30→S3
-      alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
+    case 18: // E→BS,T30→S3
+      // 01C6
+      state['BS'] = entry['CE'];
+      state['S'][3] = (state['T'] >> 1) & 1; // T(30)→S3, branch address halfword indicator
       break;
     case 19: // E→BS             // Store E to byte stats (i.e. byte mask)
       state['BS'] = entry['CE'];
@@ -1003,7 +1079,7 @@ function stat(state, entry) {
       state['CR'] = entry['CE'] & 3;
       break;
     case 41: // SETCRALG
-      // Save CAR(0) V CAR(1). If T=0 00->CR, if T<0, 01->CR, QE580/222. Part may be BCVC
+      // Save CAR(0) V CAR(1). If T=0 00→CR, if T<0, 01→CR, QE580/222. Part may be BCVC
       alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
       break;
     case 42: // SETCRLOG
@@ -1047,14 +1123,18 @@ function stat(state, entry) {
       alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
       break;
     case 55: // T→PSW,IPL→T,      // QU100, 50Maint
-      // IPL UA -> 0-7, IPL CA -> 21-23
-      state['PSW'] = state['T']; // Probably?
-      state['T'] = 0x12000700; // Arbitrary IPL value
+      // IPL UA → 0-7, IPL CA → 21-23
+      // T 12-15 to PSW control bits
+      state['PSW'][0] = ((state['PSW'][0] & ~0x000f0000) | state['T'] & 0x000f0000) >>> 0;
+      // Card reader = 00C: channel 0, device 0C
+      var ca = 0
+      var ua = 0x0c;
+      state['T'] = ((ua << 24) | (ca << 8)) >>> 0;
       break;
     case 56: // T→PSW            // T(12-15) to PSW QU100
-      state['PSW'] = ((state['PSW'] & ~0x000f0000) | (state['T'] & 0x000f0000)) >>> 0;
+      state['PSW'][0] = ((state['PSW'][0] & ~0x000f0000) | state['T'] & 0x000f0000) >>> 0;
       break;
-    case 57: // SCAN*E,00        // E -> SCANCTRL(2-5), 0->SCANCTRL(1), (FOLD)->SCANCTRL(0) // U100
+    case 57: // SCAN*E,00        // E → SCANCTRL(2-5), 0→SCANCTRL(1), (FOLD)→SCANCTRL(0) // U100
       var fold = 0;
       state['SCANCTRL'] = (fold << 7) | entry['CE'] << 2;
       break;
@@ -1141,7 +1221,7 @@ function roar(state, entry) {
     case 15:
       alert('Unexpected AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
-    case 16: // CRMD     // masked CR -> A, branch on CC=0 (I/O accepted by channel). Test for branch.
+    case 16: // CRMD     // masked CR → A, branch on CC=0 (I/O accepted by channel). Test for branch.
       if (state['CR'] == 0) { // Not sure what mask should be.
         roar |= 2;
       }
@@ -1316,8 +1396,11 @@ function roar(state, entry) {
     case 62:
       alert('Unexpected AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
-    case 63: // RX,S0
-      alert('Unimplemented AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
+    case 63: // RX.S0
+      // QT115:0188 RX instruction type
+      if (state['RX'] && state['S'][0]) {
+        roar |= 2;
+      }
       break;
     default:
       alert('Unexpected AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
@@ -1435,7 +1518,9 @@ function roar(state, entry) {
       alert('Unimplemented BB ' + entry['BB'] + " " + labels['AB'][entry['AB']]);
       break;
     case 28: // IVA // QT110/0149
-      alert('Unimplemented BB ' + entry['BB'] + " " + labels['AB'][entry['AB']]);
+      if (state['IVA'] == 1) {
+        roar |= 1;
+      }
       break;
     case 29: // I/O
       alert('Unimplemented I/O BB ' + entry['BB'] + " " + labels['AB'][entry['AB']]);

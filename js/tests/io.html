@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<!--
+This file holds unittests for io.js, using qunit
+-->
+<head>
+  <meta charset="utf-8">
+  <title>IO unittests</title>
+  <link rel="stylesheet" href="qunit-2.6.2.css" >
+  <script src="data.js"></script>
+  <script src="../io.js"></script>
+</head>
+<body>
+  <div id="qunit"></div>
+  <div id="qunit-fixture"></div>
+
+  <script src="qunit-2.6.2.js"></script>
+  <script>
+
+  // Format d as 4 hex bytes
+  function fmt4(d) {
+    return d.toString(16).padStart(8, '0');
+  }
+
+  function alert(msg) {
+    QUnit.assert.equal(0, 1, msg);
+  }
+
+  function readCCW(addr, flags, count) {
+    return [0x02000000 | addr, (flags << 27) | count];
+  }
+
+    QUnit.test( "doReadFromCCW", function(assert) {
+    loadCards([ [0x12345678, 0x23456789, 0x34567890] ]);
+
+    var state = {};
+    state['MS'] = [];
+    var ccw1 = readCCW(0x400, 4 /* SILI */, 12 /* count */);
+    state['MS'][8] = ccw1[0];
+    state['MS'][12] = ccw1[1];
+    state['MS'][16] = 0; // ccw2
+    state['MS'][24] = 0; // ccw2
+
+    var msg = doReadFromCCW(state, 8);
+    assert.equal(msg, "I/O: Read 12 to 1024");
+    assert.equal(state['MS'][0x400], 0x12345678);
+    assert.equal(state['MS'][0x404], 0x23456789);
+    assert.equal(state['MS'][0x408], 0x34567890);
+    });
+
+    QUnit.test( "doReadFromCCW skip", function(assert) {
+    loadCards([ [0x12345678, 0x23456789, 0x34567890] ]);
+
+    var state = {};
+    state['MS'] = [];
+    var ccw1 = readCCW(0x400, 2 /* skip */, 12 /* count */);
+    state['MS'][8] = ccw1[0];
+    state['MS'][12] = ccw1[1];
+    state['MS'][16] = 0; // ccw2
+    state['MS'][24] = 0; // ccw2
+
+    var msg = doReadFromCCW(state, 8);
+    assert.equal(msg, "I/O: Read 12 to 1024 (skip)");
+    assert.equal(state['MS'][0x400], undefined);
+    });
+
+    QUnit.test( "doReadFromCCW2 data chain", function(assert) {
+    loadCards([ [0x12345678, 0x23456789, 0x34567890, 0x00112233, 0x11223344] ]);
+
+    var state = {};
+    state['MS'] = [];
+    var ccw1 = readCCW(0x400, 16 /* chain data */, 12 /* count */);
+    state['MS'][8] = ccw1[0];
+    state['MS'][12] = ccw1[1];
+    var ccw2 = readCCW(0x500, 0, 8 /* count */);
+    state['MS'][16] = ccw2[0];
+    state['MS'][20] = ccw2[1];
+
+    var msg = doReadFromCCW(state, 8);
+    assert.equal(msg, "I/O: Read 12 to 1024\nI/O: Read 8 to 1280 (chain data)");
+    assert.equal(state['MS'][0x400], 0x12345678);
+    assert.equal(state['MS'][0x404], 0x23456789);
+    assert.equal(state['MS'][0x408], 0x34567890);
+    assert.equal(state['MS'][0x500], 0x00112233);
+    assert.equal(state['MS'][0x504], 0x11223344);
+    });
+
+    QUnit.test( "doReadFromCCW2 command chain", function(assert) {
+    loadCards([ [0x12345678, 0x23456789, 0x34567890], [0x00112233, 0x11223344] ]);
+
+    var state = {};
+    state['MS'] = [];
+    var ccw1 = readCCW(0x400, 8 /* chain command */, 12 /* count */);
+    state['MS'][8] = ccw1[0];
+    state['MS'][12] = ccw1[1];
+    var ccw2 = readCCW(0x500, 0, 8 /* count */);
+    state['MS'][16] = ccw2[0];
+    state['MS'][20] = ccw2[1];
+
+    var msg = doReadFromCCW(state, 8);
+    assert.equal(msg, "I/O: Read 12 to 1024\nI/O: Read 8 to 1280 (chain command)");
+    assert.equal(state['MS'][0x400], 0x12345678);
+    assert.equal(state['MS'][0x404], 0x23456789);
+    assert.equal(state['MS'][0x408], 0x34567890);
+    assert.equal(state['MS'][0x500], 0x00112233);
+    assert.equal(state['MS'][0x504], 0x11223344);
+    });
+  </script>
+</body>
+</html>
