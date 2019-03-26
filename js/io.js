@@ -15,7 +15,7 @@ cardIdx = 0;
 cardOffset = 0; // In 4-byte units for now
 cards1 = [
           [0x00000000, 0x00000400, 0x02000400, 0x00000050, 0x00020000, 0x00000000],
-          [0x12345678, 0x23456789, 0x34567890]
+          [0x1a120000, 0x00000000, 0x00000000]
           ];
 
 function loadCards(cardfile) {

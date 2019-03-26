@@ -76,36 +76,144 @@ This file holds unittests for engine.js, using qunit
     assert.equal(state['T'], 0);
     });
 
+    QUnit.test( "adder-overflow ad 5 BC⩝C", function(assert) {
+    // Normal positive addition
+    var state = {'L': 0x12345678, 'R': 0x12345678};
+    adder(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 5 /* BC⩝C */ , 'AL': 0, 'DG': 0});
+    assert.equal(state['CAR'], 0);
+    assert.equal(state['T'], 0x12345678 + 0x12345678);
+
+    // positive + positive yields negative overflow
+    // Normal positive addition
+    var state = {'L': 0x12345678, 'R': 0x12345678};
+    adder(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 5 /* BC⩝C */ , 'AL': 0, 'DG': 0});
+    assert.equal(state['CAR'], 0);
+    assert.equal(state['T'], 0x12345678 + 0x12345678);
+
+    // positive + positive yields negative overflow
+    state = {'L': 0x70000000, 'R': 0x70000000};
+    adder(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 5 /* BC⩝C */ , 'AL': 0, 'DG': 0});
+    assert.equal(state['CAR'], 1);
+    assert.equal(state['T'], 0xe0000000);
+
+    // positive + negative okay
+    state = {'L': 0x70000000, 'R': 0xffffffff};
+    adder(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 5 /* BC⩝C */ , 'AL': 0, 'DG': 0});
+    assert.equal(state['CAR'], 0);
+    assert.equal(state['T'], 0x6fffffff);
+
+    // negative + negative okay
+    state = {'L': 0xffffffff, 'R': 0xffffffff};
+    adder(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 5 /* BC⩝C */ , 'AL': 0, 'DG': 0});
+    assert.equal(state['CAR'], 0);
+    assert.equal(state['T'], 0xfffffffe);
+
+    // negative + negative overflow
+    state = {'L': 0x80000000, 'R': 0xffffffff};
+    adder(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 5 /* BC⩝C */ , 'AL': 0, 'DG': 0});
+    assert.equal(state['CAR'], 1);
+    assert.equal(state['T'], 0x7fffffff);
+    });
+
+    QUnit.test( "adder-subtract-overflow ad 5 BC⩝C", function(assert) {
+    // Normal positive subtraction: note that L is subtracted from R
+    var state = {'R': 0x12345678, 'L': 0x12345677};
+    adder(state, {'RY': 1 /* R */, 'TC': 0, 'LX': 1 /* L */, 'TR': 7, 'AD': 5 /* BC⩝C */ , 'AL': 0, 'DG': 0});
+    assert.equal(state['CAR'], 0);
+    assert.equal(state['T'], 1);
+
+    // positive - positive yields negative
+    state = {'R': 0x70000000, 'L': 0x70000001};
+    adder(state, {'RY': 1 /* R */, 'TC': 0, 'LX': 1 /* L */, 'TR': 7, 'AD': 5 /* BC⩝C */ , 'AL': 0, 'DG': 0});
+    assert.equal(state['CAR'], 0);
+    assert.equal(state['T'], 0xffffffff);
+
+    // positive - negative okay
+    state = {'R': 0x12345678, 'L': 0xffffffff};
+    adder(state, {'RY': 1 /* R */, 'TC': 0, 'LX': 1 /* L */, 'TR': 7, 'AD': 5 /* BC⩝C */ , 'AL': 0, 'DG': 0});
+    assert.equal(state['CAR'], 0);
+    assert.equal(state['T'], 0x12345679);
+
+    // positive - negative overflow
+    state = {'R': 0x7fffffff, 'L': 0xffffffff};
+    adder(state, {'RY': 1 /* R */, 'TC': 0, 'LX': 1 /* L */, 'TR': 7, 'AD': 5 /* BC⩝C */ , 'AL': 0, 'DG': 0});
+    assert.equal(state['CAR'], 1);
+    assert.equal(state['T'], 0x80000000);
+
+    // negative - negative okay
+    state = {'R': 0xfffffffe, 'L': 0xffffffff};
+    adder(state, {'RY': 1 /* R */, 'TC': 0, 'LX': 1 /* L */, 'TR': 7, 'AD': 5 /* BC⩝C */ , 'AL': 0, 'DG': 0});
+    assert.equal(state['CAR'], 0);
+    assert.equal(state['T'], 0xffffffff);
+
+    // negative - positive overflow
+    state = {'R': 0x80000000, 'L': 0x00000001};
+    adder(state, {'RY': 1 /* R */, 'TC': 0, 'LX': 1 /* L */, 'TR': 7, 'AD': 5 /* BC⩝C */ , 'AL': 0, 'DG': 0});
+    assert.equal(state['CAR'], 1);
+    assert.equal(state['T'], 0x7fffffff);
+    });
+
     QUnit.test( "iar0", function(assert) {
     var state = {'T': 0x12345678, 'R': 0x56781234};
     iar(state, {'IV': 0});
     assert.expect(0);
     });
 
+    QUnit.test( "iar iv 4 IA/4→A,IA", function(assert) {
+    var state = {'IAR': 0x12340000};
+    iar(state, {'IV': 4});
+    assert.equal(state['IAR'], 0x12340004);
+    assert.equal(state['SAR'], 0x12340004);
+    });
+
     QUnit.test( "iar iv 5 IA+2/4", function(assert) {
     // instruction length << 30
-    var state = {'PSW': [0, 0<<30], 'IAR': 0x12340000};
+    var state = {'ILC': 0, 'IAR': 0x12340000};
     iar(state, {'IV': 5});
     assert.equal(state['IAR'], 0x12340000);
 
-    state = {'PSW': [0, 1<<30], 'IAR': 0x12340000};
+    state = {'ILC': 1, 'IAR': 0x12340000};
     iar(state, {'IV': 5});
     assert.equal(state['IAR'], 0x12340002); // +2
 
-    state = {'PSW': [0, 2<<30], 'IAR': 0x12340000};
+    state = {'ILC': 2, 'IAR': 0x12340000};
     iar(state, {'IV': 5});
     assert.equal(state['IAR'], 0x12340004); // +4
 
-    state = {'PSW': [0, 3<<30], 'IAR': 0x12340000};
+    state = {'ILC': 3, 'IAR': 0x12340000};
     iar(state, {'IV': 5})
     assert.equal(state['IAR'], 0x12340004); // +4
     });
 
+    QUnit.test( "iar iv 6 IA+2", function(assert) {
+    var state = {'IAR': 0x12340000};
+    iar(state, {'IV': 6});
+    assert.equal(state['IAR'], 0x12340002);
+    });
+
     QUnit.test( "iar iv 7 IA+0/2→A", function(assert) {
-    // instruction length << 30
-    var state = {'PSW': [0, 0<<30], 'IAR': 0x12340000};
-    iar(state, {'IV': 7})
-    assert.equal(state['IAR'], 0x2340004);
+    // No refetch: should increment
+    var state = {'SAR': 1, 'IAR': 0x12340002, 'REFETCH': 0};
+    iar(state, {'IV': 7, 'ZN': 0});
+    assert.equal(state['SAR'], 0x12340004);
+    // Refetch, no increment
+    state = {'SAR': 1, 'IAR': 0x12340002, 'REFETCH': 1};
+    iar(state, {'IV': 7, 'ZN': 0});
+    assert.equal(state['SAR'], 0x12340002);
+
+    // Even halfword, SMIF. Should increment. But rounded down? So no change?
+    // Unclear if this case should increment or not or if it matters.
+    state = {'SAR': 1, 'IAR': 0x12340000, 'REFETCH': 0};
+    iar(state, {'IV': 7, 'ZN': 1});
+    assert.equal(state['SAR'], 0x12340000);
+    // Odd halfword, no refetch, SMIF. Should skip access.
+    state = {'SAR': 1, 'IAR': 0x12340002, 'REFETCH': 0};
+    iar(state, {'IV': 7, 'ZN': 1});
+    assert.equal(state['SAR'], 1);
+    // Odd halfword, refetch, SMIF. Should not increment
+    state = {'SAR': 1, 'IAR': 0x12340002, 'REFETCH': 1};
+    iar(state, {'IV': 7, 'ZN': 1});
+    assert.equal(state['SAR'], 0x12340002);
     });
 
     QUnit.test( "latch1", function(assert) {
@@ -412,11 +520,17 @@ This file holds unittests for engine.js, using qunit
     assert.equal(state['LS'][49], 123);
     });
 
+    QUnit.test( "ls sf 0 R→LS", function(assert) {
+    var state = {'LS':[], 'R': 0x12345678, 'LSAR': 0x31};
+    localStorage(state, {'CE': 4, 'WS': 3 /* WS,E→LSA */, 'SF': 0 /* R→LS */});
+    assert.equal(state['LS'][0x34], 0x12345678);
+    });
 
     QUnit.test( "ls3  WS,E→LSA", function(assert) {
-    var state = {};
-    localStorage(state, {'WS': 3, 'CE': 5, 'SF': 0});
+    var state = {'LS': [], 'R': 0x12345678};
+    localStorage(state, {'WS': 3, 'CE': 5, 'SF': 0 /* R→LS */});
     assert.equal(state['LSAR'], 0x35); // LSFN = 0b110101
+    assert.equal(state['LS'][0x35], 0x12345678);
     });
 
     QUnit.test( "roar1", function(assert) {
@@ -487,6 +601,15 @@ This file holds unittests for engine.js, using qunit
     assert.equal(state['ROAR'], (0x12 << 6) | (0x4 << 2) | 3);
     });
 
+    QUnit.test( "bb 30 (CAR)", function(assert) {
+    var state = {'CAR': 0};
+    roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 0, 'BB': 30});
+    assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 0);
+    var state = {'CAR': 1};
+    roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 0, 'BB': 30});
+    assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 1);
+    });
+
     QUnit.test( "stat8", function(assert) {
     // 8: E->S03
     var state = {'S': [0, 0, 0, 0, 0, 0, 0, 1]};
@@ -532,9 +655,25 @@ This file holds unittests for engine.js, using qunit
     });
 
     QUnit.test( "roar AB 56 I-FETCH", function(assert) {
-    var state = {};
+    var state = {'IAR': 0x12340000, 'REFETCH': 0}; // word aligned (on-bounds), no refetch
     roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 56, 'BB': 0});
-    assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2));
+    assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 2);
+
+    state = {'IAR': 0x12340000, 'REFETCH': 1}; // word aligned (on-bounds), refetch
+    roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 56, 'BB': 0});
+    assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 2);
+
+    state = {'IAR': 0x12340002, 'REFETCH': 0}; // halfword aligned (off-bounds), no refetch
+    roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 56, 'BB': 0});
+    assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 0);
+
+    state = {'IAR': 0x12340002, 'REFETCH': 1}; // halfword aligned (off-bounds), refetch
+    roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 56, 'BB': 0});
+    assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 1);
+
+    state = {'IAR': 0x12340001, 'REFETCH': 0}; // alignment exception
+    roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 56, 'BB': 0});
+    assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 3);
     });
 
     QUnit.test( "roar ZN 1 SMIF", function(assert) {
@@ -624,15 +763,15 @@ This file holds unittests for engine.js, using qunit
     QUnit.test( "stat41: SETCRALG", function(assert) {
     var state = {'T': 0};
     stat(state, {'SS': 41, 'CE': 0xe});
-    assert.equal(state['CAR'], 0); // Zero
+    assert.equal(state['CR'], 0); // Zero
 
     state = {'T': 0x80000001};
     stat(state, {'SS': 41, 'CE': 0xe});
-    assert.equal(state['CAR'], 1); // Negative
+    assert.equal(state['CR'], 1); // Negative
 
     state = {'T': 0x7fffffff};
     stat(state, {'SS': 41, 'CE': 0xe});
-    assert.equal(state['CAR'], 2); // Positive
+    assert.equal(state['CR'], 2); // Positive
     });
 
     QUnit.test( "stat55  T→PSW,IPL→T", function(assert) {

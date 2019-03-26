@@ -130,17 +130,14 @@ function adder(state, entry) {
 
   if (entry['TC'] == 0) {
     // Subtract
-    t = (-xg + y);
-    if (t < 0) {
-      // Carry?
-      t += 0x100000000;
-    }
-
-  } else {
-    // Add
-    t = xg + y;
+    xg = (-xg) >>> 0;
   }
-  t = (t & 0xffffffff) >>> 0; // Force Javascript to give an unsigned result
+  t = xg + y;
+
+  var c0 = (t >= 0x100000000) ? 1 : 0;
+  var c1 = (((xg & 0x7fffffff) + (y & 0x7fffffff)) & 0x80000000) ? 1 : 0;
+
+  t = t >>> 0; // Force Javascript to give an unsigned result
  
   // Adder function
   switch (entry['AD']) {
@@ -159,8 +156,9 @@ function adder(state, entry) {
     case 4: // BCO
       alert('Unimplemented AD ' + entry['AD'] + " " + labels['AD'][entry['AD']]);
       break;
-    case 5: // BCVC
-      alert('Unimplemented AD ' + entry['AD'] + " " + labels['AD'][entry['AD']]);
+    case 5: // BC⩝C
+      // QB730:220: Save CAR(0) ⩝ CAR(1). Test overflow.
+      state['CAR'] = (c0 != c1) ? 1 : 0;
       break;
     case 6: // BC1B // BC for 489
       alert('Unimplemented AD ' + entry['AD'] + " " + labels['AD'][entry['AD']]);
@@ -395,7 +393,6 @@ function adderLatch(state, entry) {
       break;
     case 7: // L
       state['L'] = t;
-      console.log('*** L updated ' + t);
       break;
     case 8: // HA→A   Complicated hardware address implementation.
       alert('Unimplemented TR ' + entry['TR'] + " " + labels['TR'][entry['TR']]);
@@ -486,10 +483,11 @@ function adderLatch(state, entry) {
       break;
     case 26: // MHL  T(0-3)→MD, T(0-15)→M(16,31) QC301/003F
       state['MD'] = (state['T'] >> 28) & 0xf;
-      state['M'] = (state['T'] >> 16) & 0xfffff;
+      state['M'] = ((state['M'] & 0xffff0000) | ((state['T'] >>> 16) & 0xfffff)) >>> 0;
       break;
     case 27: // MD
-      state['MD'] = t & 0xf;
+      // From CLF 001: bits 8-11 (R1) moved to MD
+      state['MD'] = (t >>> 20) & 0xf;
       break;
     case 28: // M,SP // QT200/0193
       state['M'] = t;
@@ -821,6 +819,7 @@ function localStorage(state, entry) {
   // Local storage function
   switch (entry['SF']) {
     case 0: // R→LS // QT210/1A3
+      state['LS'][state['LSAR']] = state['R'];
       break;
     case 1: // LS→LR→LS, 
       alert('Unimplemented SF ' + entry['SF'] + " " + labels['SF'][entry['SF']]);
@@ -897,7 +896,8 @@ function iar(state, entry) {
       alert('Unimplemented IV ' + entry['IV'] + " " + labels['IV'][entry['IV']]);
       break;
     case 4: // IA/4→A,IA
-      alert('Unimplemented IV ' + entry['IV'] + " " + labels['IV'][entry['IV']]);
+      state['IAR'] += 4;
+      state['SAR'] = state['IAR'];
       break;
     case 5 : // IA+2/4 // QT115/019B
       // CLF 001: IAR += 2 if ILC = 01, IAR += 4 if ILC = 1X
@@ -908,10 +908,23 @@ function iar(state, entry) {
       }
       break;
     case 6 : // IA+2 // QT120/018B
-      alert('Unimplemented IV ' + entry['IV'] + " " + labels['IV'][entry['IV']]);
+      state['IAR'] += 2;
       break;
     case 7: // IA+0/2→A // QP206/0D94 Also IA+0+2→A: QT115/0199 
-      alert('Unimplemented IV ' + entry['IV'] + " " + labels['IV'][entry['IV']]);
+      // CLF 001 says +2 if ref is off, +0 if ref is on.
+      if (entry['ZN'] == 1) {
+        // SMIF: Suppress Memory Instruction Fetch
+        if (state['REFETCH'] == 0 && (state['IAR'] & 3) != 0) {
+          // Half-word alignment, no refetch. Skip fetch because using op buffer.
+          break;
+        }
+      }
+      if (state['REFETCH'] == 1) {
+        // Seems like we need to adjust the alignment when refetching
+        state['SAR'] = state['IAR'];
+      } else {
+        state['SAR'] = (state['IAR'] + 2) & ~0x3;
+      }
       break;
     default:
       alert('Unimplemented IV ' + entry['IV'] + " " + labels['IV'][entry['IV']]);
@@ -942,6 +955,10 @@ function stat(state, entry) {
         case 5:
           state['SCPS'] = 0;
           state['SCFS'] = 0;
+          break;
+        case 12:
+          // Turn off log trig (for machine check traps)
+          // QT310:010e
           break;
         default:
           alert('Unimplemented SCANTRL ' + entry['CE'] + " " + labels['SS'][entry['SS']]);
@@ -1086,13 +1103,13 @@ function stat(state, entry) {
       state['CR'] = entry['CE'] & 3;
       break;
     case 41: // SETCRALG
-      // Save CAR(0) V CAR(1). If T=0 00→CR, if T<0, 01→CR, QE580/222. Part may be BCVC
+      // If T=0 00→CR, if T<0, 01→CR, QE580/222. Part may be BCVC
       if (state['T'] == 0) {
-        state['CAR'] = 0;
+        state['CR'] = 0;
       } else if (state['T'] & 0x80000000) {
-        state['CAR'] = 1; // Negative
+        state['CR'] = 1; // Negative
       } else {
-        state['CAR'] = 2; // Positive
+        state['CR'] = 2; // Positive
       }
       break;
     case 42: // SETCRLOG
@@ -1387,8 +1404,25 @@ function roar(state, entry) {
     case 55: // CHLOG
       alert('Unimplemented AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
-    case 56: // I-FETCH // QP206/D94
-      alert('Unimplemented AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
+    case 56:
+      // I-FETCH does a 4-way branch:
+      // 00: off-bounds fetch (i.e. odd halfword)
+      // 01: off-bounds, refetch (i.e. can't use instruction in op buffer WS14)
+      // 10: on-bounds fetch (i.e. fetching a normal even halfword.)
+      // 11: exception
+      // See e.g. QT105
+      if (state['IAR'] & 1) {
+        // Alignment exception. Other address exceptions?
+        roar |= 3; 
+      } else if (state['IAR'] & 2) {
+        if (state['REFETCH'] == 0) {
+          // roar |= 0;
+        } else {
+          roar |= 1;
+        }
+      } else {
+        roar |= 2;
+      }
       break;
     case 57: // IA(30)
       alert('Unimplemented AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
@@ -1539,7 +1573,9 @@ function roar(state, entry) {
       alert('Unimplemented I/O BB ' + entry['BB'] + " " + labels['AB'][entry['AB']]);
       break;
     case 30: // (CAR)
-      alert('Unimplemented BB ' + entry['BB'] + " " + labels['AB'][entry['AB']]);
+      if (state['CAR'] == 1) {
+        roar |= 1;
+      }
       break;
     case 31: // (Z00)
       alert('Unimplemented BB ' + entry['BB'] + " " + labels['AB'][entry['AB']]);
@@ -1575,7 +1611,7 @@ function roar(state, entry) {
       } // ZF case
       break;
     case 1: // SMIF suppress memory instruction fetch
-      alert('Unimplemented ZN ' + entry['ZN'] + " " + labels['ZN'][entry['ZN']]);
+      // Handle in iar()
       break;
     case 2: // AΩ(B=0)→A
       if ((roar & 1) == 0) {

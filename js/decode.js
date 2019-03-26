@@ -77,7 +77,7 @@ var labels = {
 2: 'BCFO',
 // 3: not found
 4: 'BCO',       // Save CAR from 0, QG501
-5: 'BCVC',      // Save CAR(0) CAR(1) QB100:0219
+5: 'BC⩝C',      // Save CAR(0) CAR(1) QB100:0219
 6: 'BC1B',      // Save CAR from 1, Block CAR from 8, QG501
 7: 'BC8',       // Save carry out of pos 8  QP800:064A
 8: 'DHL',
@@ -251,7 +251,7 @@ var labels = {
 // Suppress memory instruction fetch / ROS address control
 'ZN': {
 0: '--ROAR--', // QT115/019B
-1: 'SMIF',      // Suppress Memory IF off bnds and ¬refetch. QB100:0219
+1: 'SMIF',      // Suppress Memory IF off bnds and ¬refetch. QB100:0219. Only used with I-FETCH and I+0/2→A
 2: 'AΩ(B=0)→A', // hypothesis
 3: 'AΩ(B=1)→A',
 4: '2', // QP206/0D94

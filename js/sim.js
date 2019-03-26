@@ -2,6 +2,16 @@ var data = undefined;
 var div = undefined;
 var divop1 = undefined;
 
+// Override alert
+// https://stackoverflow.com/questions/1729501/javascript-overriding-alert
+(function(proxied) {
+  window.alert = function() {
+    running = 0; // Stop the simulator
+    console.log('stopping');
+    return proxied.apply(this, arguments);
+  };
+})(window.alert);
+
 $(document).ready(function() {
   can = $("#can")[0];
   ctx = can.getContext('2d');
@@ -115,7 +125,7 @@ function animate() {
   // Do the frame(s)
   then = now;
   var count = skipping ? 100 : 1;
-  for (var i = 0; i < count; i++) {
+  for (var i = 0; i < count && running; i++) {
     step();
     if (skipping) {
       var breakpoint = parseInt($("#breakpoint").val(), 16);
@@ -174,7 +184,6 @@ function displayOp(saddr, div) {
     div.innerHTML = result.join('\n');
     if (div == divop2) {
       console.log(div.innerHTML);
-      console.log('L=' + state['L']);
     }
 }
 
@@ -186,7 +195,10 @@ function getInitialState() {
   'WFN': 2, // Set up at QK801:0988 during IPL
   'SAR': 0xffffff, 'SDR': 0xffffffff,
   };
-  state['LS'] = new Array(64).fill(0x42);
+  state['LS'] = new Array(64);
+  for (var i = 0; i < 64; i++) {
+    state['LS'][i] = 0x01010101 * i;
+  }
   state['MS'] = new Array(8192).fill(0); // Words
   state['S'] = new Array(8).fill(0); // Words
   state['ROAR'] = parseInt(getAddrFromField(), 16);
