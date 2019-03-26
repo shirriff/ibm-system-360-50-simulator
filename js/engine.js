@@ -12,8 +12,8 @@ function cycle(state, entry) {
   roar(state, entry); // Need roar before mover to get old W, see 2B7
   mover(state, entry);
   counters(state, entry); // Need counters after mover, see QK801:0992
-  localStorageWrite(state, entry);
   var msg2 = adderLatch(state, entry);
+  localStorageWrite(state, entry); // Need to do this after R is written. See 0220
   return msg || msg2;
 }
 
@@ -374,7 +374,7 @@ function adderLatch(state, entry) {
       state['R'] = t;
       break;
     case 2: // R0
-      state['R'] = (t & 0xff000000) | (state['R'] & 0x00ffffff);
+      state['R'] = ((t & 0xff000000) | (state['R'] & 0x00ffffff)) >>> 0;
       break;
     case 3: // M
       state['M'] = t;
@@ -384,7 +384,7 @@ function adderLatch(state, entry) {
       msg = store(state);
       break;
     case 5: // L0
-      state['L'] = (t & 0xff000000) | (state['L'] & 0x00ffffff);
+      state['L'] = ((t & 0xff000000) | (state['L'] & 0x00ffffff)) >>> 0;
       break;
     case 6: // R,A       // stores to R and address reg.
       state['R'] = t;

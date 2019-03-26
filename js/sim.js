@@ -188,7 +188,7 @@ function displayOp(saddr, div) {
 }
 
 function getInitialState() {
-  var state = {'FN': 3, 'J': 3, 'lSAR': 3, 'PSW': [0xffffffff, 0xffffffff], 'L': 0xffffffff, 'R': 0xffffffff, 'MD': 3, 'F': 3, 'Q': 3,
+  var state = {'FN': 3, 'J': 3, 'LSAR': 3, 'PSW': [0xffffffff, 0xffffffff], 'L': 0xffffffff, 'R': 0xffffffff, 'MD': 3, 'F': 3, 'Q': 3,
   'M': 0xffffffff, 'H': 0xffffffff, 'T': 3,
   'A': 3, 'IA': 3, 'D': 3, 'XG': 3, 'Y': 3, 'U': 3, 'V': 3, 'W': 3,
   'G1': 3, 'G2': 3, 'LB': 3, 'MB': 3, 'SP': 5,
@@ -259,7 +259,7 @@ function fmtPsw(d) {
 formatters = {
   'FN': fmtN,
  'J': fmtN,
- 'lSAR': fmt1,
+ 'LSAR': fmt1,
  'L': fmt4,
  'R': fmt4,
  'MD': fmtN,
