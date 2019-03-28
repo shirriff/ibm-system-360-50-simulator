@@ -4,23 +4,34 @@
 // entry is the ROS entry
 // Returns message if any
 function cycle(state, entry) {
-  adder(state, entry);
-  var msg = aldg(state, entry);
-  iar(state, entry);
-  localStorage(state, entry);
-  stat(state, entry);
-  roar(state, entry); // Need roar before mover to get old W, see 2B7
-  mover(state, entry);
-  counters(state, entry); // Need counters after mover, see QK801:0992
-  var msg2 = adderLatch(state, entry);
-  localStorageWrite(state, entry); // Need to do this after R is written. See 0220
-  if (msg) {
-    console.log(msg);
+  try {
+    adder(state, entry);
+    var msg = aldg(state, entry);
+    iar(state, entry);
+    localStorage(state, entry);
+    stat(state, entry);
+    roar(state, entry); // Need roar before mover to get old W, see 2B7
+    mover(state, entry);
+    iar2(state, entry); // iar operations after mover
+    counters(state, entry); // Need counters after mover, see QK801:0992
+    var msg2 = adderLatch(state, entry);
+    localStorageWrite(state, entry); // Need to do this after R is written. See 0220
+    if (msg) {
+      console.log(msg);
+    }
+    if (msg2) {
+      console.log(msg2);
+    }
+    return msg || msg2;
+  } catch (e) {
+    if (e.message == 'TRAP') {
+      return 'Trap to ' + state['ROAR'];
+      state['TRAP'] = 1; // For testing
+    } else {
+      console.log('Unexpected exception ' + e);
+      throw e; // Unexpected exception
+    }
   }
-  if (msg2) {
-    console.log(msg2);
-  }
-  return msg || msg2;
 }
 
 // Return PSW word 0 or 1.
@@ -109,7 +120,7 @@ function adder(state, entry) {
     case 0: // default
       break;
     case 1: // CSTAT→ADDER
-      alert('Unexpected DG ' + entry['DG'] + " " + labels['DG'][entry['DG']]);
+      carry = state['CSTAT'];
       break;
     case 2: // HOT1→ADDER        // Add 1 bit
       carry = 1;
@@ -331,11 +342,34 @@ function aldg(state, entry) {
   return msg;
 }
 
+// Perform a ROS-level trap. See CLF 122 / QT300
+function rosTrap(state, addr) {
+  state['ROAR'] = addr;
+  throw('TRAP');
+}
+
+function trapStorProt(state) {
+  rosTrap(state, 0x0142);
+}
+
+function trapInvalidOpndAddr(state) {
+  rosTrap(state, 0x01c0);
+}
+
+function trapAddrSpecViolation(state) {
+  rosTrap(state, 0x01c2);
+}
+
+// Invalid decimal data or sign
+function trapInvalidDecimal(state) {
+  rosTrap(0x0140);
+}
+
 // Assume SAR and SDR set up
 function store(state) {
   if (state['SAR'] & 3) {
-    throw('D: memory alignment: ' + state['SAR']);
-    return;
+    console.log('D: memory alignment: ' + state['SAR']);
+    trapAddrSpecViolation(state);
   }
   state['MS'][state['SAR']] = state['SDR'];
   return 'Storing ' + fmt4(state['SDR']) + ' in ' + fmt4(state['SAR']);
@@ -345,7 +379,8 @@ function store(state) {
 function read(state) {
   // Add some bounds to memory? Or just implement the whole 16 MB?
   if (state['SAR'] & 3) {
-    throw('D: memory alignment: ' + state['SAR']);
+    console.log('D: memory alignment: ' + state['SAR']);
+    trapAddrSpecViolation(state);
     return;
   }
   state['SDR'] = state['MS'][state['SAR']];
@@ -357,9 +392,7 @@ function read(state) {
 
 function checkaddr(state, alignment) {
   if (state['SAR'] & (alignment-1)) {
-    state['IVA'] = 1;
-  } else {
-    state['IVA'] = 0;
+   trapAddrSpecViolation(state);
   }
 }
 
@@ -752,6 +785,29 @@ function mover(state, entry) {
   }
 }
 
+// Instruction address reg control
+  // These need to happen after the mover so are implemented here.
+function iar2(state, entry) {
+  switch (entry['IV']) {
+    case 1: // WL→IVD  trap on invalid digit
+      if (state['WL'] > 9) {
+        trapInvalidDecimal(state);
+      }
+      break;
+    case 2: // WR→IVD
+      // QS304: 0e25: check for invalid digit
+      if (state['WR'] > 9) {
+        trapInvalidDecimal(state);
+      }
+      break;
+    case 3: // W→IVD
+      if (state['WL'] > 9 || state['WR'] > 9) {
+        trapInvalidDecimal(state);
+      }
+      break;
+  }
+}
+
 function counters(state, entry) {
   // Counter function control
   switch (entry['UP']) {
@@ -876,7 +932,6 @@ function localStorageWrite(state, entry) {
   // Local storage function
   switch (entry['SF']) {
     case 0: // R→LS // QT210/1A3
-      console.log('Stored ' + state['R'].toString(16) + ' to LS ' + state['LSAR'].toString(16));
       state['LS'][state['LSAR']] = state['R'];
       break;
     case 1: // LS→LR→LS, 
@@ -910,13 +965,13 @@ function iar(state, entry) {
     case 0: // default
       break;
     case 1: // WL→IVD
-      alert('Unimplemented IV ' + entry['IV'] + " " + labels['IV'][entry['IV']]);
+      // implemented in mover
       break;
     case 2: // WR→IVD
-      alert('Unimplemented IV ' + entry['IV'] + " " + labels['IV'][entry['IV']]);
+      // implemented in mover
       break;
     case 3: // W→IVD
-      alert('Unimplemented IV ' + entry['IV'] + " " + labels['IV'][entry['IV']]);
+      // implemented in mover
       break;
     case 4: // IA/4→A,IA
       state['IAR'] += 4;
@@ -988,10 +1043,23 @@ function stat(state, entry) {
           break;
       }
       break;
-    case 5: // L,RSGNS
-      alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
+    case 5: // L,RSGNS: QE900
+      // Trap if invalid sign. Valid sign is 0xa to 0xf; 0xa, 0xc, 0xe, 0xf positive, 0xb, 0xd negative.
+      // See Principles of Operation page 36.
+      // QS400 0d05: if -, 1→LSGN, ¬RSGN
+      // if +, 0→LSGN
+      // Value tested is in U apparently.
+      if ([0xa, 0xc, 0xe, 0xf].includes(state['U'])) { // Positive
+        state['LSGN'] = 0;
+      } else if ([0xb, 0xd].includes(state['U'])) { // Negative
+        state['LSGN'] = 1;
+        state['RSGN'] = 0;
+      } else {
+        trapInvalidDecimal(state);
+      }
       break;
     case 6: // IVD/RSGNS
+    // QS200:E26: if -, clear RSGN. If not sign, trap.
       alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
       break;
     case 7: // EDITSGN
@@ -1045,7 +1113,7 @@ function stat(state, entry) {
       state['BS'] = entry['CE'];
       break;
     case 20: // 1→BS*MB
-      alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
+      state['BS'][state['MB']] = 1;
       break;
     case 21:
       alert('Unexpected SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
@@ -1322,8 +1390,11 @@ function roar(state, entry) {
         roar |= 2;
       }
       break;
-    case 26: // G1MB2
-      alert('Unimplemented AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
+    case 26: // G1MBZ
+      // G1 == 0 or MB == 0 QS400:0D04
+      if (state['G1'] == 0 || state['MB'] == 0) {
+        roar |= 2;
+      }
       break;
     case 27:
     case 28:
@@ -1578,8 +1649,11 @@ function roar(state, entry) {
         roar |= 1;
       }
       break;
-    case 25: // G2LB2
-      alert('Unimplemented BB ' + entry['BB'] + " " + labels['AB'][entry['AB']]);
+    case 25: // G2LBZ
+      // G2 == 0 or LB == 0 QS400:0D04
+      if (state['G2'] == 0 || state['LB'] == 0) {
+        roar |= 1;
+      }
       break;
     case 26: // I/O
       alert('Unimplemented I/O BB ' + entry['BB'] + " " + labels['AB'][entry['AB']]);
