@@ -40,7 +40,7 @@ This file holds unittests for engine.js, using qunit
     var state = {'L': 0x1234, 'H': 0x1233};
     var entry = {'LX': 1 /* L */, 'RY': 4 /* H */, 'TC': 0 /* sub */, 'AD': 1 /* default op */, 'AL': 0 /* shift */, 'DG': 0 /* default */};
     adder(state, entry);
-    assert.equal(state['T'], 0xffffffff);
+    assert.equal(state['T'], 0xfffffffe); // H - L, 1's complement
     });
 
     QUnit.test( "adder3", function(assert) {
@@ -120,22 +120,22 @@ This file holds unittests for engine.js, using qunit
     var state = {'R': 0x12345678, 'L': 0x12345677};
     adder(state, {'RY': 1 /* R */, 'TC': 0, 'LX': 1 /* L */, 'TR': 7, 'AD': 5 /* BC⩝C */ , 'AL': 0, 'DG': 0});
     assert.equal(state['CAR'], 0);
-    assert.equal(state['T'], 1);
+    assert.equal(state['T'], 0); // 1's complement subtraction
 
     // positive - positive yields negative
     state = {'R': 0x70000000, 'L': 0x70000001};
     adder(state, {'RY': 1 /* R */, 'TC': 0, 'LX': 1 /* L */, 'TR': 7, 'AD': 5 /* BC⩝C */ , 'AL': 0, 'DG': 0});
     assert.equal(state['CAR'], 0);
-    assert.equal(state['T'], 0xffffffff);
+    assert.equal(state['T'], 0xfffffffe);
 
     // positive - negative okay
     state = {'R': 0x12345678, 'L': 0xffffffff};
     adder(state, {'RY': 1 /* R */, 'TC': 0, 'LX': 1 /* L */, 'TR': 7, 'AD': 5 /* BC⩝C */ , 'AL': 0, 'DG': 0});
     assert.equal(state['CAR'], 0);
-    assert.equal(state['T'], 0x12345679);
+    assert.equal(state['T'], 0x12345678);
 
     // positive - negative overflow
-    state = {'R': 0x7fffffff, 'L': 0xffffffff};
+    state = {'R': 0x7fffffff, 'L': 0xfffffffe};
     adder(state, {'RY': 1 /* R */, 'TC': 0, 'LX': 1 /* L */, 'TR': 7, 'AD': 5 /* BC⩝C */ , 'AL': 0, 'DG': 0});
     assert.equal(state['CAR'], 1);
     assert.equal(state['T'], 0x80000000);
@@ -144,15 +144,67 @@ This file holds unittests for engine.js, using qunit
     state = {'R': 0xfffffffe, 'L': 0xffffffff};
     adder(state, {'RY': 1 /* R */, 'TC': 0, 'LX': 1 /* L */, 'TR': 7, 'AD': 5 /* BC⩝C */ , 'AL': 0, 'DG': 0});
     assert.equal(state['CAR'], 0);
-    assert.equal(state['T'], 0xffffffff);
+    assert.equal(state['T'], 0xfffffffe);
 
     // negative - positive overflow
     state = {'R': 0x80000000, 'L': 0x00000001};
     adder(state, {'RY': 1 /* R */, 'TC': 0, 'LX': 1 /* L */, 'TR': 7, 'AD': 5 /* BC⩝C */ , 'AL': 0, 'DG': 0});
     assert.equal(state['CAR'], 1);
-    assert.equal(state['T'], 0x7fffffff);
+    assert.equal(state['T'], 0x7ffffffe);
     });
 
+    QUnit.test( "adder-carry0 ad 4 BC0", function(assert) {
+    var state = {'R': 0xffffffff, 'L': 0x00000001};
+    adder(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 0});
+    assert.equal(state['CAR'], 1);
+    assert.equal(state['T'], 0);
+
+    state = {'R': 0xfffffffe, 'L': 0x00000001};
+    adder(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 0});
+    assert.equal(state['CAR'], 0);
+    assert.equal(state['T'], 0xffffffff);
+
+    state = {'R': 0xffffffff, 'L': 0x10000000};
+    adder(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 0});
+    assert.equal(state['CAR'], 1);
+    assert.equal(state['T'], 0x0fffffff);
+    });
+
+    QUnit.test( "adder-carry0 sub ad 4 BC0", function(assert) {
+    // Basic subtraction is 1's complement
+    var state = {'R': 0x00000000, 'L': 0x00000001};
+    adder(state, {'RY': 1 /* R */, 'TC': 0, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 0});
+    assert.equal(state['CAR'], 0);
+    assert.equal(state['T'], 0xfffffffe); // R - L, subtraction is one short
+
+    state = {'R': 0xffffffff, 'L': 0x00000000};
+    adder(state, {'RY': 1 /* R */, 'TC': 0, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 0});
+    assert.equal(state['CAR'], 1);
+    assert.equal(state['T'], 0xfffffffe); // subtraction is one short
+
+    state = {'R': 0xefffffff, 'L': 0x10000000};
+    adder(state, {'RY': 1 /* R */, 'TC': 0, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 0});
+    assert.equal(state['CAR'], 1);
+    assert.equal(state['T'], 0xdffffffe); // subtraction is one short
+    });
+
+    QUnit.test( "adder-carry0 sub +hot1 ad 4 BC0", function(assert) {
+    // Add hot1 to get 2's complement subtraction
+    var state = {'R': 0x00000000, 'L': 0x00000001};
+    adder(state, {'RY': 1 /* R */, 'TC': 0, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 2 /* HOT1 */});
+    assert.equal(state['CAR'], 0); // Carry = not borrow
+    assert.equal(state['T'], 0xffffffff);
+
+    state = {'R': 0xffffffff, 'L': 0x00000000};
+    adder(state, {'RY': 1 /* R */, 'TC': 0, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 2 /* HOT1 */});
+    assert.equal(state['CAR'], 1);
+    assert.equal(state['T'], 0xffffffff);
+
+    state = {'R': 0xefffffff, 'L': 0x10000000};
+    adder(state, {'RY': 1 /* R */, 'TC': 0, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 2 /* HOT1 */});
+    assert.equal(state['CAR'], 1);
+    assert.equal(state['T'], 0xdfffffff);
+    });
     QUnit.test( "iar0", function(assert) {
     var state = {'T': 0x12345678, 'R': 0x56781234};
     iar(state, {'IV': 0});
@@ -522,7 +574,10 @@ This file holds unittests for engine.js, using qunit
 
     QUnit.test( "ls sf 0 R→LS", function(assert) {
     var state = {'LS':[], 'R': 0x12345678, 'LSAR': 0x31};
+    // Update LSA
     localStorage(state, {'CE': 4, 'WS': 3 /* WS,E→LSA */, 'SF': 0 /* R→LS */});
+    // Update LS
+    localStorageWrite(state, {'CE': 4, 'WS': 3 /* WS,E→LSA */, 'SF': 0 /* R→LS */});
     assert.equal(state['LS'][0x34], 0x12345678);
     });
 
@@ -530,6 +585,7 @@ This file holds unittests for engine.js, using qunit
     var state = {'LS': [], 'R': 0x12345678};
     localStorage(state, {'WS': 3, 'CE': 5, 'SF': 0 /* R→LS */});
     assert.equal(state['LSAR'], 0x35); // LSFN = 0b110101
+    localStorageWrite(state, {'WS': 3, 'CE': 5, 'SF': 0 /* R→LS */});
     assert.equal(state['LS'][0x35], 0x12345678);
     });
 

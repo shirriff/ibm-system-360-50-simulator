@@ -14,6 +14,12 @@ function cycle(state, entry) {
   counters(state, entry); // Need counters after mover, see QK801:0992
   var msg2 = adderLatch(state, entry);
   localStorageWrite(state, entry); // Need to do this after R is written. See 0220
+  if (msg) {
+    console.log(msg);
+  }
+  if (msg2) {
+    console.log(msg2);
+  }
   return msg || msg2;
 }
 
@@ -27,18 +33,18 @@ function getPSW(n) {
   }
 }
 
+// Format d as 4 hex bytes
+function fmt4(d) {
+  return d.toString(16).padStart(8, '0');
+}
+
 // uses LX (left input xg), RY (right input y), DG, TC (-/+), AD (adder function)
 function adder(state, entry) {
   var xg = 0;
 
   switch (entry['LX']) { // left input to adder [XG]
     case 0: // No adder input
-      // Maybe carry is involved here?
-      if (entry['TC'] == 0) {
-        xg = 1;
-      } else {
-        xg = 0;
-      }
+      xg = 0;
       break;
     case 1: // L
       xg = state['L'];
@@ -96,6 +102,8 @@ function adder(state, entry) {
       break;
   }
 
+  var carry = 0;
+
   // Length counter and carry insert ctrl
   switch (entry['DG']) {
     case 0: // default
@@ -103,8 +111,8 @@ function adder(state, entry) {
     case 1: // CSTAT→ADDER
       alert('Unexpected DG ' + entry['DG'] + " " + labels['DG'][entry['DG']]);
       break;
-    case 2: // HOT1→ADDER        // 1 bit in last position
-      xg |= 1;
+    case 2: // HOT1→ADDER        // Add 1 bit
+      carry = 1;
       break;
     case 3: // G1-1
       alert('Unexpected DG ' + entry['DG'] + " " + labels['DG'][entry['DG']]);
@@ -126,13 +134,17 @@ function adder(state, entry) {
       break;
   }
 
+  if (entry['AD'] == 9) { // DC0
+    carry = state['S'][1]; // See QE900, 0848
+  }
+
   var t;
 
   if (entry['TC'] == 0) {
     // Subtract
-    xg = (-xg) >>> 0;
+    xg = (~xg) >>> 0; // 1's complement
   }
-  t = xg + y;
+  t = xg + y + carry;
 
   var c0 = (t >= 0x100000000) ? 1 : 0;
   var c1 = (((xg & 0x7fffffff) + (y & 0x7fffffff)) & 0x80000000) ? 1 : 0;
@@ -153,8 +165,9 @@ function adder(state, entry) {
     case 3:
       alert('Unexpected AD ' + entry['AD'] + " " + labels['AD'][entry['AD']]);
       break;
-    case 4: // BCO
-      alert('Unimplemented AD ' + entry['AD'] + " " + labels['AD'][entry['AD']]);
+    case 4: // BC0
+      // Carry from position 0.
+      state['CAR'] = c0;
       break;
     case 5: // BC⩝C
       // QB730:220: Save CAR(0) ⩝ CAR(1). Test overflow.
@@ -170,7 +183,8 @@ function adder(state, entry) {
       alert('Unimplemented AD ' + entry['AD'] + " " + labels['AD'][entry['AD']]);
       break;
     case 9: // DC0
-      alert('Unimplemented AD ' + entry['AD'] + " " + labels['AD'][entry['AD']]);
+      state['S'][1] = c0;
+      state['L'] = 0x66666666; // Decimal correction to L
       break;
     case 10: // DDC0
       alert('Unimplemented AD ' + entry['AD'] + " " + labels['AD'][entry['AD']]);
@@ -213,6 +227,7 @@ function aldg(state, entry) {
       alert('Unimplemented AL ' + entry['AL'] + " " + labels['AL'][entry['AL']]);
       break;
     case 6: // IA→H // Handled by D
+      if (state['IAR'] == undefined) {alert('undefined iar');}
       state['H'] = state['IAR'];
       break;
     case 7: // Q→SL→F
@@ -319,7 +334,8 @@ function aldg(state, entry) {
 // Assume SAR and SDR set up
 function store(state) {
   if (state['SAR'] & 3) {
-    alert('D: memory alignment ' + state['SAR']);
+    throw('D: memory alignment: ' + state['SAR']);
+    return;
   }
   state['MS'][state['SAR']] = state['SDR'];
   return 'Storing ' + fmt4(state['SDR']) + ' in ' + fmt4(state['SAR']);
@@ -327,10 +343,15 @@ function store(state) {
 
 // Assume SAR
 function read(state) {
+  // Add some bounds to memory? Or just implement the whole 16 MB?
   if (state['SAR'] & 3) {
-    alert('D: memory alignment ' + state['SAR']);
+    throw('D: memory alignment: ' + state['SAR']);
+    return;
   }
   state['SDR'] = state['MS'][state['SAR']];
+  if (state['SDR'] == undefined) {
+    state['SDR'] = 0x12345678; // Random value in uninitialized memory.
+  }
   return 'Read ' + fmt4(state['SDR']) + ' from ' + fmt4(state['SAR']);
 }
 
@@ -700,7 +721,7 @@ function mover(state, entry) {
       break;
     case 8: // W,E→A(BUMP) // W,E(23) selects bump sector address. Bits shuffled, see 5- Maint p81.
       // Fake the bump address for now
-      state['SAR'] = 0x10000000 | (w << 4) | ((entry['CE'] & 3) << 2);
+      state['SAR'] = 0x1000000 | (w << 4) | ((entry['CE'] & 3) << 2);
       break;
     case 9: // WL→G1
       state['G1'] = wl & 7;
@@ -819,7 +840,7 @@ function localStorage(state, entry) {
   // Local storage function
   switch (entry['SF']) {
     case 0: // R→LS // QT210/1A3
-      state['LS'][state['LSAR']] = state['R'];
+      // No read from LS
       break;
     case 1: // LS→LR→LS, 
       alert('Unimplemented SF ' + entry['SF'] + " " + labels['SF'][entry['SF']]);
@@ -831,6 +852,7 @@ function localStorage(state, entry) {
       alert('Unexpected SF ' + entry['SF'] + " " + labels['SF'][entry['SF']]);
       break;
     case 4: // L→LS // QP206/D95
+      // No read from LS
       break;
     case 5: // LS→R,L→LS
       alert('Unimplemented SF ' + entry['SF'] + " " + labels['SF'][entry['SF']]);
@@ -854,6 +876,7 @@ function localStorageWrite(state, entry) {
   // Local storage function
   switch (entry['SF']) {
     case 0: // R→LS // QT210/1A3
+      console.log('Stored ' + state['R'].toString(16) + ' to LS ' + state['LSAR'].toString(16));
       state['LS'][state['LSAR']] = state['R'];
       break;
     case 1: // LS→LR→LS, 

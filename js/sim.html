@@ -9,6 +9,7 @@
 -->
 <script src="jquery.min.js"></script>
 <script src="io.js"></script>
+<script src="disasm.js"></script>
 <script src="decode.js"></script>
 <script src="engine.js"></script>
 <script src="sim.js"></script>
@@ -29,8 +30,8 @@
 <button id="control">Stop</button>
 <button id="step">Step</button>
 <button id="skip">Skip</button>
-&nbsp;Next addr: <input type="text" id="addr" value="0240" style="width:4em"></input>
-&nbsp;Breakpoint: <input type="text" id="breakpoint" ="0240" style="width:4em"></input>
+&nbsp;Next addr: <input type="text" id="addr" value="0243" style="width:4em"></input>
+&nbsp;Breakpoint: <input type="text" id="breakpoint" value="9999" style="width:4em"></input>
 Op count: <span style="margin-left: 20px;font-family:sans-serif;font-size:80%;" id="count">0</span>
 <div id="wrapper">
   <canvas class="layer" style="z-index:-1;" id="can"></canvas>
@@ -84,12 +85,13 @@ Op count: <span style="margin-left: 20px;font-family:sans-serif;font-size:80%;" 
         <div id="H">00112233</div>
       </div>
     </div>
-    <div class="elt" id = "misc" style="top:350px">
+    <div class="elt" id = "misc" style="top:350px; text-align: left">
     </div>
     <div class="elt" style="top:377px">
     </div>
     <div id="divmsg" class="elt" style="top: 300px; font-size: 120%; white-space:pre; color:red;"/></div>
 
+    <div id="divinstr" style="min-height: 1em; white-space:pre;"/></div>
     <div class="elt" style="top: 400px;display:block;">Microcode
     <div id="divop1" style="white-space:pre;"/></div>
     <div id="divop2" style="white-space:pre;"/></div>

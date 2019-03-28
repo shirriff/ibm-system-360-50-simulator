@@ -76,7 +76,7 @@ var labels = {
 // 1 is default
 2: 'BCFO',
 // 3: not found
-4: 'BCO',       // Save CAR from 0, QG501
+4: 'BC0',       // Save CAR from 0, QG501
 5: 'BC⩝C',      // Save CAR(0) CAR(1) QB100:0219
 6: 'BC1B',      // Save CAR from 1, Block CAR from 8, QG501
 7: 'BC8',       // Save carry out of pos 8  QP800:064A
@@ -206,7 +206,7 @@ var labels = {
 // Length counter and carry insert ctrl
 'DG': {
 1: 'CSTAT→ADDER',
-2: 'HOT1→ADDER',        // 1 bit in last position
+2: 'HOT1→ADDER',        // 1 bit added to last position
 3: 'G1-1',
 4: 'HOT1,G-1',
 5: 'G2-1',
@@ -458,6 +458,10 @@ function decode(addr, entry) {
     } else {
       return 'undef!!!' + label;
     }
+  }
+
+  if (entry == undefined) {
+    throw('Missing microcode for addr ' + addr);
   }
 
   result = [];

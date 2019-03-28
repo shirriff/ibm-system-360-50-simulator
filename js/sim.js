@@ -2,7 +2,7 @@ var data = undefined;
 var div = undefined;
 var divop1 = undefined;
 
-// Override alert
+// Override alert so simulator will stop if an error is hit.
 // https://stackoverflow.com/questions/1729501/javascript-overriding-alert
 (function(proxied) {
   window.alert = function() {
@@ -11,6 +11,11 @@ var divop1 = undefined;
     return proxied.apply(this, arguments);
   };
 })(window.alert);
+
+// Catch exceptions
+window.onerror = function err(errMsg, url, lineNumber) {
+  alert(errMsg + ' at ' + url + ' ' + lineNumber);
+};
 
 $(document).ready(function() {
   can = $("#can")[0];
@@ -83,7 +88,8 @@ function init() {
   skipping = 0;
   stopAnimate();
   seenInstructions = {};
-  state = getInitialState();
+  state = createState();
+  resetState(state);
   displayOp(getAddrFromField(), divop1);
   displayState(state);
 }
@@ -148,6 +154,17 @@ function getAddrFromField() {
   return saddr;
 }
 
+// Gets a halfword from memory
+function getHW(state, addr) { 
+  if (addr & 1) {
+    alert('getHW: alignment');
+  } else if (addr & 2) {
+    return state['MS'][addr & ~0x3] & 0xffff;
+  } else {
+    return state['MS'][addr] >>> 16;
+  }
+}
+
 // Perform a single microinstruction step
 function step() {
   var saddr = getAddrFromField();
@@ -165,6 +182,13 @@ function step() {
   displayOp(saddr, divop1);
   displayState(state);
   $("#divmsg").html(msg1 || msg2 || '');
+  if ([0x148, 0x149, 0x14a, 0x14c, 0x14e, 0x184, 0x185, 0x187, 0x188, 0x189, 0x19b].includes(state['ROAR'])) {
+    // Lots of entries to instruction decoding.
+    var iar = state['IAR'];
+    $("#divinstr").html(disasm([getHW(state, iar), getHW(state, iar + 2), getHW(state, iar + 4)]));
+    $
+
+  }
   if (memactive) {
     mem();
   }
@@ -187,13 +211,15 @@ function displayOp(saddr, div) {
     }
 }
 
-function getInitialState() {
-  var state = {'FN': 3, 'J': 3, 'LSAR': 3, 'PSW': [0xffffffff, 0xffffffff], 'L': 0xffffffff, 'R': 0xffffffff, 'MD': 3, 'F': 3, 'Q': 3,
+function createState() {
+  // Initialize arbitrarily
+  var state = {'FN': 3, 'J': 3, 'LSAR': 3, 'PSW': [0xffffffff, 0xffffffff], 'L': 0xffffffff, 'R': 0xffffffff, 'MD': 3, 'F': 3, 'Q': 1,
   'M': 0xffffffff, 'H': 0xffffffff, 'T': 3,
-  'A': 3, 'IA': 3, 'D': 3, 'XG': 3, 'Y': 3, 'U': 3, 'V': 3, 'W': 3,
+  'A': 3, 'IAR': 3, 'D': 3, 'XG': 3, 'Y': 3, 'U': 3, 'V': 3, 'W': 3,
   'G1': 3, 'G2': 3, 'LB': 3, 'MB': 3, 'SP': 5,
   'WFN': 2, // Set up at QK801:0988 during IPL
   'SAR': 0xffffff, 'SDR': 0xffffffff,
+  'ROAR': 0xffff,
   };
   state['LS'] = new Array(64);
   for (var i = 0; i < 64; i++) {
@@ -201,8 +227,16 @@ function getInitialState() {
   }
   state['MS'] = new Array(8192).fill(0); // Words
   state['S'] = new Array(8).fill(0); // Words
-  state['ROAR'] = parseInt(getAddrFromField(), 16);
   return state;
+}
+
+function resetState(state) {
+  // Initialize to state after memory reset loop for IPL, entering 0243
+  state['S'] = [0, 0, 0, 1, 0, 0, 0, 0]; // For IPL
+  state['MD'] = 3; // For IPL
+  state['H'] = 0;
+  state['ROAR'] = parseInt(getAddrFromField(), 16);
+  state['SAR'] = 0x10000004; // Fake bump addr, used by 243
 }
 
 // Convert string to hex roar address string
@@ -269,7 +303,7 @@ formatters = {
  'H': fmt4,
  'T': fmt4,
  'A': fmt4,
- 'IA': fmt4,
+ 'IAR': fmt4,
  'D': fmt4,
  'XG': fmt4,
  'Y': fmt4,
@@ -307,6 +341,9 @@ function displayState(state) {
     var key = keys[i];
     if (state[key] == undefined) {
       throw('Undefined state ' + key);
+    }
+    if (typeof(state[key]) == 'number' && state[key] < 0) {
+      throw('Negative state ' + key);
     }
     if (key == 'MS') {
       // Main storage
