@@ -422,23 +422,22 @@ tests = {
 "0fcd": ["---------- 0FCD","E 0010        |","S HA→A        |","|             |","|             |","|             |","|             |","----    XX ----","Next: 0f8d"],
 "0fcc": ["---------- 0FCC","E 0001        |","S IA/4→A,IA   |","C E→SCANCTL   |","|             |","|             |","R STC=0     0 |","----    *X ----","Next: 0f48"],
 };
-    QUnit.test( "decode", function(assert) {
-      var keys = Object.keys(tests);
-      for (var i = 0; i < keys.length; i++) {
-        var key = keys[i];
-        var result = decode(key, testdata[key]);
-        var wanted = tests[key];
-        // Don't check empty lines
-        result = result.filter(line => line !=  "|             |");
-        wanted = wanted.filter(line => line !=  "|             |");
-        // Ignore spacing
-        result = result.map(line => line.replace(/\s+/g, ' '));
-        wanted = wanted.map(line => line.replace(/\s+/g, ' '));
+  QUnit.test( "decode", function(assert) {
+    var keys = Object.keys(tests);
+    for (var i = 0; i < keys.length; i++) {
+      var key = keys[i];
+      var result = decode(key, testdata[key]);
+      var wanted = tests[key];
+      // Don't check empty lines
+      result = result.filter(line => line !=  "|             |");
+      wanted = wanted.filter(line => line !=  "|             |");
+      // Ignore spacing
+      result = result.map(line => line.replace(/\s+/g, ' '));
+      wanted = wanted.map(line => line.replace(/\s+/g, ' '));
 
-        assert.deepEqual(result, wanted);
-      }
-    });
-
-  </script>
+      assert.deepEqual(result, wanted);
+    }
+  });
+</script>
 </body>
 </html>
