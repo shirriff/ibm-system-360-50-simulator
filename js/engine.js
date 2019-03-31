@@ -8,9 +8,9 @@ function cycle(state, entry) {
     adder(state, entry);
     var msg = aldg(state, entry);
     iar(state, entry);
+    roar(state, entry); // Need roar before mover to get old W, see 2B7. Need before localStorage read
     localStorage(state, entry);
     stat(state, entry);
-    roar(state, entry); // Need roar before mover to get old W, see 2B7
     mover(state, entry);
     iar2(state, entry); // iar operations after mover
     counters(state, entry); // Need counters after mover, see QK801:0992
@@ -24,9 +24,9 @@ function cycle(state, entry) {
     }
     return msg || msg2;
   } catch (e) {
-    if (e.message == 'TRAP') {
-      return 'Trap to ' + state['ROAR'];
+    if (e == 'TRAP') {
       state['TRAP'] = 1; // For testing
+      return 'Trap to ' + state['ROAR'];
     } else {
       console.log('Unexpected exception ' + e);
       throw e; // Unexpected exception
@@ -61,7 +61,7 @@ function adder(state, entry) {
       xg = state['L'];
       break;
     case 2: // SGN
-      alert('Unimplemented LX ' + entry['LX'] + " " + labels['LX'][entry['LX']]);
+      xg = 0x80000000; // Sign bit
       break;
     case 3: // E  // E is shifted left one bit
       xg = entry['CE'] << 1;
@@ -121,24 +121,46 @@ function adder(state, entry) {
       break;
     case 1: // CSTAT→ADDER
       carry = state['CSTAT'];
+      // Need to figure out CSTAT
       break;
     case 2: // HOT1→ADDER        // Add 1 bit
       carry = 1;
       break;
     case 3: // G1-1
-      alert('Unexpected DG ' + entry['DG'] + " " + labels['DG'][entry['DG']]);
+      state['G1'] = (state['G1'] - 1) & 0xf;
+      if (state['G1'] == 0xf) {
+        state['G1NEG'] = 1; // Underflow
+      } else {
+        state['G1NEG'] = 0;
+      }
       break;
     case 4: // HOT1,G-1
       alert('Unexpected DG ' + entry['DG'] + " " + labels['DG'][entry['DG']]);
       break;
     case 5: // G2-1
-      alert('Unexpected DG ' + entry['DG'] + " " + labels['DG'][entry['DG']]);
+      state['G2'] = (state['G2'] - 1) & 0xf;
+      if (state['G2'] == 0xf) {
+        state['G2NEG'] = 1; // Underflow
+      } else {
+        state['G2NEG'] = 0;
+      }
       break;
     case 6: // G-1
       alert('Unexpected DG ' + entry['DG'] + " " + labels['DG'][entry['DG']]);
       break;
     case 7: // G1,2-1
-      alert('Unexpected DG ' + entry['DG'] + " " + labels['DG'][entry['DG']]);
+      state['G1'] = (state['G1'] - 1) & 0xf;
+      if (state['G1'] == 0xf) {
+        state['G1NEG'] = 1; // Underflow
+      } else {
+        state['G1NEG'] = 0;
+      }
+      state['G2'] = (state['G2'] - 1) & 0xf;
+      if (state['G2'] == 0xf) {
+        state['G2NEG'] = 1; // Underflow
+      } else {
+        state['G2NEG'] = 0;
+      }
       break;
     default:
       alert('Unexpected DG ' + entry['DG'] + " " + labels['DG'][entry['DG']]);
@@ -158,11 +180,12 @@ function adder(state, entry) {
   t = xg + y + carry;
 
   var c0 = (t >= 0x100000000) ? 1 : 0;
-  var c1 = (((xg & 0x7fffffff) + (y & 0x7fffffff)) & 0x80000000) ? 1 : 0;
+  var c1 = (((xg & 0x7fffffff) + (y & 0x7fffffff) + carry) & 0x80000000) ? 1 : 0;
 
   t = t >>> 0; // Force Javascript to give an unsigned result
  
   // Adder function
+  // See CROS page 33 for carry info
   switch (entry['AD']) {
     case 0:
       alert('Instruction with AD=0 should never be accessed.')
@@ -229,10 +252,10 @@ function aldg(state, entry) {
       alert('Unimplemented AL ' + entry['AL'] + " " + labels['AL'][entry['AL']]);
       break;
     case 3: // +SGN→
-      alert('Unimplemented AL ' + entry['AL'] + " " + labels['AL'][entry['AL']]);
+      state['T'] &= 0x7fffffff;
       break;
     case 4: // -SGN→
-      alert('Unimplemented AL ' + entry['AL'] + " " + labels['AL'][entry['AL']]);
+      state['T'] = (state['T'] | 0x80000000) >>> 0;
       break;
     case 5: // L0,S4→
       alert('Unimplemented AL ' + entry['AL'] + " " + labels['AL'][entry['AL']]);
@@ -248,7 +271,9 @@ function aldg(state, entry) {
       alert('Unimplemented AL ' + entry['AL'] + " " + labels['AL'][entry['AL']]);
       break;
     case 9: // F→SL1→F
-      alert('Unimplemented AL ' + entry['AL'] + " " + labels['AL'][entry['AL']]);
+      var f1 = state['T'] >>> 31; // Remember top bit of T
+      state['T'] = ((state['T'] << 1) | (state['F'] >>> 3)) >>> 0; // T = (T // F) << 1
+      state['F'] = ((state['F'] << 1) | f1 ) & 0xf; // Shift top bit of T into F
       break;
     case 10: // SL1→Q
       state['Q'] = (state['T'] & 0x80000000) ? 1 : 0;
@@ -345,7 +370,7 @@ function aldg(state, entry) {
 // Perform a ROS-level trap. See CLF 122 / QT300
 function rosTrap(state, addr) {
   state['ROAR'] = addr;
-  throw('TRAP');
+  throw(Error('TRAP'));
 }
 
 function trapStorProt(state) {
@@ -367,23 +392,14 @@ function trapInvalidDecimal(state) {
 
 // Assume SAR and SDR set up
 function store(state) {
-  if (state['SAR'] & 3) {
-    console.log('D: memory alignment: ' + state['SAR']);
-    trapAddrSpecViolation(state);
-  }
-  state['MS'][state['SAR']] = state['SDR'];
+  state['MS'][state['SAR'] & ~3] = state['SDR'];
   return 'Storing ' + fmt4(state['SDR']) + ' in ' + fmt4(state['SAR']);
 }
 
 // Assume SAR
 function read(state) {
   // Add some bounds to memory? Or just implement the whole 16 MB?
-  if (state['SAR'] & 3) {
-    console.log('D: memory alignment: ' + state['SAR']);
-    trapAddrSpecViolation(state);
-    return;
-  }
-  state['SDR'] = state['MS'][state['SAR']];
+  state['SDR'] = state['MS'][state['SAR'] & ~3];
   if (state['SDR'] == undefined) {
     state['SDR'] = 0x12345678; // Random value in uninitialized memory.
   }
@@ -392,7 +408,8 @@ function read(state) {
 
 function checkaddr(state, alignment) {
   if (state['SAR'] & (alignment-1)) {
-   trapAddrSpecViolation(state);
+   console.log('alignment?');
+   // trapAddrSpecViolation(state);
   }
 }
 
@@ -510,7 +527,8 @@ function adderLatch(state, entry) {
       alert('Unexpected TR ' + entry['TR'] + " " + labels['TR'][entry['TR']]);
       break;
     case 24: // L,M
-      alert('Unimplemented TR ' + entry['TR'] + " " + labels['TR'][entry['TR']]);
+      state['L'] = t;
+      state['M'] = t;
       break;
     case 25: // MLJK     // store to L, M, 12-15 to J, 16-19 to MD  QY310, QT110. 
     // CLF 001: L16-31 (i.e. LRL) → M 0-15, L28-31 (X) → J, ILC = length, 
@@ -581,6 +599,7 @@ byteshift = [24, 16, 8, 0];
 function mover(state, entry) {
   // Mover input left side → U
   var u;
+  // See CROS manual page 25 for left mover bit patterns
   switch (entry['LU']) {
     case 0: // no value
       u = 0;
@@ -835,13 +854,13 @@ function counters(state, entry) {
       break;
     case 2: // -   Should negative numbers wrap or be a flag?
       if (entry['LB']) {
-        state['LB'] -= 1;
+        state['LB'] = (state['LB'] - 1) & 3;
       }
       if (entry['MB']) {
-        state['MB'] -= 1;
+        state['MB'] = (state['MB'] - 1) & 3;
       }
       if (entry['MD']) {
-        state['MD'] -= 1;
+        state['MD'] = (state['MD'] - 1) & 0xf;
       }
       break;
     case 3: // + // QT120/01CE
@@ -850,6 +869,9 @@ function counters(state, entry) {
       }
       if (entry['MB']) {
         state['MB'] = (state['MB'] + 1) & 3;
+      }
+      if (entry['MD']) {
+        state['MD'] = (state['MD'] + 1) & 0xf;
       }
       break;
     default:
@@ -1150,7 +1172,7 @@ function stat(state, entry) {
       alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
       break;
     case 29: // CAR,(T≠0)→CR
-      alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
+      state['CR'] = (state['CAR'] ? 2 : 0) | (state['T'] != 0 ? 1 : 0);
       break;
     case 30: // KEY→F // QT115/020E
       alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
@@ -1159,22 +1181,22 @@ function stat(state, entry) {
       alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
       break;
     case 32: // 1→LSGNS
-      alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
+      state['LSGNS'] = 1;
       break;
     case 33: // 0→LSGNS
-      alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
+      state['LSGNS'] = 0;
       break;
     case 34: // 1→RSGNS
-      alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
+      state['RSGNS'] = 1;
       break;
     case 35: // 0→RSGNS
-      alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
+      state['RSGNS'] = 0;
       break;
     case 36: // L(0)→LSGNS
-      alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
+      state['LSGNS'] = (state['L'] & 0x80000000) ? 1 : 0;
       break;
     case 37: // R(0)→RSGNS       // R sign stat QY310
-      alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
+      state['RSGNS'] = (state['R'] & 0x80000000) ? 1 : 0;
       break;
     case 38: // E(13)→WFN
       // Seems to also do something with I/O? Maybe I/O mover?
@@ -1284,6 +1306,7 @@ function stat(state, entry) {
 }
 
 // Compute ROAR address
+// See special bits in CROS manual page 29
 function roar(state, entry) {
   var roar;
   roar = entry['ZP'] << 6;
@@ -1324,8 +1347,9 @@ function roar(state, entry) {
     case 9: // S7
       roar |= state['S'][7] << 1;
       break;
-    case 10: // CSTAT
+    case 10: // CSTAT carry stat
       roar |= state['CSTAT'] << 1;
+      alert('Need to figure out CSTAT');
       break;
     case 11:
       alert('Unexpected AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
@@ -1333,19 +1357,21 @@ function roar(state, entry) {
     case 12: // 1SYLS
       roar |= state['1SYLS'] << 1;
       break;
-    case 13: // LSGNS
+    case 13: // LSGNS L Sign Stat
       roar |= state['LSNGS'] << 1;
       break;
-    case 14: // VSGNS
-      roar |= state['VSNGS'] << 1;
+    case 14: // VSGNS: LSS xor RSS
+      alert('Unexpected AB LSS xor RSS' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
     case 15:
       alert('Unexpected AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
     case 16: // CRMD     // masked CR → A, branch on CC=0 (I/O accepted by channel). Test for branch.
+      // CROS manual: MD bit 0 & CR23 = 00 or MD1 & CR23 = 10 or MD bit 2 & CR23=01 or MD bit 3 & CR23 = 11
       if (state['CR'] == 0) { // Not sure what mask should be.
         roar |= 2;
       }
+      alert('Unexpected AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
     case 17: // W=0
       if (state['W'] == 0) {
@@ -1362,10 +1388,10 @@ function roar(state, entry) {
         roar |= 2;
       }
       break;
-    case 20: // MD=FP
+    case 20: // MD=FP  i.e. MD = 0xx0
       alert('Unimplemented AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
-    case 21: // MB=3
+    case 21: // MB=3   BAM bit 0 and 1
       if (state['MB'] == 3) {
         roar |= 2;
       }
@@ -1381,12 +1407,12 @@ function roar(state, entry) {
       }
       break;
     case 24: // G1<0
-      if (state['G1'] < 0) {
+      if (state['G1NEG'] == 1) {
         roar |= 2;
       }
       break;
     case 25: // G<4
-      if (state['G'] < 4) {
+      if (state['G1'] == 0 && state['G2'] < 4) {
         roar |= 2;
       }
       break;
@@ -1396,8 +1422,10 @@ function roar(state, entry) {
         roar |= 2;
       }
       break;
-    case 27:
-    case 28:
+    case 27: // IO Stat 0 to CPU
+      alert('Unimplemented I/O AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
+      break;
+    case 28: // IO Stat 2
       alert('Unimplemented I/O AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
     case 29: // R(31)
@@ -1406,10 +1434,9 @@ function roar(state, entry) {
       }
       break;
     case 30: // F(2)
-      if (state['F'] & 1) { // Need to figure out which bit is 2
+      if (state['F'] & 2) {
         roar |= 2;
       }
-      alert('Unimplemented AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
     case 31: // L(0)
       if (state['L'] & 0x80000000) {
@@ -1421,28 +1448,31 @@ function roar(state, entry) {
         roar |= 2;
       }
       break;
-    case 33: // UNORM
-      if (state['UNORM']) {
+    case 33: // UNORM   T8-11 zero and not stat 0
+      if (((state['T'] & 0x00f00000) == 0) && state['S'][0] == 0) {
         roar |= 2;
       }
       break;
-    case 34: // TZ*BS
+    case 34: // TZ*BS  T zero per byte stat
       alert('Unimplemented AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
     case 35: // EDITPAT
+      // CROS manual page 31: sets A with edit stat 1, B with edit stat 2.
       alert('Unimplemented AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
-    case 36: // PROB     // Privileged op? QY110
+    case 36: // PROB     // Privileged op? QY110  Monitor stat
       alert('Unimplemented AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
-    case 37: // TIMUP
+    case 37: // TIMUP   Timer update signal and not manual trigger
       alert('Unimplemented AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
     case 38:
       alert('Unexpected AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
-    case 39: // GZ/MB3
-      alert('Unimplemented AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
+    case 39: // GZ/MB3    CCROS: G1 == 0 & G2 == 0   or  BAM0 == 1 & BAM1 == 1
+      if ((state['G1'] == 0 && state['G2'] == 0) || state['MB'] == 3) {
+        roar |= 2;
+      }
       break;
     case 40:
       alert('Unexpected AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
@@ -1477,7 +1507,7 @@ function roar(state, entry) {
         roar |= 2;
       }
       break;
-    case 48:
+    case 48: // CROS: Storage protect violation
       alert('Unimplemented I/O AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
     case 49: // W(67)→AB
@@ -1486,16 +1516,17 @@ function roar(state, entry) {
       }
       roar |= state['W'] & 3;
       break;
-    case 50:
-    case 51:
-    case 52:
-    case 53:
+    case 50: // CROS T16-31 != 0
+    case 51: // CROS T5-7 == 0 && T16-31 != 0
+    case 52: // CROS bus in bit 0
+    case 53: // CROS IB full
       alert('Unimplemented I/O AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
     case 54: // CANG
+      // CROS: IO mode & (T29-31 not zero or Inv Add)   or  CPU mode & (T29-31 not zero or Inv Add) -- seems redundant
       alert('Unimplemented AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
-    case 55: // CHLOG
+    case 55: // CHLOG   CROS: AC log
       alert('Unimplemented AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
     case 56:
@@ -1503,7 +1534,7 @@ function roar(state, entry) {
       // 00: off-bounds fetch (i.e. odd halfword)
       // 01: off-bounds, refetch (i.e. can't use instruction in op buffer WS14)
       // 10: on-bounds fetch (i.e. fetching a normal even halfword.)
-      // 11: exception
+      // 11: exception or no-bit in instruction counter position 30 (CROS page 31)
       // See e.g. QT105
       if (state['IAR'] & 1) {
         // Alignment exception. Other address exceptions?
@@ -1519,27 +1550,31 @@ function roar(state, entry) {
       }
       break;
     case 57: // IA(30)
-      alert('Unimplemented AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
+      if (state['IAR'] & 2) { // Bit 30
+        roar |= 2;
+      }
       break;
     case 58: // EXT,CHIRPT
+      // CROS page 31: A set with either timer or external channel, B with channel interrupt
+      // timer update and not manual trigger    or external chan intr
       alert('Unimplemented AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
-    case 59:
+    case 59: // CROS: direct date hold sense br
       alert('Unexpected AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
-    case 60: // PSS      // Test and reset Program Scan Stat QU100
+    case 60: // PSS      // Test and reset Progressive Scan Stat QU100
       if (state['PSS']) {
         roar |= 2;
         state['PSS'] = 0;
       }
       break;
-    case 61:
+    case 61: // CROS: IO Stat 4
     case 62:
       alert('Unexpected AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
-    case 63: // RX.S0
+    case 63: // RX.S0   CROS: S0 & M01==01
       // QT115:0188 RX instruction type
-      if (state['RX'] && state['S'][0]) {
+      if (((state['M'] >>> 30) == 1) && state['S'][0]) {
         roar |= 2;
       }
       break;
@@ -1548,6 +1583,7 @@ function roar(state, entry) {
       break;
   }
 
+  // B bit can be set later in the cycle, see CROS manual page 31
   switch (entry['BB']) {
     case 0: // 0
       roar |= 0;
@@ -1579,16 +1615,16 @@ function roar(state, entry) {
     case 9: // S7
       roar |= state['S'][7];
       break;
-    case 10: // RSGNS
+    case 10: // RSGNS R Sign Stat
       roar |= state['RSGNS'];
       break;
-    case 11: // HSCH
+    case 11: // HSCH HS Channel Special Branch
       roar |= state['HSCH'];
       break;
-    case 12: // EXC      // Test as part of branch. Address trap exception? QA700
+    case 12: // EXC      // Exception Branch
       roar |= state['EXC'];
       break;
-    case 13: // WR=0
+    case 13: // WR=0 MVR LTH 4-7 eq zero
       if (state['WR'] == 0) {
         roar |= 1;
       }
@@ -1645,7 +1681,7 @@ function roar(state, entry) {
       }
       break;
     case 24: // G2<0
-      if (state['G2'] < 0) {
+      if (state['G2NEG'] == 1) {
         roar |= 1;
       }
       break;
@@ -1655,33 +1691,38 @@ function roar(state, entry) {
         roar |= 1;
       }
       break;
-    case 26: // I/O
-      alert('Unimplemented I/O BB ' + entry['BB'] + " " + labels['AB'][entry['AB']]);
+    case 26: // I/O  CROS manual: IO Stat 1 to CPU
+      alert('Unimplemented I/O BB ' + entry['BB'] + " " + labels['BB'][entry['BB']]);
       break;
-    case 27: // MD/JI
-      alert('Unimplemented BB ' + entry['BB'] + " " + labels['AB'][entry['AB']]);
+    case 27: // MD/JI   CROS manual: MD Odd Gt 8 or J odd gt 8
+      if (((state['MD'] & 1) && state['MD'] > 8) || ((state['J'] & 1) && state['J'] > 8)) {
+        roar |= 1;
+      }
       break;
     case 28: // IVA // QT110/0149
       if (state['IVA'] == 1) {
         roar |= 1;
       }
       break;
-    case 29: // I/O
-      alert('Unimplemented I/O BB ' + entry['BB'] + " " + labels['AB'][entry['AB']]);
+    case 29: // I/O stat 3
+      alert('Unimplemented I/O BB ' + entry['BB'] + " " + labels['BB'][entry['BB']]);
       break;
-    case 30: // (CAR)
+    case 30: // (CAR) branch immediate on carry latch
       if (state['CAR'] == 1) {
         roar |= 1;
       }
       break;
     case 31: // (Z00)
-      alert('Unimplemented BB ' + entry['BB'] + " " + labels['AB'][entry['AB']]);
+      if (state['T'] & 0x80000000) {
+        roar |= 1;
+      }
       break;
     default: 
-      alert('Unimplemented BB ' + entry['BB'] + " " + labels['AB'][entry['AB']]);
+      alert('Unimplemented BB ' + entry['BB'] + " " + labels['BB'][entry['BB']]);
   }
 
   // ROS address control
+  // See also CROS manual page 28 for gate-level description
   switch (entry['ZN']) {
     case 0:
       // Use ZF function
@@ -1702,6 +1743,7 @@ function roar(state, entry) {
           // bits 1-4 minus bits 5-7?
           alert('Unimplemented ZF ' + entry['ZF'] + " " + labels['ZF'][entry['ZF']]);
           break;
+        // case 14: Add Bfr ROS Add Cntl
         default:
           alert('Unexpected ZF value ' + entry['ZF'] + " " + labels['ZF'][entry['ZF']]);
           break;

@@ -83,9 +83,10 @@ function hw(words) {
 
 var running;
 // Load instruction(s) into memory at 0x400 and execute.
-function execute(instr) {
-  command = disasm(hw(instr)).replace(/ +/, ' ');
+function execute(instr, assert, desired) {
+  command = disasm(hw(instr));
   console.log(command);
+  assert.equal(command.replace(/ /g, ''), desired.replace(/ /g, '', desired));
   // Load instruction into memory
   for (var i = 0; i < instr.length; i++) {
     state['MS'][0x400 + i] = instr[i];
@@ -108,16 +109,30 @@ function executeInstr(instr) {
       alert('Bailing out');
       return;
     }
+    console.log('L: ' + state['L'].toString(16) +
+      ', R: ' + state['R'].toString(16) +
+      ', M: ' + state['M'].toString(16) +
+      ', LB: ' + state['LB'].toString(16) +
+      ', MB: ' + state['MB'].toString(16) +
+      ', W: ' + state['W'].toString(16) +
+      ', G1: ' + state['G1'].toString(16) +
+      ', G2: ' + state['G2'].toString(16) +
+      ', MD: ' + state['MD'].toString(16) +
+      ', T: ' + state['T'].toString(16));
     // Check if done
     if (count > 5 && [0x148, 0x149, 0x14a, 0x14c, 0x14e, 0x184, 0x185, 0x187, 0x188, 0x189, 0x19b].includes(state['ROAR'])) {
       return;
     }
     if (state['TRAP']) {
+      console.log("********** TRAP **********");
+      throw('TRAP');
       return;
     }
     if ([0x218, 0x195, 0x19c, 0x1b0, 0x1b4, 0x1b8, 0x1b1, 0x1b3, 0x1b5, 0x1b7, 0x10e, 0x10f, 
         0x751, 0x731, 0x733, 0x735, 0x1c6, 0x102, 0x1cc].includes(state['ROAR'])) {
       console.log("********** Exception **********");
+      throw('Exception');
+      return;
     }
   }
   throw('Count exceeded');
@@ -130,17 +145,16 @@ QUnit.module("Instructions", function(hooks) {
 
   QUnit.test( "Load LR", function(assert) {
     reg(1, 0x12345678);
-    execute([0x18310000]);
+    execute([0x18310000], assert, 'LR 3,1');
     assert.equal(reg(3), 0x12345678);
-    assert.equal(command, 'LR 3,1');
   });
 
   QUnit.test( "Load L", function(assert) {
     reg(4, 0x1000);
     reg(5, 0x200);
     state['MS'][0x1b84] = 0x12345678;
-    execute([0x58345984]); // L 3, 984(4, 5): load R3 with mem[984+R4+R45)
-    assert.equal(command, 'L 3,984(4,5)');
+    execute([0x58345984], assert, 'L 3,984(4,5)');
+    // L 3, 984(4, 5): load R3 with mem[984+R4+R45)
     assert.equal(reg(3), 0x12345678);
   });
 
@@ -149,9 +163,19 @@ QUnit.module("Instructions", function(hooks) {
     reg(4, 0x1000);
     reg(5, 0x200);
     state['MS'][0x1b84] = 0x87654321;
-    execute([0x48345984]); // LH 3, 984(4, 5): load R3 with mem[984+R4+R45)
-    assert.equal(command, 'LH 3,984(4,5)');
+    execute([0x48345984], assert, 'LH 3,984(4,5)');
+    // LH 3, 984(4, 5): load R3 with mem[984+R4+R45)
     assert.equal(reg(3), 0xffff8765, reg(3).toString(16)); // sign extension
+  });
+
+  QUnit.test( "Load Halfword LH sign-extend unaligned", function(assert) {
+    reg(3, 0xffffffff);
+    reg(4, 0x1000);
+    reg(5, 0x202);
+    state['MS'][0x1b84] = 0x07658321;
+    execute([0x48345984], assert, 'LH 3,984(4,5)');
+    // LH 3, 984(4, 5): load R3 with mem[984+R4+R45)
+    assert.equal(reg(3), 0xffff8321, reg(3).toString(16)); // sign extension
   });
 
   QUnit.test( "Load Halfword LH halfword aligned", function(assert) {
@@ -159,53 +183,93 @@ QUnit.module("Instructions", function(hooks) {
     reg(4, 0x1000);
     reg(5, 0x200);
     state['MS'][0x1b84] = 0x87654321;
-    execute([0x48345986]); // LH 3, 986(4, 5): load R3 with mem[986+R4+R45)
-    assert.equal(command, 'LH 3,986(4,5)');
+    execute([0x48345986], assert, 'LH 3,986(4,5)');
+    // LH 3, 986(4, 5): load R3 with mem[986+R4+R45)
     assert.equal(reg(3), 0x00004321, reg(3).toString(16));
   });
 
   QUnit.test( "Load and Test LTR", function(assert) {
     reg(4, 0xcdef1234);
-    execute([0x12340000]); // LTR 3, 4
-    assert.equal(command, 'LTR 3,4');
+    execute([0x12340000], assert, 'LTR 3,4');
+    // LTR 3, 4
     assert.equal(reg(3), 0xcdef1234);
     assert.equal(state['CR'], 1); // Negative
 
     reg(4, 0);
-    execute([0x12340000]); // LTR 3, 4
-    assert.equal(command, 'LTR 3,4');
+    execute([0x12340000], assert, 'LTR 3,4');
+    // LTR 3, 4
     assert.equal(reg(3), 0);
     assert.equal(state['CR'], 0); // Zero
 
     reg(4, 0x12345678);
-    execute([0x12340000]); // LTR 3, 4
-    assert.equal(command, 'LTR 3,4');
+    execute([0x12340000], assert, 'LTR 3,4');
+    // LTR 3, 4
     assert.equal(reg(3), 0x12345678);
     assert.equal(state['CR'], 2); // Positive
   });
 
-  QUnit.test( "Load Complement LCR", function(assert) {
+  QUnit.test( "Load Complement LCR negative", function(assert) {
     reg(4, 0x1000);
-    execute([0x13340000]); // LCR 3, 4
-    assert.equal(command, 'LCR 3,4');
-    assert.equal(reg(3), 0xffffefff);
+    execute([0x13340000], assert, 'LCR 3,4');
+    // LCR 3, 4
+    assert.equal(reg(3), 0xfffff000);
     assert.equal(state['CR'], 1); // Negative
   });
 
-  QUnit.test( "Load Positive LPR", function(assert) {
+  QUnit.test( "Load Complement LCR positive", function(assert) {
     reg(4, 0xffffffff);
-    execute([0x10340000]); // LPR 3, 4
-    assert.equal(command, 'LPR 3,4');
+    execute([0x13340000], assert, 'LCR 3,4');
+    // LCR 3, 4
     assert.equal(reg(3), 1);
     assert.equal(state['CR'], 2); // Positive
   });
 
-  QUnit.test( "Load Negative LNR", function(assert) {
+  QUnit.test( "Load Complement LCR zero", function(assert) {
+    reg(4, 0);
+    execute([0x13340000], assert, 'LCR 3,4');
+    // LCR 3, 4
+    assert.equal(reg(3), 0);
+    assert.equal(state['CR'], 0); // Zero
+  });
+
+  QUnit.test( "Load Complement LCR overflow", function(assert) {
+    state['PSW'][1] &= ~0x08000000; // Disable overflow
+    reg(4, 0x80000000);
+    execute([0x13340000], assert, 'LCR 3,4');
+    // LCR 3, 4
+    assert.equal(state['CR'], 3); // Overflow
+  });
+
+  QUnit.test( "Load Positive LPR", function(assert) {
+    reg(4, 0xffffffff);
+    execute([0x10340000], assert, 'LPR 3,4');
+    // LPR 3, 4
+    assert.equal(reg(3), 1);
+    assert.equal(state['CR'], 2); // Positive
+  });
+
+  QUnit.test( "Load Negative LNR positive", function(assert) {
     reg(4, 0x12345678);
-    execute([0x11340000]); // LNR 3, 4
-    assert.equal(command, 'LNR 3,4');
-    assert.equal(reg(3), 0xedcba987);
+    execute([0x11340000], assert, 'LNR 3,4');
+    // LNR 3, 4
+    assert.equal(reg(3), 0xedcba988);
     assert.equal(state['CR'], 1); // Negative
+  });
+
+  QUnit.test( "Load Negative LNR negative", function(assert) {
+    reg(4, 0xc2345678);
+    execute([0x11340000], assert, 'LNR 3,4');
+    // LNR 3, 4
+    assert.equal(reg(3), 0xc2345678);
+    assert.equal(state['CR'], 1); // Negative
+  });
+
+  QUnit.test( "Load Negative LNR 0", function(assert) {
+    reg(4, 0);
+    execute([0x11340000], assert, 'LNR 3,4');
+    // LNR 3, 4
+    assert.equal(reg(3), 0);
+    assert.equal(state['CR'], 0); // Zero
   });
 
   QUnit.test( "Load Multiple LM", function(assert) {
@@ -214,8 +278,8 @@ QUnit.module("Instructions", function(hooks) {
     state['MS][0x1014'] = 0x11223344;
     state['MS][0x1018'] = 0x55667788;
     state['MS][0x1020'] = 0x99aabbcc;
-    execute([0x98253100]); // LM 2, 5, 1000(3)
-    assert.equal(command, 'LM 2,5,1000(3)');
+    execute([0x98253100], assert, 'LM 2,5,1000(3)');
+    // LM 2, 5, 1000(3)
     assert.equal(reg(2), 0x12345678);
     assert.equal(reg(3), 0x11223344);
     assert.equal(reg(4), 0x55667788);
@@ -225,8 +289,7 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.test( "add", function(assert) {
     reg(1, 0x12345678);
     reg(2, 0x00000005);
-    execute([0x1a120000]);
-    assert.equal(command, 'AR 1,2');
+    execute([0x1a120000], assert, 'AR 1,2');
     console.log('reg 31 has ' + state['LS'][0x31].toString(16));
     assert.equal(reg(1), 0x1234567d);
     assert.equal(state['CR'], 2); // Positive
@@ -236,8 +299,7 @@ QUnit.module("Instructions", function(hooks) {
     reg(1, 0x12345678);
     reg(2, 0x00000001);
     reg(3, 0x00000010);
-    execute([0x1a121a31]);
-    assert.equal(command, 'AR 1,2');
+    execute([0x1a121a31], assert, 'AR 1,2');
     executeInstr(); // Run the second instruction
     console.log('reg 31 has ' + state['LS'][0x31].toString(16));
     assert.equal(reg(1), 0x12345679);
@@ -248,8 +310,7 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.test( "add-negative", function(assert) {
     reg(1, 0x81234567);
     reg(2, 0x00000001);
-    execute([0x1a120000]);
-    assert.equal(command, 'AR 1,2');
+    execute([0x1a120000], assert, 'AR 1,2');
     assert.equal(reg(1), 0x81234568);
     assert.equal(state['CR'], 1); // Negative
   });
@@ -257,8 +318,7 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.test( "add-zero", function(assert) {
     reg(1, 0x00000002);
     reg(2, 0xfffffffe);
-    execute([0x1a120000]);
-    assert.equal(command, 'AR 1,2');
+    execute([0x1a120000], assert, 'AR 1,2');
     assert.equal(reg(1), 0);
     assert.equal(state['CR'], 0); // Zero
   });
@@ -267,8 +327,7 @@ QUnit.module("Instructions", function(hooks) {
     reg(1, 0x7fffffff);
     reg(2, 0x00000001);
     state['PSW'][1] &= ~0x08000000;
-    execute([0x1a120000]);
-    assert.equal(command, 'AR 1,2');
+    execute([0x1a120000], assert, 'AR 1,2');
     assert.equal(reg(1), 0x80000000);
     assert.equal(state['CR'], 3); // Overflow
   });
@@ -277,10 +336,9 @@ QUnit.module("Instructions", function(hooks) {
     reg(1, 0x7fffffff);
     reg(2, 0x00000001);
     state['PSW'][1] |= 0x08000000;
-    execute([0x1a120000]);
-    assert.equal(command, 'AR 1,2');
-    assert.equal(reg(1), 0x80000000);
-    assert.equal(state['CR'], 3); // Overflow
+    assert.throws(function() {
+      execute([0x1a120000], assert, 'AR 1,2');
+    });
   });
 
   QUnit.test( "add A", function(assert) {
@@ -288,8 +346,7 @@ QUnit.module("Instructions", function(hooks) {
     reg(5, 0x00000100);
     reg(6, 0x00000200);
     state['MS'][0x500] = 0x34567890;
-    execute([0x5a156200]);
-    assert.equal(command, 'A 1,200(5,6)');
+    execute([0x5a156200], assert, 'A 1,200(5,6)');
     assert.equal(reg(1), 0x12345678 + 0x34567890);
     assert.equal(state['CR'], 2); // Positive
   });
@@ -299,8 +356,7 @@ QUnit.module("Instructions", function(hooks) {
     reg(5, 0x00000100);
     reg(6, 0x00000202);
     state['MS'][0x500] = 0x34567890; // Only 7890 used
-    execute([0x4a156200]);
-    assert.equal(command, 'A 1,200(5,6)');
+    execute([0x4a156200], assert, 'AH 1,200(5,6)');
     assert.equal(reg(1), 0x12345678 + 0x7890);
     assert.equal(state['CR'], 2); // Positive
   });
@@ -310,17 +366,15 @@ QUnit.module("Instructions", function(hooks) {
     reg(5, 0x00000100);
     reg(6, 0x00000200);
     state['MS'][0x500] = 0xfffe1234; // only fffe (-2) used
-    execute([0x4a156200]);
-    assert.equal(command, 'A 1,200(5,6)');
+    execute([0x4a156200], assert, 'AH 1,200(5,6)');
     assert.equal(reg(1), 0xffffffff); // -1
     assert.equal(state['CR'], 1); // Negative
   });
 
-  QUnit.test( "Add Logical ALR - zero no carry ", function(assert) {
+  QUnit.test( "Add Logical ALR (i.e. unsigned) - zero no carry ", function(assert) {
     reg(1, 0);
     reg(2, 0);
-    execute([0x1e120000]);
-    assert.equal(command, 'ALR 1,2');
+    execute([0x1e120000], assert, 'ALR 1,2');
     assert.equal(reg(1), 0);
     assert.equal(state['CR'], 0); // Zero, no carry
   });
@@ -328,8 +382,7 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.test( "Add Logical ALR - non-zero no carry ", function(assert) {
     reg(1, 0xffff0000);
     reg(2, 0x00000002);
-    execute([0x1e120000]);
-    assert.equal(command, 'ALR 1,2');
+    execute([0x1e120000], assert, 'ALR 1,2');
     assert.equal(reg(1), 0xffff0002);
     assert.equal(state['CR'], 1); // Nonzero, no carry
   });
@@ -337,9 +390,8 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.test( "Add Logical ALR - zero, carry  ", function(assert) {
     reg(1, 0xfffffffe);
     reg(2, 0x00000002);
-    execute([0x1e120000]);
-    assert.equal(command, 'ALR 1,2');
-    assert.equal(reg(1), 0x1234567d);
+    execute([0x1e120000], assert, 'ALR 1,2');
+    assert.equal(reg(1), 0);
     assert.equal(state['CR'], 2); // Zero and carry
   });
 
@@ -347,8 +399,7 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.test( "Add Logical ALR - not zero, carry  ", function(assert) {
     reg(1, 0xfffffffe);
     reg(2, 0x00000003);
-    execute([0x1e120000]);
-    assert.equal(command, 'ALR 1,2');
+    execute([0x1e120000], assert, 'ALR 1,2');
     assert.equal(reg(1), 1);
     assert.equal(state['CR'], 3); // Not zero, carry
   });
@@ -358,17 +409,15 @@ QUnit.module("Instructions", function(hooks) {
     reg(5, 0x00000100);
     reg(6, 0x00000200);
     state['MS'][0x500] = 0xf0000000;
-    execute([0x5e120000]);
-    assert.equal(command, 'AL 1,200(5,6)');
-    assert.equal(reg(1), 0xe2345678);
+    execute([0x5e156200], assert, 'AL 1,200(5,6)');
+    assert.equal(reg(1), 0x02345678);
     assert.equal(state['CR'], 3); // Not zero, carry
   });
 
   QUnit.test( "subtract", function(assert) {
     reg(1, 0x12345678);
     reg(2, 0x00000001);
-    execute([0x1b120000]);
-    assert.equal(command, 'SR 1,2');
+    execute([0x1b120000], assert, 'SR 1,2');
     assert.equal(reg(1), 0x12345677);
   });
 
@@ -377,8 +426,7 @@ QUnit.module("Instructions", function(hooks) {
     reg(5, 0x00000100);
     reg(6, 0x00000200);
     state['MS'][0x500] = 0x12300000;
-    execute([0x5b156200]);
-    assert.equal(command, 'S 1,200(5,6)');
+    execute([0x5b156200], assert, 'S 1,200(5,6)');
     assert.equal(reg(1), 0x00045678);
     assert.equal(state['CR'], 2); // Positive
   });
@@ -388,8 +436,7 @@ QUnit.module("Instructions", function(hooks) {
     reg(5, 0x00000100);
     reg(6, 0x00000200);
     state['MS'][0x500] = 0x12300000;
-    execute([0x4b156200]);
-    assert.equal(command, 'SH 1,200(5,6)');
+    execute([0x4b156200], assert, 'SH 1,200(5,6)');
     assert.equal(reg(1), 0x12345678 - 0x1230);
     assert.equal(state['CR'], 2); // Positive
   });
@@ -397,9 +444,8 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.test( "Subtract Logical SLR", function(assert) {
     reg(1, 0x12345678);
     reg(2, 0x12345678);
-    execute([0x1f120000]);
-    assert.equal(command, 'SLR 1,2');
-    assert.equal(reg(1), 0x12345677);
+    execute([0x1f120000], assert, 'SLR 1,2');
+    assert.equal(reg(1), 0);
     assert.equal(state['CR'], 2); // Difference is zero (carry)
   });
 
@@ -408,17 +454,25 @@ QUnit.module("Instructions", function(hooks) {
     reg(5, 0x00000100);
     reg(6, 0x00000200);
     state['MS'][0x500] = 0x111111111;
-    execute([0x5f156200]);
-    assert.equal(command, 'SL 1,200(5,6)');
+    execute([0x5f156200], assert, 'SL 1,200(5,6)');
     assert.equal(reg(1), 0xeeeeeeee);
-    assert.equal(state['CR'], 1); // Non-zero, no carry
+    assert.equal(state['CR'], 3); // Non-zero, carry (no borrow)
+  });
+
+  QUnit.test( "Subtract Logical SL", function(assert) {
+    reg(1, 0x12345678);
+    reg(5, 0x00000100);
+    reg(6, 0x00000200);
+    state['MS'][0x500] = 0x23456789;
+    execute([0x5f156200], assert, 'SL 1,200(5,6)');
+    assert.equal(reg(1), (0x12345678 - 0x23456789) & 0xffffffff);
+    assert.equal(state['CR'], 1); // Non-zero, no carry (borrow)
   });
 
   QUnit.test( "Compare CR", function(assert) {
     reg(1, 0x12345678);
     reg(2, 0x12345678);
-    execute([0x19120000]);
-    assert.equal(command, 'CR 1,2');
+    execute([0x19120000], assert, 'CR 1,2');
     assert.equal(reg(1), 0x12345678); // Unchanged
     assert.equal(state['CR'], 0); // Operands are equal
   });
@@ -426,8 +480,7 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.test( "Compare CR", function(assert) {
     reg(1, 0xfffffffe); // -2
     reg(2, 0xfffffffd); // -3
-    execute([0x19120000]);
-    assert.equal(command, 'CR 1,2');
+    execute([0x19120000], assert, 'CR 1,2');
     assert.equal(reg(1), 0xfffffffe); // Unchanged
     assert.equal(state['CR'], 2); // First operand is high
   });
@@ -435,8 +488,7 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.test( "Compare CR", function(assert) {
     reg(1, 2);
     reg(2, 3);
-    execute([0x19120000]);
-    assert.equal(command, 'CR 1,2');
+    execute([0x19120000], assert, 'CR 1,2');
     assert.equal(reg(1), 2); // Unchanged
     assert.equal(state['CR'], 1); // First operand is low
   });
@@ -446,8 +498,7 @@ QUnit.module("Instructions", function(hooks) {
     reg(5, 0x00000100);
     reg(6, 0x00000200);
     state['MS'][0x500] = 0x12345678;
-    execute([0x59156200]);
-    assert.equal(command, 'C 1,200(5,6)');
+    execute([0x59156200], assert, 'C 1,200(5,6)');
     assert.equal(state['CR'], 1); // First operand is low
   });
 
@@ -455,8 +506,7 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.test( "multiply MR", function(assert) {
     reg(3, 0x00000004);
     reg(4, 0x00000003);
-    execute([0x1c120000]);
-    assert.equal(command, 'MR 2,4');
+    execute([0x1c120000], assert, 'MR 2,4');
     assert.equal(reg(2), 0);
     assert.equal(reg(3), 0xc);
   });
@@ -466,8 +516,7 @@ QUnit.module("Instructions", function(hooks) {
     reg(5, 0x00000100);
     reg(6, 0x00000200);
     state['MS'][0x500] = 0x34567890;
-    execute([0x5c156200]);
-    assert.equal(command, 'M 1,200(5,6)');
+    execute([0x5c156200], assert, 'M 1,200(5,6)');
     assert.equal(reg(2), 0x03b8c7b8); // High 32-bits
     assert.equal(reg(3), 0x3248e380); // Low 32-bits
   });
@@ -477,8 +526,7 @@ QUnit.module("Instructions", function(hooks) {
     reg(5, 0x00000100);
     reg(6, 0x00000200);
     state['MS'][0x500] = 0xfffe1111; // -3
-    execute([0x4c156200]);
-    assert.equal(command, 'MH 1,200(5,6)');
+    execute([0x4c156200], assert, 'MH 1,200(5,6)');
     assert.equal(reg(2), 0xffffffff); // High 32-bits
     assert.equal(reg(3), 0x0c962fc98); // Low 32-bits
   });
@@ -487,8 +535,8 @@ QUnit.module("Instructions", function(hooks) {
     reg(2, 0x00000000);
     reg(3, 0x0000000e); // 14 / 4 = 3, remainder 2
     reg(4, 0x00000004);
-    execute([0x1d240000]); // DR 2, 4: divide R2/R3 by R4
-    assert.equal(command, 'DR 2,4');
+    execute([0x1d240000], assert, 'DR 2,4');
+    // divide R2/R3 by R4
     assert.equal(reg(2), 2); // Remainder
     assert.equal(reg(3), 3); // Quotient
   });
@@ -497,8 +545,7 @@ QUnit.module("Instructions", function(hooks) {
     reg(2, 0x12345678);
     reg(3, 0x9abcdef0);
     state['MS'][0x500] = 0x23456789;
-    execute([0x5d156200]);
-    assert.equal(command, 'D 1,200(5,6)');
+    execute([0x5d156200], assert, 'D 1,200(5,6)');
     assert.equal(reg(2), 0x1468168c); // Remainder
     assert.equal(reg(3), 0x84210844); // Quotient
   });
@@ -506,32 +553,82 @@ QUnit.module("Instructions", function(hooks) {
   // QE900/073C, CLF 112
   QUnit.test( "Convert to Binary CVB", function(assert) {
     state['MS'][0x500] = 0x1234567f; // Decimal 1234567+
-    execute([0x4f156200]);
-    assert.equal(command, 'CVB 1,200(5,6)');
+    execute([0x4f156200], assert, 'CVB 1,200(5,6)');
     assert.equal(reg(1), 1234567); // Note: decimal, not hex
   });
 
   QUnit.test( "Convert to Binary CVB", function(assert) {
     state['MS'][0x500] = 0x1234567b; // Decimal 1234567-
-    execute([0x4f156200]);
-    assert.equal(command, 'CVB 1,200(5,6)');
+    execute([0x4f156200], assert, 'CVB 1,200(5,6)');
     assert.equal(reg(1), (-1234567) & 0xffffffff); // Note: decimal, not hex
   });
 
   QUnit.test( "Shift Left Single SLA", function(assert) {
     reg(1, 0x12345678);
     reg(2, 0x00000001);
-    execute([0x8b1f2ff1]); // SLA 1,1(2): shift left by 1 + R2
-    assert.equal(command, 'SLA 1,1(2)');
+    execute([0x8b1f2001], assert, 'SLA 1,1(2)'); // shift left by 1 + R2, i.e. 2.
     assert.equal(reg(1), 0x12345678 << 2);
     assert.equal(state['CR'], 2); // Positive
+  });
+
+  QUnit.test( "Shift Left Single SLA extrabits", function(assert) {
+    reg(1, 0x12345678);
+    reg(2, 0x00000001);
+    execute([0x8b1f2fc1], assert, 'SLA 1,fc1(2)'); // shift value is 6 bits, fc ignored
+    assert.equal(reg(1), 0x12345678 << 2);
+    assert.equal(state['CR'], 2); // Positive
+  });
+
+  QUnit.test( "Shift Left Single SLA 0", function(assert) {
+    reg(1, 0x12345678);
+    execute([0x8b1f2fc1], assert, 'SLA 1,0(0)');
+    assert.equal(reg(1), 0x12345678);
+    assert.equal(state['CR'], 2); // Positive
+  });
+
+  QUnit.test( "Shift Left Single SLA 0 negative", function(assert) {
+    reg(1, 0x92345678);
+    execute([0x8b1f2fc1], assert, 'SLA 1,0(0)');
+    assert.equal(reg(1), 0x92345678);
+    assert.equal(state['CR'], 1); // Negative
+  });
+
+
+  QUnit.test( "Shift Left Single SLA 0 zero", function(assert) {
+    reg(1, 0);
+    execute([0x8b1f2fc1], assert, 'SLA 1,0(0)');
+    assert.equal(reg(1), 0);
+    assert.equal(state['CR'], 0); // Zero
+  });
+
+  QUnit.test( "Shift Left Single SLA: shift out", function(assert) {
+    reg(1, 0x7fffffff);
+    reg(2, 0x0000001f); // Shift by 31 shifts out entire number
+    execute([0x8b1f2ff1], assert, 'SLA 1,0(2)'); // shift left by R2
+    assert.equal(reg(1), 0);
+    assert.equal(state['CR'], 0); // Zero
+  });
+
+  QUnit.test( "Shift Left Single SLA: shift out by 32", function(assert) {
+    reg(1, 0x7fffffff);
+    reg(2, 0x00000020); // Shift by 32 shifts out entire number
+    execute([0x8b1f2ff1], assert, 'SLA 1,0(2)'); // shift left by R2
+    assert.equal(reg(1), 0);
+    assert.equal(state['CR'], 0); // Zero
+  });
+
+  QUnit.test( "Shift Left Single SLA: shift out negative", function(assert) {
+    reg(1, 0x80000000);
+    reg(2, 0x0000001f); // Shift by 31 shifts out entire number
+    execute([0x8b1f2ff1], assert, 'SLA 1,0(2)'); // shift left by R2
+    assert.equal(reg(1), 0);
+    assert.equal(state['CR'], 1); // Negative
   });
 
   QUnit.test( "Shift Left Single SLA negative-overflow", function(assert) {
     reg(1, 0x80000001);
     reg(2, 0x00000001);
-    execute([0x8b1f2ff1]); // SLA 1,1(2): shift left by 1 + R2
-    assert.equal(command, 'SLA 1,1(2)');
+    execute([0x8b1f2ff1], assert, 'SLA 1,1(2)'); // shift left by 1 + R2
     assert.equal(reg(1), 0x80000004); // Keep the sign
     assert.equal(state['CR'], 1); // Negative
   });
@@ -539,8 +636,7 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.test( "Shift Left Single SLA negative", function(assert) {
     reg(1, 0xf0000001);
     reg(2, 0x00000001);
-    execute([0x8b1f2ff1]); // SLA 1,1(2): shift left by 1 + R2
-    assert.equal(command, 'SLA 1,1(2)');
+    execute([0x8b1f2ff1], assert, 'SLA 1,1(2)'); // shift left by 1 + R2
     assert.equal(reg(1), 0xc0000004); // Keep the sign
     assert.equal(state['CR'], 1); // Negative
   });
@@ -555,49 +651,57 @@ QUnit.module("Instructions", function(hooks) {
     reg(1, 2);
     reg(2, 5);
     // First operand at 0x102, length 2. Second operand at 105, length 2.
-    execute([0xfa221100, 0x21000000]); // AD 100(2, 1), 100(2, 2)
-    assert.equal(command, 'AD 100(2,1),100(2,2)');
+    execute([0xfa221100, 0x21000000], assert, 'AD 100(2,1),100(2,2)');
     assert.equal(reg(4), 0x12344455);
     assert.equal(state['MS'][0x100],  0x046f0000); // result is 46
     assert.equal(state['MS'][0x104],  0x034f0000); // Unchanged
     assert.equal(state['CR'], 2); // Positive
   });
 
+  QUnit.test( "Zero and Add ZAP", function(assert) {
+    state['MS'][0x100] = 0x2a000000; // 2+
+    state['MS'][0x200] = 0x3a000000; // 3+
+    execute([0xf8221100, 0x21000000], assert, 'ZAP 100(1, 0), 200(1, 0)');
+    assert.equal(state['MS'][0x100],  0x3a000000); // 3+
+  });
+
+  QUnit.test( "Zero and Add ZAP offset", function(assert) {
+    state['MS'][0x100] = 0x02a00000; // 2+
+    state['MS'][0x200] = 0x0003a000; // 3+
+    execute([0xf8221100, 0x21000000], assert, ' ZAP 100(1, 0), 200(1, 0)');
+    assert.equal(state['MS'][0x101],  0x3a000000); // 3+
+  });
+
   QUnit.test( "Load (FP short) LER", function(assert) {
     reg(1, 0x12345678);
     reg(4, 0x22334455);
-    execute([0x38410000]); // LER 4, 1
-    assert.equal(command, 'LER 4,1');
+    execute([0x38410000], assert, 'LER 4,1');
     assert.equal(reg(4), 0x12344455);
   });
 
   QUnit.test( "Load (FP long) LDR", function(assert) {
     reg(1, 0x12345678);
-    execute([0x28410000]); // LDR 4, 1
-    assert.equal(command, 'LDR 4,1');
+    execute([0x28410000], assert, 'LDR 4,1');
     assert.equal(reg(4), 0x12345678);
   });
 
   QUnit.test( "Load Complement (FP) LCER", function(assert) {
     reg(1, 0x12345678);
     reg(4, 0x22334455);
-    execute([0x33410000]); // LCER 4, 1
-    assert.equal(command, 'LCER 4,1');
+    execute([0x33410000], assert, 'LCER 4,1');
     assert.equal(reg(4), 0x92344455);
   });
 
   QUnit.test( "Load Complement (FP long) LCDR", function(assert) {
     reg(1, 0x12345678);
-    execute([0x23410000]); // LCDR 4, 1
-    assert.equal(command, 'LCDR 4,1');
+    execute([0x23410000], assert, 'LCDR 4,1');
     assert.equal(reg(4), 0x92345678);
   });
 
   QUnit.test( "Move MVI", function(assert) {
     state['MS'][0x100] = 0x11223344;
     reg(1, 1);
-    execute([0x92551100]); // MVI 100(1), 55 // Move byte 55 to location 101
-    assert.equal(command, 'MVI 100(1),55');
+    execute([0x92551100], assert, 'MVI 100(1),55'); // Move byte 55 to location 101
     assert.equal(state['MS'][0x100], 0x11553344);
   });
 
@@ -606,8 +710,7 @@ QUnit.module("Instructions", function(hooks) {
     state['MS'][0x104] = 0xabcdef01;
     reg(1, 1);
     reg(2, 0);
-    execute([0xd2030100, 0x21040000]); // MVC 100(3,1), 105(0)  Move 3 bytes from 105 to 101
-    assert.equal(command, 'MVC 100(3,1),105(0)');
+    execute([0xd2030100, 0x21040000], assert, 'MVC 100(3,1),105(0)'); // Move 3 bytes from 105 to 101
     assert.equal(state['MS'][0x100], 0x1bcd5678);
     assert.equal(state['MS'][0x104], 0xaabbccdd); // Unchanged
   });
@@ -615,8 +718,7 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.test( "Compare Logical CLR", function(assert) {
     reg(1, 1);
     reg(2, 0);
-    execute([0x15120000]); // CLR 1,2
-    assert.equal(command, 'CLR 1,2');
+    execute([0x15120000], assert, 'CLR 1,2');
     assert.equal(state['MS'][0x100], 0x1bcd5678);
     assert.equal(state['MS'][0x104], 0xaabbccdd); // Unchanged
   });
@@ -624,8 +726,7 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.test( "And NR", function(assert) {
     reg(1, 0xff00ff00);
     reg(2, 0x12345678);
-    execute([0x14120000]);
-    assert.equal(command, 'NR 1,2');
+    execute([0x14120000], assert, 'NR 1,2');
     assert.equal(reg(1), 0x12005600);
     assert.equal(state['CR'], 1); // Not zero
   });
@@ -633,8 +734,7 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.test( "And NR 0", function(assert) {
     reg(1, 0x12345678);
     reg(2, 0xedcba987);
-    execute([0x14120000]);
-    assert.equal(command, 'NR 1,2');
+    execute([0x14120000], assert, 'NR 1,2');
     assert.equal(reg(1), 0);
     assert.equal(state['CR'], 0); // Zero
   });
@@ -642,8 +742,7 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.test( "Or OR", function(assert) {
     reg(1, 0xff00ff00);
     reg(2, 0x12345678);
-    execute([0x16120000]);
-    assert.equal(command, 'OR 1,2');
+    execute([0x16120000], assert, 'OR 1,2');
     assert.equal(reg(1), 0xff34ff78);
     assert.equal(state['CR'], 1); // Not zero
   });
@@ -651,8 +750,7 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.test( "Exclusive or XR", function(assert) {
     reg(1, 0xff00ff00);
     reg(2, 0x12345678);
-    execute([0x17120000]);
-    assert.equal(command, 'XR 1,2');
+    execute([0x17120000], assert, 'XR 1,2');
     assert.equal(reg(1), 0xed34a978);
     assert.equal(state['CR'], 1); // Not zero
   });
@@ -660,55 +758,48 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.test( "Shift Left Single SLL", function(assert) {
     reg(1, 0x82345678);
     reg(2, 0x12340003); // Shift 3 bits
-    execute([0x891f2100]);
-    assert.equal(command, 'SLL 1,100(2)');
+    execute([0x891f2100], assert, 'SLL 1,100(2)');
     assert.equal(reg(1), 0x82345678 >>> 2);
   });
 
   QUnit.test( "Shift Right Single SRL", function(assert) {
     reg(1, 0x82345678);
     reg(2, 0x12340003); // Shift 3 bits
-    execute([0x881f2100]);
-    assert.equal(command, 'SRL 1,100(2)');
+    execute([0x881f2100], assert, 'SRL 1,100(2)');
     assert.equal(reg(1), 0x82345678 >>> 2);
   });
 
   QUnit.test( "Branch on condition BCR", function(assert) {
     reg(1, 0x12345678); // Branch destination
     state['CC'] = 0;
-    execute([0x07810000]);
-    assert.equal(command, 'BCR 8,1');
+    execute([0x07810000], assert, 'BCR 8,1');
     assert.equal(state['IAR'], 0x12345678);
   });
 
   QUnit.test( "Branch on condition BCR, always taken", function(assert) {
     reg(1, 0x12345678); // Branch destination
     state['CC'] = 0;
-    execute([0x07f10000]);
-    assert.equal(command, 'BCR 15,1'); // always
+    execute([0x07f10000], 'BCR 15,1'); // always
     assert.equal(state['IAR'], 0x12345678);
   });
 
   QUnit.test( "Branch on condition BCR, not taken", function(assert) {
     reg(1, 0x12345678); // Branch destination
     state['CC'] = 1;
-    execute([0x07810000]);
-    assert.equal(command, 'BCR 8,1');
+    execute([0x07810000], assert, 'BCR 8,1');
     assert.equal(state['IAR'], 0x402);
   });
 
   QUnit.test( "Branch and link BALR", function(assert) {
     reg(2, 0x12345678); // Branch destination
-    execute([0x05120000]);
-    assert.equal(command, 'BALR 1,2');
+    execute([0x05120000], assert, 'BALR 1,2');
     assert.equal(reg(1), 0xffffffff); // PSW
     assert.equal(state['IAR'], 0x12345678);
   });
 
   QUnit.test( "Branch and link BALR -not taken", function(assert) {
     reg(2, 0x12345678); // Branch destination
-    execute([0x05100000]);
-    assert.equal(command, 'BALR 1,0');
+    execute([0x05100000], assert, 'BALR 1,0');
     assert.equal(reg(1), psw, reg(1).toString(16) + ' ' + psw.toString(16));
     assert.equal(state['IAR'], 0x402);
   });
@@ -716,8 +807,7 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.test( "Branch on Count BCTR - not taken", function(assert) {
     reg(1, 3); // Counter
     reg(2, 0x12345678); // Branch destination
-    execute([0x06120000]);
-    assert.equal(command, 'BCTR 1,2');
+    execute([0x06120000], assert, 'BCTR 1,2');
     assert.equal(reg(1), 2);
     assert.equal(state['IAR'], 0x402);
   });
@@ -726,42 +816,36 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.test( "Branch on Count BCTR - taken", function(assert) {
     reg(1, 1); // Counter
     reg(2, 0x12345678); // Branch destination
-    execute([0x06120000]);
-    assert.equal(command, 'BCTR 1,2');
+    execute([0x06120000], assert, 'BCTR 1,2');
     assert.equal(reg(1), 0);
     assert.equal(state['IAR'], 0x12345678);
   });
 
   QUnit.test( "Set Program Mask SPM", function(assert) {
     reg(1, 0x12345678); // Mask 12
-    execute([0x04120000]);
-    assert.equal(command, 'SPM 1');
+    execute([0x04120000], assert, 'SPM 1');
     assert.equal(state['PSW'], 0x12); // todo
   });
 
   QUnit.test( "Supervisor Call SVC", function(assert) {
-    execute([0x0a120000]);
-    assert.equal(command, 'SVC 12');
+    execute([0x0a120000], assert, 'SVC 12');
     // Need to check PSW
   });
 
   QUnit.test( "Set Storage Key SSK", function(assert) {
-    execute([0x08120000]);
-    assert.equal(command, 'SSK 1,2');
+    execute([0x08120000], assert, 'SSK 1,2');
     // Need to check PSW
   });
 
   QUnit.test( "Insert Storage Key ISK", function(assert) {
-    execute([0x09120000]);
-    assert.equal(command, 'ISK 1,2');
+    execute([0x09120000], assert, 'ISK 1,2');
     // Need to check PSW
   });
 
   QUnit.test( "Test and Set - not set TS", function(assert) {
     reg(2, 3); // Counter
     state['MS'][0x100] = 0x83857789; // 102 top bit not set
-    execute([0x93002100]);
-    assert.equal(command, 'TS 100(2)');
+    execute([0x93002100], assert, 'TS 100(2)');
     assert.equal(state['CC'], 0); // Not set
     assert.equal(state['MS'][0x100], 0x8385ff89);
   });
@@ -769,16 +853,14 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.test( "Test and Set - set TS", function(assert) {
     reg(2, 3); // Counter
     state['MS'][0x100] = 0x8385c789; // 102 top bit set
-    execute([0x93002100]);
-    assert.equal(command, 'TS 100(2)');
+    execute([0x93002100], assert, 'TS 100(2)');
     assert.equal(state['CC'], 1); // Set
     assert.equal(state['MS'][0x100], 0x8385ff89);
   });
 
   QUnit.test( "Diagnose", function(assert) {
     reg(2, 3); // Counter
-    execute([0x83123456]);
-    assert.equal(command, 'diagnose');
+    execute([0x83123456], assert, 'diagnose');
   });
 });
 </script>
