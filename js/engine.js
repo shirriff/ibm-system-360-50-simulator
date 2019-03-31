@@ -6,9 +6,9 @@
 function cycle(state, entry) {
   try {
     adder(state, entry);
+    roar(state, entry); // Need roar before mover to get old W, see 2B7. Need before localStorage read
     var msg = aldg(state, entry);
     iar(state, entry);
-    roar(state, entry); // Need roar before mover to get old W, see 2B7. Need before localStorage read
     localStorage(state, entry);
     stat(state, entry);
     mover(state, entry);
@@ -116,6 +116,9 @@ function adder(state, entry) {
   var carry = 0;
 
   // Length counter and carry insert ctrl
+  // Inconveniently, we need to do some of the DG operations early, to set up the adder. But
+  // we also need to do some of the DG operations late in the cycle, to update registers.
+  // The roar checks need to happen in the middle.
   switch (entry['DG']) {
     case 0: // default
       break;
@@ -127,40 +130,25 @@ function adder(state, entry) {
       carry = 1;
       break;
     case 3: // G1-1
-      state['G1'] = (state['G1'] - 1) & 0xf;
-      if (state['G1'] == 0xf) {
-        state['G1NEG'] = 1; // Underflow
-      } else {
-        state['G1NEG'] = 0;
-      }
+      state['G1NEG'] = (state['G1'] == 0 ? 1 : 0); // Update underflow
+      // Update happens later
       break;
     case 4: // HOT1,G-1
-      alert('Unexpected DG ' + entry['DG'] + " " + labels['DG'][entry['DG']]);
+      carry = 1;
+      state['G1NEG'] = (state['G1'] == 0 ? 1 : 0); // Update underflow
       break;
     case 5: // G2-1
-      state['G2'] = (state['G2'] - 1) & 0xf;
-      if (state['G2'] == 0xf) {
-        state['G2NEG'] = 1; // Underflow
-      } else {
-        state['G2NEG'] = 0;
-      }
+      state['G2NEG'] = (state['G2'] == 0 ? 1 : 0); // Update underflow
+      // Update happens later
       break;
     case 6: // G-1
-      alert('Unexpected DG ' + entry['DG'] + " " + labels['DG'][entry['DG']]);
+      // Need to update G1NEG, G2NEG?
+      // Happens later
       break;
     case 7: // G1,2-1
-      state['G1'] = (state['G1'] - 1) & 0xf;
-      if (state['G1'] == 0xf) {
-        state['G1NEG'] = 1; // Underflow
-      } else {
-        state['G1NEG'] = 0;
-      }
-      state['G2'] = (state['G2'] - 1) & 0xf;
-      if (state['G2'] == 0xf) {
-        state['G2NEG'] = 1; // Underflow
-      } else {
-        state['G2NEG'] = 0;
-      }
+      state['G1NEG'] = (state['G1'] == 0 ? 1 : 0); // Update underflow
+      state['G2NEG'] = (state['G2'] == 0 ? 1 : 0); // Update underflow
+      // G1 and G2 updated later
       break;
     default:
       alert('Unexpected DG ' + entry['DG'] + " " + labels['DG'][entry['DG']]);
@@ -239,7 +227,44 @@ function adder(state, entry) {
   state['T'] = t;
 }
 
+// This has the later DG logic and the AL logic.
 function aldg(state, entry) {
+  // Length counter and carry insert ctrl
+  switch (entry['DG']) {
+    case 0: // default
+      break;
+    case 1: // CSTAT→ADDER
+      // Happened earlier
+      break;
+    case 2: // HOT1→ADDER        // Add 1 bit
+      // Happened earlier
+      break;
+    case 3: // G1-1
+      // NEG happened earlier
+      state['G1'] = (state['G1'] - 1) & 0xf;
+      break;
+    case 5: // G2-1
+      // NEG happened earlier
+      state['G2'] = (state['G2'] - 1) & 0xf;
+      break;
+    case 4: // HOT1,G-1
+      // HOT1, NEG happened earlier
+      // Fall through
+    case 6: // G-1
+      if (state['G2'] == 0) {
+        state['G1'] = (state['G1'] - 1) & 0xf;
+      }
+      state['G2'] = (state['G2'] - 1) & 0xf;
+      break;
+    case 7: // G1,2-1
+      // Neg happened earlier
+      state['G1'] = (state['G1'] - 1) & 0xf;
+      state['G2'] = (state['G2'] - 1) & 0xf;
+      break;
+    default:
+      alert('Unexpected DG ' + entry['DG'] + " " + labels['DG'][entry['DG']]);
+      break;
+  }
   msg = '';
   // Shift gate and adder latch control
   switch (entry['AL']) {
@@ -1072,10 +1097,10 @@ function stat(state, entry) {
       // if +, 0→LSGN
       // Value tested is in U apparently.
       if ([0xa, 0xc, 0xe, 0xf].includes(state['U'])) { // Positive
-        state['LSGN'] = 0;
+        state['LSGNS'] = 0;
       } else if ([0xb, 0xd].includes(state['U'])) { // Negative
-        state['LSGN'] = 1;
-        state['RSGN'] = 0;
+        state['LSGNS'] = 1;
+        state['RSGNS'] = 0;
       } else {
         trapInvalidDecimal(state);
       }
@@ -1095,13 +1120,27 @@ function stat(state, entry) {
       state['S'][3] = (e >> 0) & 1;
       break;
     case 9: // S03ΩE,1→LSGN
-      alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
+      state['LSGNS'] = 1;
+      var e = entry['CE'];
+      state['S'][0] |= (e >> 3) & 1;
+      state['S'][1] |= (e >> 2) & 1;
+      state['S'][2] |= (e >> 1) & 1;
+      state['S'][3] |= (e >> 0) & 1;
       break;
     case 10: // S03ΩE            // Set S03 bits from E
-      alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
+      var e = entry['CE'];
+      state['S'][0] |= (e >> 3) & 1;
+      state['S'][1] |= (e >> 2) & 1;
+      state['S'][2] |= (e >> 1) & 1;
+      state['S'][3] |= (e >> 0) & 1;
       break;
     case 11: // S03ΩE,0→BS
-      alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
+      state['BS'] = 0;
+      var e = entry['CE'];
+      state['S'][0] |= (e >> 3) & 1;
+      state['S'][1] |= (e >> 2) & 1;
+      state['S'][2] |= (e >> 1) & 1;
+      state['S'][3] |= (e >> 0) & 1;
       break;
     case 12: // X0,B0,1SYL      (B=0)→S1, set 1 SYL. QC031/003F
       x0(state);
@@ -1358,7 +1397,7 @@ function roar(state, entry) {
       roar |= state['1SYLS'] << 1;
       break;
     case 13: // LSGNS L Sign Stat
-      roar |= state['LSNGS'] << 1;
+      roar |= state['LSGNS'] << 1;
       break;
     case 14: // VSGNS: LSS xor RSS
       alert('Unexpected AB LSS xor RSS' + entry['AB'] + " " + labels['AB'][entry['AB']]);
@@ -1638,7 +1677,7 @@ function roar(state, entry) {
       }
       break;
     case 16: // T(0)
-      if ((state['T'] & (1<<31)) == 0) {
+      if (state['T'] & (1<<31)) {
         roar |= 1;
       }
       break;

@@ -112,13 +112,16 @@ function executeInstr(instr) {
     console.log('L: ' + state['L'].toString(16) +
       ', R: ' + state['R'].toString(16) +
       ', M: ' + state['M'].toString(16) +
+      ', T: ' + state['T'].toString(16) +
       ', LB: ' + state['LB'].toString(16) +
       ', MB: ' + state['MB'].toString(16) +
       ', W: ' + state['W'].toString(16) +
       ', G1: ' + state['G1'].toString(16) +
       ', G2: ' + state['G2'].toString(16) +
       ', MD: ' + state['MD'].toString(16) +
-      ', T: ' + state['T'].toString(16));
+      ', SGNS: ' + state['LSGNS'] + ' ' + state['RSGNS'] +
+      ', S: ' + state['S'] +
+      ', CR: ' + state['CR']);
     // Check if done
     if (count > 5 && [0x148, 0x149, 0x14a, 0x14c, 0x14e, 0x184, 0x185, 0x187, 0x188, 0x189, 0x19b].includes(state['ROAR'])) {
       return;
@@ -465,7 +468,7 @@ QUnit.module("Instructions", function(hooks) {
     reg(6, 0x00000200);
     state['MS'][0x500] = 0x23456789;
     execute([0x5f156200], assert, 'SL 1,200(5,6)');
-    assert.equal(reg(1), (0x12345678 - 0x23456789) & 0xffffffff);
+    assert.equal(reg(1), (0x12345678 - 0x23456789) >>> 0);
     assert.equal(state['CR'], 1); // Non-zero, no carry (borrow)
   });
 
@@ -506,7 +509,7 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.test( "multiply MR", function(assert) {
     reg(3, 0x00000004);
     reg(4, 0x00000003);
-    execute([0x1c120000], assert, 'MR 2,4');
+    execute([0x1c240000], assert, 'MR 2,4');
     assert.equal(reg(2), 0);
     assert.equal(reg(3), 0xc);
   });
@@ -581,22 +584,22 @@ QUnit.module("Instructions", function(hooks) {
 
   QUnit.test( "Shift Left Single SLA 0", function(assert) {
     reg(1, 0x12345678);
-    execute([0x8b1f2fc1], assert, 'SLA 1,0(0)');
+    execute([0x8b100000], assert, 'SLA 1,0(0)');
     assert.equal(reg(1), 0x12345678);
     assert.equal(state['CR'], 2); // Positive
   });
 
   QUnit.test( "Shift Left Single SLA 0 negative", function(assert) {
     reg(1, 0x92345678);
-    execute([0x8b1f2fc1], assert, 'SLA 1,0(0)');
-    assert.equal(reg(1), 0x92345678);
+    execute([0x8b1f0000], assert, 'SLA 1,0(0)');
+    assert.equal(reg(1), 0x92345678); // Should be unchanged
     assert.equal(state['CR'], 1); // Negative
   });
 
 
   QUnit.test( "Shift Left Single SLA 0 zero", function(assert) {
     reg(1, 0);
-    execute([0x8b1f2fc1], assert, 'SLA 1,0(0)');
+    execute([0x8b1f0000], assert, 'SLA 1,0(0)');
     assert.equal(reg(1), 0);
     assert.equal(state['CR'], 0); // Zero
   });
@@ -604,7 +607,7 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.test( "Shift Left Single SLA: shift out", function(assert) {
     reg(1, 0x7fffffff);
     reg(2, 0x0000001f); // Shift by 31 shifts out entire number
-    execute([0x8b1f2ff1], assert, 'SLA 1,0(2)'); // shift left by R2
+    execute([0x8b1f2000], assert, 'SLA 1,0(2)'); // shift left by R2
     assert.equal(reg(1), 0);
     assert.equal(state['CR'], 0); // Zero
   });
@@ -612,7 +615,7 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.test( "Shift Left Single SLA: shift out by 32", function(assert) {
     reg(1, 0x7fffffff);
     reg(2, 0x00000020); // Shift by 32 shifts out entire number
-    execute([0x8b1f2ff1], assert, 'SLA 1,0(2)'); // shift left by R2
+    execute([0x8b1f2000], assert, 'SLA 1,0(2)'); // shift left by R2
     assert.equal(reg(1), 0);
     assert.equal(state['CR'], 0); // Zero
   });
@@ -620,7 +623,7 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.test( "Shift Left Single SLA: shift out negative", function(assert) {
     reg(1, 0x80000000);
     reg(2, 0x0000001f); // Shift by 31 shifts out entire number
-    execute([0x8b1f2ff1], assert, 'SLA 1,0(2)'); // shift left by R2
+    execute([0x8b1f2000], assert, 'SLA 1,0(2)'); // shift left by R2
     assert.equal(reg(1), 0);
     assert.equal(state['CR'], 1); // Negative
   });
@@ -628,7 +631,7 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.test( "Shift Left Single SLA negative-overflow", function(assert) {
     reg(1, 0x80000001);
     reg(2, 0x00000001);
-    execute([0x8b1f2ff1], assert, 'SLA 1,1(2)'); // shift left by 1 + R2
+    execute([0x8b1f2001], assert, 'SLA 1,1(2)'); // shift left by 1 + R2
     assert.equal(reg(1), 0x80000004); // Keep the sign
     assert.equal(state['CR'], 1); // Negative
   });
@@ -636,11 +639,10 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.test( "Shift Left Single SLA negative", function(assert) {
     reg(1, 0xf0000001);
     reg(2, 0x00000001);
-    execute([0x8b1f2ff1], assert, 'SLA 1,1(2)'); // shift left by 1 + R2
+    execute([0x8b1f2001], assert, 'SLA 1,1(2)'); // shift left by 1 + R2
     assert.equal(reg(1), 0xc0000004); // Keep the sign
     assert.equal(state['CR'], 1); // Negative
   });
-
 
   QUnit.test( "Add Decimal AD", function(assert) {
     // add 12+ and 34+
@@ -661,14 +663,14 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.test( "Zero and Add ZAP", function(assert) {
     state['MS'][0x100] = 0x2a000000; // 2+
     state['MS'][0x200] = 0x3a000000; // 3+
-    execute([0xf8221100, 0x21000000], assert, 'ZAP 100(1, 0), 200(1, 0)');
+    execute([0xf8110100, 0x02000000], assert, 'ZAP 100(1, 0), 200(1, 0)');
     assert.equal(state['MS'][0x100],  0x3a000000); // 3+
   });
 
   QUnit.test( "Zero and Add ZAP offset", function(assert) {
     state['MS'][0x100] = 0x02a00000; // 2+
     state['MS'][0x200] = 0x0003a000; // 3+
-    execute([0xf8221100, 0x21000000], assert, ' ZAP 100(1, 0), 200(1, 0)');
+    execute([0xf8110100, 0x02000000], assert, 'ZAP 100(1, 0), 200(1, 0)');
     assert.equal(state['MS'][0x101],  0x3a000000); // 3+
   });
 
