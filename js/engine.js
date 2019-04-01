@@ -5,9 +5,18 @@
 // Returns message if any
 function cycle(state, entry) {
   try {
-    adder(state, entry);
+    adderLX(state, entry);
+    adderRY(state, entry);
+    adderDG(state, entry);
+    adderT(state, entry);
+
     roar(state, entry); // Need roar before mover to get old W, see 2B7. Need before localStorage read
-    var msg = aldg(state, entry);
+    roarAB(state, entry);
+    roarBB(state, entry);
+    roarZN(state, entry);
+
+    adderDG2(state, entry);
+    var msg = adderAL(state, entry);
     iar(state, entry);
     localStorage(state, entry);
     stat(state, entry);
@@ -49,10 +58,11 @@ function fmt4(d) {
   return d.toString(16).padStart(8, '0');
 }
 
-// uses LX (left input xg), RY (right input y), DG, TC (-/+), AD (adder function)
-function adder(state, entry) {
-  var xg = 0;
 
+
+// Sets state['XG'] based on entry['LX'] and TC
+function adderLX(state, entry) {
+  var xg = 0;
   switch (entry['LX']) { // left input to adder [XG]
     case 0: // No adder input
       xg = 0;
@@ -84,7 +94,15 @@ function adder(state, entry) {
       alert('Unexpected LX ' + entry['LX'] + " " + labels['LX'][entry['LX']]);
       break;
   }
+  if (entry['TC'] == 0) {
+    // Subtract
+    xg = (~xg) >>> 0; // 1's complement
+  }
+  state['XG'] = xg;
+}
 
+// Sets state['Y'] based on entry['RY']
+function adderRY(state, entry) {
   // Right input to adder Y
   var y = 0;
   switch (entry['RY']) {
@@ -113,7 +131,12 @@ function adder(state, entry) {
       alert('Unexpected RY ' + entry['RY'] + " " + labels['RY'][entry['RY']]);
       break;
   }
+  state['RY'] = y;
+}
 
+// Sets carry-in state['CIN'] based on entry['DG']
+// Does other DG functions such as G1, G2
+function adderDG(state, entry) {
   var carry = 0;
 
   // Length counter and carry insert ctrl
@@ -160,20 +183,25 @@ function adder(state, entry) {
     carry = state['S'][1]; // See QE900, 0848
   }
 
+  state['CIN'] = carry;
+}
+
+// Does the actual addition using XG, Y and CIN. Sets state['T']
+// Adder AD functions, mostly setting carry flag
+function adderT(state, entry) {
   var t;
 
-  if (entry['TC'] == 0) {
-    // Subtract
-    xg = (~xg) >>> 0; // 1's complement
-  }
+  var xg = state['XG'];
+  var y = state['RY'];
+  var carry = state['CIN']
   t = xg + y + carry;
 
   var c0 = (t >= 0x100000000) ? 1 : 0;
   var c1 = (((xg & 0x7fffffff) + (y & 0x7fffffff) + carry) & 0x80000000) ? 1 : 0;
 
   t = t >>> 0; // Force Javascript to give an unsigned result
+  state['T'] = t;
  
-  // Adder function
   // See CROS page 33 for carry info
   switch (entry['AD']) {
     case 0:
@@ -229,7 +257,7 @@ function adder(state, entry) {
 }
 
 // This has the later DG logic and the AL logic.
-function aldg(state, entry) {
+function adderDG2(state, entry) {
   // Length counter and carry insert ctrl
   switch (entry['DG']) {
     case 0: // default
@@ -266,6 +294,9 @@ function aldg(state, entry) {
       alert('Unexpected DG ' + entry['DG'] + " " + labels['DG'][entry['DG']]);
       break;
   }
+}
+
+function adderAL(state, entry) {
   msg = '';
   // Shift gate and adder latch control
   switch (entry['AL']) {
@@ -1363,8 +1394,12 @@ function roar(state, entry) {
     roar |= entry['ZF'] << 2;
   }
   // otherwise ZF function generates roar bits at bottom of routine
+  state['ROAR'] = roar;
+}
   
+function roarAB(state, entry) {
   // Condition test (left side)
+  var roar = state['ROAR'];
   switch (entry['AB']) {
     case 0: // 0
       // roar |= 0;
@@ -1633,7 +1668,11 @@ function roar(state, entry) {
       alert('Unexpected AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
   }
+  state['ROAR'] = roar;
+}
 
+function roarBB(state, entry) {
+  var roar = state['ROAR'];
   // B bit can be set later in the cycle, see CROS manual page 31
   switch (entry['BB']) {
     case 0: // 0
@@ -1771,6 +1810,11 @@ function roar(state, entry) {
     default: 
       alert('Unimplemented BB ' + entry['BB'] + " " + labels['BB'][entry['BB']]);
   }
+  state['ROAR'] = roar;
+}
+
+function roarZN(state, entry) {
+  var roar = state['ROAR'];
 
   // ROS address control
   // See also CROS manual page 28 for gate-level description

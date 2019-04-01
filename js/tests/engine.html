@@ -27,6 +27,14 @@ function alert(msg) {
   QUnit.assert.equal(0, 1, msg);
 }
 
+// Helper to call all the adder routines
+function adder(state, entry) {
+  adderLX(state, entry);
+    adderRY(state, entry);
+    adderDG(state, entry);
+    adderT(state, entry);
+}
+
 // QUnit.config.collapse = false; // Expand all failures
 
 QUnit.test( "adder", function(assert) {
@@ -237,11 +245,11 @@ QUnit.test( "adder dg 1 CSTAT→ADDER", function(assert) {
 QUnit.test( "adder dg 3 G1-1", function(assert) {
   var state = {'R': 0x100, 'L': 0x10, 'G1': 1};
   adder(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 3 /* G1-1 */});
-  aldg(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 3 /* G1-1 */});
+  adderDG2(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 3 /* G1-1 */});
   assert.equal(state['G1'], 0);
   assert.equal(state['G1NEG'], 0);
   adder(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 3 /* G1-1 */});
-  aldg(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 3 /* G1-1 */});
+  adderDG2(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 3 /* G1-1 */});
   assert.equal(state['G1'], 0xf);
   assert.equal(state['G1NEG'], 1);
 });
@@ -249,11 +257,11 @@ QUnit.test( "adder dg 3 G1-1", function(assert) {
 QUnit.test( "adder dg 5 G2-1", function(assert) {
   var state = {'R': 0x100, 'L': 0x10, 'G2': 1};
   adder(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 5 /* G2-1 */});
-  aldg(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 5 /* G2-1 */});
+  adderDG2(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 5 /* G2-1 */});
   assert.equal(state['G2'], 0);
   assert.equal(state['G2NEG'], 0);
   adder(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 5 /* G2-1 */});
-  aldg(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 5 /* G2-1 */});
+  adderDG2(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 5 /* G2-1 */});
   assert.equal(state['G2'], 0xf);
   assert.equal(state['G2NEG'], 1);
 });
@@ -261,13 +269,13 @@ QUnit.test( "adder dg 5 G2-1", function(assert) {
 QUnit.test( "adder dg 7 G1,2-1", function(assert) {
   var state = {'R': 0x100, 'L': 0x10, 'G1': 0, 'G2': 1};
   adder(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 7 /* G1,2-1 */});
-  aldg(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 7 /* G1,2-1 */});
+  adderDG2(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 7 /* G1,2-1 */});
   assert.equal(state['G1'], 0xf);
   assert.equal(state['G2'], 0);
   assert.equal(state['G1NEG'], 1);
   assert.equal(state['G2NEG'], 0);
   adder(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 7 /* G1,2-1 */});
-  aldg(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 7 /* G1,2-1 */});
+  adderDG2(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 7 /* G1,2-1 */});
   assert.equal(state['G1'], 0xe);
   assert.equal(state['G2'], 0xf);
   assert.equal(state['G1NEG'], 0);
@@ -701,237 +709,243 @@ QUnit.test( "ls3  WS,E→LSA", function(assert) {
 
 QUnit.test( "roar1", function(assert) {
   var state = {};
-  // Test AB, BB values
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 0, 'BB': 0});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2));
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 1, 'BB': 0});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 2);
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 1, 'BB': 1});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 3);
-  state['S'] = [0, 1, 0, 0, 1, 0, 0, 0]; // S1, S4
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 2 /* S0 */, 'BB': 3 /* S1 */});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 1);
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 6 /* S4 */, 'BB': 7 /* S5 */});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 2);
-  state['MD'] = 0xe;
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 22 /* MD3=0 */, 'BB': 0});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 2);
-  state['MD'] = 0xf;
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 22 /* MD3=0 */, 'BB': 0});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 0);
+  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4});
+  assert.equal(state['ROAR'], 0x49c);
+  roarAB(state, {'AB': 1});
+  assert.equal(state['ROAR'], 0x49c | 2);
+});
 
+QUnit.test( "roar ab 22", function(assert) {
+  var state = {'ROAR': 0x49c, 'MD': 0xe};
+  roarAB(state, {'AB': 22 /* MD3=0 */});
+  assert.equal(state['ROAR'], 0x49c | 2);
+  state = {'ROAR': 0x49c, 'MD': 0xf};
+  roarAB(state, {'AB': 22 /* MD3=0 */});
+  assert.equal(state['ROAR'], 0x49c | 0);
+});
+
+QUnit.test( "roar-iva", function(assert) {
   // Invalid address
-  state['IVA'] = 0;
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 0, 'BB': 28 /* IVA */});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 0);
-  state['IVA'] = 1;
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 0, 'BB': 28 /* IVA */});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 1);
+  var state = {'ROAR': 0x49c, 'IVA': 0};
+  roarBB(state, {'BB': 28 /* IVA */});
+  assert.equal(state['ROAR'], 0x49c | 0);
+  state = {'ROAR': 0x49c, 'IVA': 1};
+  roarBB(state, {'BB': 28 /* IVA */});
+  assert.equal(state['ROAR'], 0x49c | 1);
+});
 
+QUnit.test( "roar-zn", function(assert) {
   // Test ZN functions
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 2 /* AΩ(B=0)→A */, 'AB': 0, 'BB': 0});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 2);
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 3 /* AΩ(B=1)→A */, 'AB': 0, 'BB': 0});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 0);
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 6 /* BΩ(A=0)→B */, 'AB': 0, 'BB': 0});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 1);
+  var state = {'ROAR': 0x49c};
+  roarZN(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 2 /* AΩ(B=0)→A */});
+  assert.equal(state['ROAR'], 0x49c | 2);
+
+  state = {'ROAR': 0x49c};
+  roarZN(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 3 /* AΩ(B=1)→A */});
+  assert.equal(state['ROAR'], 0x49c | 0);
+
+  state = {'ROAR': 0x49c};
+  roarZN(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 6 /* BΩ(A=0)→B */});
+  assert.equal(state['ROAR'], 0x49c | 1);
+});
 
   // Test ZF functions (ZN = 0)
-  state['F'] = 0x3;
-  roar(state, {'ZP': 0x12, 'ZF': 10 /* F->ROAR */, 'ZN': 0, 'AB': 0, 'BB': 0});
+QUnit.test( "roar-zf", function(assert) {
+  var state = {'ROAR': 0x480, 'F': 3};
+  roarZN(state, {'ZP': 0x12, 'ZF': 10 /* F->ROAR */, 'ZN': 0});
   assert.equal(state['ROAR'], (0x12 << 6) | (0x3 << 2));
-  state['M'] = 0x24ffffff;
-  roar(state, {'ZP': 0x12, 'ZF': 6 /* M(03)->ROAR */, 'ZN': 0, 'AB': 0, 'BB': 0});
+
+  state = {'ROAR': 0x480, 'M': 0x24ffffff};
+  roarZN(state, {'ZP': 0x12, 'ZF': 6 /* M(03)->ROAR */, 'ZN': 0});
   assert.equal(state['ROAR'], (0x12 << 6) | (0x2 << 2));
-  roar(state, {'ZP': 0x12, 'ZF': 8 /* M(47)->ROAR */, 'ZN': 0, 'AB': 0, 'BB': 0});
+
+  state = {'ROAR': 0x480, 'M': 0x24ffffff};
+  roarZN(state, {'ZP': 0x12, 'ZF': 8 /* M(47)->ROAR */, 'ZN': 0});
   assert.equal(state['ROAR'], (0x12 << 6) | (0x4 << 2));
-  // Make sure AB, BB still work
-  roar(state, {'ZP': 0x12, 'ZF': 8 /* M(47)->ROAR */, 'ZN': 0, 'AB': 1, 'BB': 1});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x4 << 2) | 3);
 });
 
 QUnit.test( "ab 24 (G1NEG)", function(assert) {
-  var state = {'G1NEG': 0};
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 24, 'BB': 0});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 0);
-  state = {'G1NEG': 1};
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 24, 'BB': 0});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 2);
+  var state = {'ROAR': 0x49c, 'G1NEG': 0};
+  roarAB(state, {'AB': 24});
+  assert.equal(state['ROAR'], 0x49c | 0);
+  state = {'ROAR': 0x49c, 'G1NEG': 1};
+  roarAB(state, {'AB': 24});
+  assert.equal(state['ROAR'], 0x49c | 2);
 });
 
 QUnit.test( "ab 13 (LSGNS)", function(assert) {
-  var state = {'LSGNS': 0};
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 13, 'BB': 0});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 0);
-  state = {'LSGNS': 1};
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 13, 'BB': 0});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 2);
+  var state = {'ROAR': 0x49c, 'LSGNS': 0};
+  roarAB(state, {'AB': 13});
+  assert.equal(state['ROAR'], 0x49c | 0);
+  state = {'ROAR': 0x49c, 'LSGNS': 1};
+  roarAB(state, {'AB': 13});
+  assert.equal(state['ROAR'], 0x49c | 2);
 });
 
 QUnit.test( "ab 14 (⩝SGNS)", function(assert) {
-  var state = {'LSGNS': 0, 'RSGNS': 0};
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 14, 'BB': 0});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 0);
-  state = {'LSGNS': 1, 'RSGNS': 0};
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 14, 'BB': 0});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 2);
-  state = {'LSGNS': 0, 'RSGNS': 1};
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 14, 'BB': 0});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 2);
-  state = {'LSGNS': 1, 'RSGNS': 1};
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 14, 'BB': 0});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 0);
+  var state = {'ROAR': 0x49c, 'LSGNS': 0, 'RSGNS': 0};
+  roarAB(state, {'AB': 14});
+  assert.equal(state['ROAR'], 0x49c | 0);
+  state = {'ROAR': 0x49c, 'LSGNS': 1, 'RSGNS': 0};
+  roarAB(state, {'AB': 14});
+  assert.equal(state['ROAR'], 0x49c | 2);
+  state = {'ROAR': 0x49c, 'LSGNS': 0, 'RSGNS': 1};
+  roarAB(state, {'AB': 14});
+  assert.equal(state['ROAR'], 0x49c | 2);
+  state = {'ROAR': 0x49c, 'LSGNS': 1, 'RSGNS': 1};
+  roarAB(state, {'AB': 14});
+  assert.equal(state['ROAR'], 0x49c | 0);
 });
 
 QUnit.test( "ab 26 (G1MBZ)", function(assert) {
-  var state = {'G1': 1, 'MB': 1};
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 26, 'BB': 0});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 0);
-  var state = {'G1': 0};
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 26, 'BB': 0});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 2);
-  var state = {'G1': 1, 'MB': 0};
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 26, 'BB': 0});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 2);
+  var state = {'ROAR': 0x49c, 'G1': 1, 'MB': 1};
+  roarAB(state, {'AB': 26});
+  assert.equal(state['ROAR'], 0x49c | 0);
+  var state = {'ROAR': 0x49c, 'G1': 0};
+  roarAB(state, {'AB': 26});
+  assert.equal(state['ROAR'], 0x49c | 2);
+  var state = {'ROAR': 0x49c, 'G1': 1, 'MB': 0};
+  roarAB(state, {'AB': 26});
+  assert.equal(state['ROAR'], 0x49c | 2);
 });
 
 QUnit.test( "ab 33 (UNORM)", function(assert) {
-  var state = {'T': 0xff0fffff, 'S': [0]};
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 33, 'BB': 0});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 2); // T8-11 == 0, not stat 0
-  state = {'S': [1]};
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 33, 'BB': 0});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 0);
-  state = {'T': 0xff1fffff, 'S': [0]};
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 33, 'BB': 0});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 0);
+  var state = {'ROAR': 0x49c, 'T': 0xff0fffff, 'S': [0]};
+  roarAB(state, {'AB': 33});
+  assert.equal(state['ROAR'], 0x49c | 2); // T8-11 == 0, not stat 0
+  state = {'ROAR': 0x49c, 'S': [1]};
+  roarAB(state, {'AB': 33});
+  assert.equal(state['ROAR'], 0x49c | 0);
+  state = {'ROAR': 0x49c, 'T': 0xff1fffff, 'S': [0]};
+  roarAB(state, {'AB': 33});
+  assert.equal(state['ROAR'], 0x49c | 0);
 });
 
 QUnit.test( "ab 39 (GZ/MB3)", function(assert) {
-  var state = {'G1': 0, 'G2': 0, 'MB': 1};
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 39, 'BB': 0});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 2); // G == 0
-  state = {'G1': 1, 'G2': 1, 'MB': 3};
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 39, 'BB': 0});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 2); // MB = 3
-  state = {'G1': 0, 'G2': 1, 'MB': 2};
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 39, 'BB': 0});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 0); // G != 0 and MB != 3
-  state = {'G1': 2, 'G2': 0, 'MB': 0};
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 39, 'BB': 0});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 0); // G != 0 and MB != 3
+  var state = {'ROAR': 0x49c, 'G1': 0, 'G2': 0, 'MB': 1};
+  roarAB(state, {'AB': 39});
+  assert.equal(state['ROAR'], 0x49c | 2); // G == 0
+  state = {'ROAR': 0x49c, 'G1': 1, 'G2': 1, 'MB': 3};
+  roarAB(state, {'AB': 39});
+  assert.equal(state['ROAR'], 0x49c | 2); // MB = 3
+  state = {'ROAR': 0x49c, 'G1': 0, 'G2': 1, 'MB': 2};
+  roarAB(state, {'AB': 39});
+  assert.equal(state['ROAR'], 0x49c | 0); // G != 0 and MB != 3
+  state = {'ROAR': 0x49c, 'G1': 2, 'G2': 0, 'MB': 0};
+  roarAB(state, {'AB': 39});
+  assert.equal(state['ROAR'], 0x49c | 0); // G != 0 and MB != 3
 });
 
 QUnit.test( "ab 57 IA(30)", function(assert) {
-  var state = {'IAR': 0x12340000};
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 57, 'BB': 0});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 0);
-  state = {'IAR': 0x12340002};
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 57, 'BB': 0});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 2);
+  var state = {'ROAR': 0x49c, 'IAR': 0x12340000};
+  roarAB(state, {'AB': 57});
+  assert.equal(state['ROAR'], 0x49c | 0);
+  state = {'ROAR': 0x49c, 'IAR': 0x12340002};
+  roarAB(state, {'AB': 57});
+  assert.equal(state['ROAR'], 0x49c | 2);
 });
 
 QUnit.test( "ab 63 RX.S0", function(assert) {
-  var state = {'M': 0x30000000, 'S':[0]};
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 63, 'BB': 0});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 0); // Not M:01, not S0
-  state = {'M': 0x70000000, 'S':[0]};
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 63, 'BB': 0});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 0); // M:01, not S0
-  state = {'M': 0x70000000, 'S':[1]};
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 63, 'BB': 0});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 2); // M:01, S0
-  state = {'M': 0x90000000, 'S':[1]};
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 63, 'BB': 0});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 0); // not M:01, S0
+  var state = {'ROAR': 0x49c, 'M': 0x30000000, 'S':[0]};
+  roarAB(state, {'AB': 63});
+  assert.equal(state['ROAR'], 0x49c | 0); // Not M:01, not S0
+  state = {'ROAR': 0x49c, 'M': 0x70000000, 'S':[0]};
+  roarAB(state, {'AB': 63});
+  assert.equal(state['ROAR'], 0x49c | 0); // M:01, not S0
+  state = {'ROAR': 0x49c, 'M': 0x70000000, 'S':[1]};
+  roarAB(state, {'AB': 63});
+  assert.equal(state['ROAR'], 0x49c | 2); // M:01, S0
+  state = {'ROAR': 0x49c, 'M': 0x90000000, 'S':[1]};
+  roarAB(state, {'AB': 63});
+  assert.equal(state['ROAR'], 0x49c | 0); // not M:01, S0
 });
 
 QUnit.test( "bb 15 (T13=0)", function(assert) {
-  var state = {'T': 0x00040000};
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 0, 'BB': 15});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 0);
-  state = {'T': 0x00030000};
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 0, 'BB': 15});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 1);
+  var state = {'ROAR': 0x49c, 'T': 0x00040000};
+  roarBB(state, {'BB': 15});
+  assert.equal(state['ROAR'], 0x49c | 0);
+  state = {'ROAR': 0x49c, 'T': 0x00030000};
+  roarBB(state, {'BB': 15});
+  assert.equal(state['ROAR'], 0x49c | 1);
 });
 
 QUnit.test( "bb 16 T(0)", function(assert) {
-  var state = {'T': 0x80000000};
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 0, 'BB': 16});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 1);
-  state = {'T': 0x7fffffff};
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 0, 'BB': 16});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 0);
+  var state = {'ROAR': 0x49c, 'T': 0x80000000};
+  roarBB(state, {'BB': 16});
+  assert.equal(state['ROAR'], 0x49c | 1);
+  state = {'ROAR': 0x49c, 'T': 0x7fffffff};
+  roarBB(state, {'BB': 16});
+  assert.equal(state['ROAR'], 0x49c | 0);
 });
 
 QUnit.test( "bb 17 T=0", function(assert) {
-  var state = {'T': 0};
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 0, 'BB': 17});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 1);
-  state = {'T': 1};
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 0, 'BB': 17});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 0);
+  var state = {'ROAR': 0x49c, 'T': 0};
+  roarBB(state, {'BB': 17});
+  assert.equal(state['ROAR'], 0x49c | 1);
+  state = {'ROAR': 0x49c, 'T': 1};
+  roarBB(state, {'BB': 17});
+  assert.equal(state['ROAR'], 0x49c | 0);
 });
 
 QUnit.test( "bb 27 (MD/JI)", function(assert) {
-  var state = {'MD': 7, 'J': 14};
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 0, 'BB': 27});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 0);
-  state = {'MD': 14, 'J': 7};
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 0, 'BB': 27});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 0);
-  state = {'MD': 9, 'J': 14};
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 0, 'BB': 27});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 1); // MD odd, > 8
-  state = {'MD': 7, 'J': 15};
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 0, 'BB': 27});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 1); // J odd, > 8
+  var state = {'ROAR': 0x49c, 'MD': 7, 'J': 14};
+  roarBB(state, {'BB': 27});
+  assert.equal(state['ROAR'], 0x49c | 0);
+  state = {'ROAR': 0x49c, 'MD': 14, 'J': 7};
+  roarBB(state, {'BB': 27});
+  assert.equal(state['ROAR'], 0x49c | 0);
+  state = {'ROAR': 0x49c, 'MD': 9, 'J': 14};
+  roarBB(state, {'BB': 27});
+  assert.equal(state['ROAR'], 0x49c | 1); // MD odd, > 8
+  state = {'ROAR': 0x49c, 'MD': 7, 'J': 15};
+  roarBB(state, {'BB': 27});
+  assert.equal(state['ROAR'], 0x49c | 1); // J odd, > 8
 });
 
 QUnit.test( "bb 30 (CAR)", function(assert) {
-  var state = {'CAR': 0};
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 0, 'BB': 30});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 0);
-  state = {'CAR': 1};
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 0, 'BB': 30});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 1);
+  var state = {'ROAR': 0x49c, 'CAR': 0};
+  roarBB(state, {'BB': 30});
+  assert.equal(state['ROAR'], 0x49c | 0);
+  state = {'ROAR': 0x49c, 'CAR': 1};
+  roarBB(state, {'BB': 30});
+  assert.equal(state['ROAR'], 0x49c | 1);
 });
 
 QUnit.test( "bb 31 (Z00)", function(assert) {
-  var state = {'T': 0x7fffffff};
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 0, 'BB': 31});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 0);
-  state = {'T': 0x80000000};
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 0, 'BB': 31});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 1);
+  var state = {'ROAR': 0x49c, 'T': 0x7fffffff};
+  roarBB(state, {'BB': 31});
+  assert.equal(state['ROAR'], 0x49c | 0);
+  state = {'ROAR': 0x49c, 'T': 0x80000000};
+  roarBB(state, {'BB': 31});
+  assert.equal(state['ROAR'], 0x49c | 1);
 });
 
 QUnit.test( "roar ZN 1 SMIF", function(assert) {
   var state = {};
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 1, 'AB': 0, 'BB': 0});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2));
+  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 1});
+  assert.equal(state['ROAR'], 0x49c);
 });
 
 QUnit.test( "roar AB 56 I-FETCH", function(assert) {
-  var state = {'IAR': 0x12340000, 'REFETCH': 0}; // word aligned (on-bounds), no refetch
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 56, 'BB': 0});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 2);
+  var state = {'ROAR': 0x49c, 'IAR': 0x12340000, 'REFETCH': 0}; // word aligned (on-bounds), no refetch
+  roarAB(state, {'AB': 56});
+  assert.equal(state['ROAR'], 0x49c | 2);
 
-  state = {'IAR': 0x12340000, 'REFETCH': 1}; // word aligned (on-bounds), refetch
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 56, 'BB': 0});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 2);
+  state = {'ROAR': 0x49c, 'IAR': 0x12340000, 'REFETCH': 1}; // word aligned (on-bounds), refetch
+  roarAB(state, {'AB': 56});
+  assert.equal(state['ROAR'], 0x49c | 2);
 
-  state = {'IAR': 0x12340002, 'REFETCH': 0}; // halfword aligned (off-bounds), no refetch
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 56, 'BB': 0});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 0);
+  state = {'ROAR': 0x49c, 'IAR': 0x12340002, 'REFETCH': 0}; // halfword aligned (off-bounds), no refetch
+  roarAB(state, {'AB': 56});
+  assert.equal(state['ROAR'], 0x49c | 0);
 
-  state = {'IAR': 0x12340002, 'REFETCH': 1}; // halfword aligned (off-bounds), refetch
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 56, 'BB': 0});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 1);
+  state = {'ROAR': 0x49c, 'IAR': 0x12340002, 'REFETCH': 1}; // halfword aligned (off-bounds), refetch
+  roarAB(state, {'AB': 56});
+  assert.equal(state['ROAR'], 0x49c | 1);
 
-  state = {'IAR': 0x12340001, 'REFETCH': 0}; // alignment exception
-  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 56, 'BB': 0});
-  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 3);
+  state = {'ROAR': 0x49c, 'IAR': 0x12340001, 'REFETCH': 0}; // alignment exception
+  roarAB(state, {'AB': 56});
+  assert.equal(state['ROAR'], 0x49c | 3);
 });
 
 QUnit.test( "stat8 E→S03", function(assert) {
@@ -1178,7 +1192,7 @@ QUnit.test( "stat57", function(assert) {
 
 QUnit.test( "al1 Q→SR1→F", function(assert) {
   var state = {'T': 0x12345678, 'Q': 1, 'F': 5};
-  aldg(state, {'AL': 1, 'DG': 0});
+  adderDG2(state, {'AL': 1, 'DG': 0});
   assert.equal(state['T'], 0x80000000 | (0x12345678 >> 1));
   assert.equal(state['F'], 0xa);
   assert.equal(state['Q'], 0);
@@ -1188,37 +1202,37 @@ QUnit.test( "al1 Q→SR1→F", function(assert) {
 
 QUnit.test( "al3 +SGN→", function(assert) {
   var state = {'T': 0x92345678};
-  aldg(state, {'AL': 3, 'DG': 0});
+  adderAL(state, {'AL': 3});
   assert.equal(state['T'], 0x12345678);
 });
 
 QUnit.test( "al3 +SGN→", function(assert) {
   var state = {'T': 0x12345678};
-  aldg(state, {'AL': 3, 'DG': 0});
+  adderAL(state, {'AL': 3});
   assert.equal(state['T'], 0x12345678);
 });
 
 QUnit.test( "al4 -SGN→", function(assert) {
   var state = {'T': 0x12345678};
-  aldg(state, {'AL': 4, 'DG': 0});
+  adderAL(state, {'AL': 4});
   assert.equal(state['T'], 0x92345678);
 });
 
 QUnit.test( "al4 -SGN→", function(assert) {
   var state = {'T': 0x92345678};
-  aldg(state, {'AL': 4, 'DG': 0});
+  adderAL(state, {'AL': 4});
   assert.equal(state['T'], 0x92345678);
 });
 
 QUnit.test( "al6 IA→H", function(assert) {
   var state = {'IAR': 0x12345678};
-  aldg(state, {'AL': 6, 'DG': 0});
+  adderAL(state, {'AL': 6});
   assert.equal(state['H'], 0x12345678);
 });
 /*
 QUnit.test( "al7 Q→SL1→F", function(assert) {
   var state = {'T': 0x82345678, 'Q': 1, 'F': 5};
-  aldg(state, {'AL': 7, 'DG': 0});
+  adderAL(state, {'AL': 7});
   assert.equal(state['T'], ((0x82345678 << 1) & 0xffffffff) | 1);
   assert.equal(state['F'], 0xb);
   assert.equal(state['Q'], 0);
@@ -1229,72 +1243,72 @@ QUnit.test( "al7 Q→SL1→F", function(assert) {
 // Overflow bits from T spill into F, which is shifted into T.
 QUnit.test( "al9 F→SL1→F", function(assert) {
   var state = {'T': 0x92345678, 'F': 0xc};
-  aldg(state, {'AL': 9, 'DG': 0});
+  adderAL(state, {'AL': 9});
   assert.equal(state['T'], (((0x92345678 << 1) | 1) & 0xffffffff) >>> 0, state['T'].toString(16));
   assert.equal(state['F'], 0x9);
-  aldg(state, {'AL': 9, 'DG': 0});
+  adderAL(state, {'AL': 9});
   assert.equal(state['T'], (((0x92345678 << 2) | 3) & 0xffffffff) >>> 0, state['T'].toString(16));
   assert.equal(state['F'], 0x2);
-  aldg(state, {'AL': 9, 'DG': 0});
+  adderAL(state, {'AL': 9});
   assert.equal(state['T'], (((0x92345678 << 3) | 6) & 0xffffffff) >>> 0, state['T'].toString(16));
   assert.equal(state['F'], 0x4);
-  aldg(state, {'AL': 9, 'DG': 0});
+  adderAL(state, {'AL': 9});
   assert.equal(state['T'], (((0x92345678 << 4) | 0xc) & 0xffffffff) >>> 0, state['T'].toString(16));
   assert.equal(state['F'], 0x9);
 });
 
 QUnit.test( "al10 SL1→Q", function(assert) {
   var state = {'T': 0x92345678};
-  aldg(state, {'AL': 10, 'DG': 0});
+  adderAL(state, {'AL': 10});
   assert.equal(state['T'], (0x92345678 << 1) & 0xffffffff, state['T'].toString(16));
   assert.equal(state['Q'], 0x1);
 });
 
 QUnit.test( "al12 SR1→F", function(assert) {
   var state = {'T': 0x12345679};
-  aldg(state, {'AL': 12, 'DG': 0});
+  adderAL(state, {'AL': 12});
   assert.equal(state['T'], 0x12345679 >> 1);
   assert.equal(state['F'], 0x1);
 });
 
 QUnit.test( "al13 SR1→Q", function(assert) {
   var state = {'T': 0x12345679};
-  aldg(state, {'AL': 13, 'DG': 0});
+  adderAL(state, {'AL': 13});
   assert.equal(state['T'], 0x12345679 >> 1);
   assert.equal(state['Q'], 0x1);
 });
 
 QUnit.test( "al16 SL4→F", function(assert) {
   var state = {'T': 0x12345678, 'F': 0x3};
-  aldg(state, {'AL': 16, 'DG': 0});
+  adderAL(state, {'AL': 16});
   assert.equal(state['T'], 0x23456780);
   assert.equal(state['F'], 0x1);
 });
 
 QUnit.test( "al17 F→SL4→F", function(assert) {
   var state = {'T': 0x12345678, 'F': 0x3};
-  aldg(state, {'AL': 17, 'DG': 0});
+  adderAL(state, {'AL': 17});
   assert.equal(state['T'], 0x23456783);
   assert.equal(state['F'], 0x1);
 });
 
 QUnit.test( "al18 FPSL4", function(assert) {
   var state = {'T': 0x12345678, 'F': 0x3};
-  aldg(state, {'AL': 18, 'DG': 0});
+  adderAL(state, {'AL': 18});
   assert.equal(state['T'], 0x23456780);
   assert.equal(state['F'], 0x3);
 });
 
 QUnit.test( "al19 F→FPSL4", function(assert) {
   var state = {'T': 0x12345678, 'F': 0x3};
-  aldg(state, {'AL': 19, 'DG': 0});
+  adderAL(state, {'AL': 19});
   assert.equal(state['T'], 0x23456783);
   assert.equal(state['F'], 0x3);
 });
 
 QUnit.test( "al20 SR4→F", function(assert) {
   var state = {'T': 0x12345678, 'F': 0x3};
-  aldg(state, {'AL': 20, 'DG': 0});
+  adderAL(state, {'AL': 20});
   assert.equal(state['T'], 0x01234567);
   assert.equal(state['F'], 0x8);
 });
@@ -1302,28 +1316,28 @@ QUnit.test( "al20 SR4→F", function(assert) {
 QUnit.test( "al21", function(assert) {
   // F->SR4->F: guess as to function
   var state = {'T': 0x12345678, 'F': 0x3};
-  aldg(state, {'AL': 21, 'DG': 0});
+  adderAL(state, {'AL': 21});
   assert.equal(state['T'], 0x31234567);
   assert.equal(state['F'], 0x8);
 });
 
 QUnit.test( "al23 1→FPSR4→F", function(assert) {
   var state = {'T': 0x12345678, 'F': 0x3};
-  aldg(state, {'AL': 23, 'DG': 0});
+  adderAL(state, {'AL': 23});
   assert.equal(state['T'], 0x11234567);
   assert.equal(state['F'], 0x8);
 });
 
 QUnit.test( "al25 F→SR4", function(assert) {
   var state = {'T': 0x12345678, 'F': 0x3};
-  aldg(state, {'AL': 25, 'DG': 0});
+  adderAL(state, {'AL': 25});
   assert.equal(state['T'], 0x31234567);
   assert.equal(state['F'], 0x3);
 });
 
 QUnit.test( "al26 E→FPSL4", function(assert) {
   var state = {'T': 0x12345678, 'F': 0x3};
-  aldg(state, {'AL': 26, 'DG': 0, 'CE': 0x4});
+  adderAL(state, {'AL': 26, 'CE': 0x4});
   assert.equal(state['T'], 0x23456784);
   assert.equal(state['F'], 0x3);
 });
@@ -1332,7 +1346,7 @@ QUnit.test( "al30 D→", function(assert) {
   var state = {'SAR': 0x30};
   state['MS'] = [];
   state['MS'][0x30] = 0x12345678;
-  aldg(state, {'AL': 30, 'DG': 0, 'CE': 0x4});
+  adderAL(state, {'AL': 30, 'CE': 0x4});
   assert.equal(state['T'], 0x12345678);
 });
 </script>
