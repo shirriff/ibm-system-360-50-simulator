@@ -66,8 +66,8 @@ QUnit.test( "adder dg2 HOT1→ADDER", function(assert) {
 
 QUnit.test( "adder lx 4 LRL", function(assert) {
   var state = {'L': 0x12345678};
-  adder(state, {'LX': 4 /* LRL */, 'RY': 0 /* 0 */, 'TC': 1 /* add */, 'AD': 1 /* default op */, 'DG': 0 /* default */});
-  assert.equal(state['T'], 0x56780000);
+  adderLX(state, {'LX': 4 /* LRL */});
+  assert.equal(state['XG'], 0x56780000);
 });
 
   // Based on 02D3
@@ -86,57 +86,57 @@ QUnit.test( "adder-default", function(assert) {
 
 QUnit.test( "adder-overflow ad 5 BC⩝C", function(assert) {
   // Normal positive addition
-  var state = {'L': 0x12345678, 'R': 0x12345678};
-  adder(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 5 /* BC⩝C */ , 'AL': 0, 'DG': 0});
+  var state = {'XG': 0x12345678, 'RY': 0x12345678, 'CIN': 0};
+  adderT(state, {'AD': 5 /* BC⩝C */});
   assert.equal(state['CAR'], 0);
   assert.equal(state['T'], 0x12345678 + 0x12345678);
 
   // positive + positive yields negative overflow
   // Normal positive addition
-  var state = {'L': 0x12345678, 'R': 0x12345678};
-  adder(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 5 /* BC⩝C */ , 'AL': 0, 'DG': 0});
+  var state = {'XG': 0x12345678, 'RY': 0x12345678, 'CIN': 0};
+  adderT(state, {'AD': 5 /* BC⩝C */});
   assert.equal(state['CAR'], 0);
   assert.equal(state['T'], 0x12345678 + 0x12345678);
 
   // positive + positive yields negative overflow
-  state = {'L': 0x70000000, 'R': 0x70000000};
-  adder(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 5 /* BC⩝C */ , 'AL': 0, 'DG': 0});
+  state = {'XG': 0x70000000, 'RY': 0x70000000, 'CIN': 0};
+  adderT(state, {'AD': 5 /* BC⩝C */});
   assert.equal(state['CAR'], 1);
   assert.equal(state['T'], 0xe0000000);
 
   // positive + negative okay
-  state = {'L': 0x70000000, 'R': 0xffffffff};
-  adder(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 5 /* BC⩝C */ , 'AL': 0, 'DG': 0});
+  state = {'XG': 0x70000000, 'RY': 0xffffffff, 'CIN': 0};
+  adderT(state, {'AD': 5 /* BC⩝C */});
   assert.equal(state['CAR'], 0);
   assert.equal(state['T'], 0x6fffffff);
 
   // negative + negative okay
-  state = {'L': 0xffffffff, 'R': 0xffffffff};
-  adder(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 5 /* BC⩝C */ , 'AL': 0, 'DG': 0});
+  state = {'XG': 0xffffffff, 'RY': 0xffffffff, 'CIN': 0};
+  adderT(state, {'AD': 5 /* BC⩝C */});
   assert.equal(state['CAR'], 0);
   assert.equal(state['T'], 0xfffffffe);
 
   // negative + negative overflow
-  state = {'L': 0x80000000, 'R': 0xffffffff};
-  adder(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 5 /* BC⩝C */ , 'AL': 0, 'DG': 0});
+  state = {'XG': 0x80000000, 'RY': 0xffffffff, 'CIN': 0};
+  adderT(state, {'AD': 5 /* BC⩝C */});
   assert.equal(state['CAR'], 1);
   assert.equal(state['T'], 0x7fffffff);
 
   // -1 + 0: no overflow
-  state = {'L': 0x00000000, 'R': 0xffffffff};
-  adder(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 5 /* BC⩝C */ , 'AL': 0, 'DG': 0});
+  state = {'XG': 0x00000000, 'RY': 0xffffffff, 'CIN': 0};
+  adderT(state, {'AD': 5 /* BC⩝C */});
   assert.equal(state['CAR'], 0);
   assert.equal(state['T'], 0xffffffff);
 
   // -1 + 0 + carry: no overflow
-  state = {'L': 0x00000000, 'R': 0xffffffff};
-  adder(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 5 /* BC⩝C */ , 'AL': 0, 'DG': 2 /* carry */});
+  state = {'XG': 0x00000000, 'RY': 0xffffffff, 'CIN': 1};
+  adderT(state, {'AD': 5 /* BC⩝C */});
   assert.equal(state['CAR'], 0);
   assert.equal(state['T'], 0);
 
   // -1 + 0 + carry: no overflow
-  state = {'R': 0x00000000, 'L': 0xffffffff};
-  adder(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 5 /* BC⩝C */ , 'AL': 0, 'DG': 2 /* carry */});
+  state = {'RY': 0x00000000, 'XG': 0xffffffff, 'CIN': 1};
+  adderT(state, {'AD': 5 /* BC⩝C */});
   assert.equal(state['CAR'], 0);
   assert.equal(state['T'], 0);
 });
@@ -180,106 +180,120 @@ QUnit.test( "adder-subtract-overflow ad 5 BC⩝C", function(assert) {
 });
 
 QUnit.test( "adder-carry0 ad 4 BC0", function(assert) {
-  var state = {'R': 0xffffffff, 'L': 0x00000001};
-  adder(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 0});
+  var state = {'XG': 0xffffffff, 'RY': 0x00000001, 'CIN': 0};
+  adderT(state, {'AD': 4 /* BC0 */});
   assert.equal(state['CAR'], 1);
   assert.equal(state['T'], 0);
 
-  state = {'R': 0xfffffffe, 'L': 0x00000001};
+  state = {'R': 0xfffffffe, 'L': 0x00000001, 'CIN': 0};
   adder(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 0});
   assert.equal(state['CAR'], 0);
   assert.equal(state['T'], 0xffffffff);
 
-  state = {'R': 0xffffffff, 'L': 0x10000000};
+  state = {'R': 0xffffffff, 'L': 0x10000000, 'CIN': 0};
   adder(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 0});
   assert.equal(state['CAR'], 1);
   assert.equal(state['T'], 0x0fffffff);
 });
 
+// 32-bit not
+function not(x) {
+  return (~x) >>> 0;
+}
+
 QUnit.test( "adder-carry0 sub ad 4 BC0", function(assert) {
   // Basic subtraction is 1's complement
-  var state = {'R': 0x00000000, 'L': 0x00000001};
-  adder(state, {'RY': 1 /* R */, 'TC': 0, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 0});
+  var state = {'RY': 0x00000000, 'XG': not(0x00000001), 'CIN': 0};
+  adderT(state, {'AD': 4 /* BC0 */});
   assert.equal(state['CAR'], 0);
-  assert.equal(state['T'], 0xfffffffe); // R - L, subtraction is one short
+  assert.equal(state['T'], 0xfffffffe); // R - L, subtraction is one short without carry-in
 
-  state = {'R': 0xffffffff, 'L': 0x00000000};
-  adder(state, {'RY': 1 /* R */, 'TC': 0, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 0});
+  state = {'RY': 0xffffffff, 'XG': not(0x00000000), 'CIN': 0};
+  adderT(state, {'AD': 4 /* BC0 */});
   assert.equal(state['CAR'], 1);
   assert.equal(state['T'], 0xfffffffe); // subtraction is one short
 
-  state = {'R': 0xefffffff, 'L': 0x10000000};
-  adder(state, {'RY': 1 /* R */, 'TC': 0, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 0});
+  state = {'RY': 0xefffffff, 'XG': not(0x10000000), 'CIN': 0};
+  adderT(state, {'AD': 4 /* BC0 */});
   assert.equal(state['CAR'], 1);
   assert.equal(state['T'], 0xdffffffe); // subtraction is one short
 });
 
 QUnit.test( "adder-carry0 sub +hot1 ad 4 BC0", function(assert) {
   // Add hot1 to get 2's complement subtraction
-  var state = {'R': 0x00000000, 'L': 0x00000001};
-  adder(state, {'RY': 1 /* R */, 'TC': 0, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 2 /* HOT1 */});
+  var state = {'RY': 0x00000000, 'XG': not(0x00000001)};
+  adderDG(state, {'DG': 2 /* HOT1 */});
+  adderT(state, {'AD': 4 /* BC0 */});
   assert.equal(state['CAR'], 0); // Carry = not borrow
   assert.equal(state['T'], 0xffffffff);
 
-  state = {'R': 0xffffffff, 'L': 0x00000000};
-  adder(state, {'RY': 1 /* R */, 'TC': 0, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 2 /* HOT1 */});
+  state = {'RY': 0xffffffff, 'XG': not(0x00000000)};
+  adderDG(state, {'DG': 2 /* HOT1 */});
+  adderT(state, {'AD': 4 /* BC0 */});
   assert.equal(state['CAR'], 1);
   assert.equal(state['T'], 0xffffffff);
 
-  state = {'R': 0xefffffff, 'L': 0x10000000};
-  adder(state, {'RY': 1 /* R */, 'TC': 0, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 2 /* HOT1 */});
+  state = {'RY': 0xefffffff, 'XG': not(0x10000000)};
+  adderDG(state, {'DG': 2 /* HOT1 */});
+  adderT(state, {'AD': 4 /* BC0 */});
   assert.equal(state['CAR'], 1);
   assert.equal(state['T'], 0xdfffffff);
 });
 
 QUnit.test( "adder dg 1 CSTAT→ADDER", function(assert) {
-  var state = {'R': 0x100, 'L': 0x10, 'CSTAT': 0};
-  adder(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 1 /* CSTAT→ADDER */});
-  assert.equal(state['T'], 0x110);
+  var state = {'CSTAT': 0};
+  adderDG(state, {'DG': 1 /* CSTAT→ADDER */});
+  assert.equal(state['CIN'], 0);
 
-  state['CSTAT'] = 1;
-  adder(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 1 /* CSTAT→ADDER */});
-  assert.equal(state['T'], 0x111);
+  state = {'CSTAT': 1};
+  adderDG(state, {'DG': 1 /* CSTAT→ADDER */});
+  assert.equal(state['CIN'], 1);
 });
 
 QUnit.test( "adder dg 3 G1-1", function(assert) {
-  var state = {'R': 0x100, 'L': 0x10, 'G1': 1};
-  adder(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 3 /* G1-1 */});
-  adderDG2(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 3 /* G1-1 */});
-  assert.equal(state['G1'], 0);
+  var state = {'G1': 1};
+  adderDG(state, {'DG': 3 /* G1-1 */});
   assert.equal(state['G1NEG'], 0);
-  adder(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 3 /* G1-1 */});
-  adderDG2(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 3 /* G1-1 */});
-  assert.equal(state['G1'], 0xf);
+  adderDG2(state, {'DG': 3 /* G1-1 */});
+  assert.equal(state['G1'], 0);
+
+  state = {'G1': 0};
+  adderDG(state, {'DG': 3 /* G1-1 */});
   assert.equal(state['G1NEG'], 1);
+  adderDG2(state, {'DG': 3 /* G1-1 */});
+  assert.equal(state['G1'], 0xf);
 });
 
 QUnit.test( "adder dg 5 G2-1", function(assert) {
-  var state = {'R': 0x100, 'L': 0x10, 'G2': 1};
-  adder(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 5 /* G2-1 */});
-  adderDG2(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 5 /* G2-1 */});
-  assert.equal(state['G2'], 0);
+  var state = {'G2': 1};
+  adderDG(state, {'DG': 5 /* G2-1 */});
   assert.equal(state['G2NEG'], 0);
-  adder(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 5 /* G2-1 */});
-  adderDG2(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 5 /* G2-1 */});
-  assert.equal(state['G2'], 0xf);
+  adderDG2(state, {'DG': 5 /* G2-1 */});
+  assert.equal(state['G2'], 0);
+
+  state = {'G2': 0};
+  adderDG(state, {'DG': 5 /* G2-1 */});
   assert.equal(state['G2NEG'], 1);
+  adderDG2(state, {'DG': 5 /* G2-1 */});
+  assert.equal(state['G2'], 0xf);
 });
 
 QUnit.test( "adder dg 7 G1,2-1", function(assert) {
-  var state = {'R': 0x100, 'L': 0x10, 'G1': 0, 'G2': 1};
-  adder(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 7 /* G1,2-1 */});
-  adderDG2(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 7 /* G1,2-1 */});
-  assert.equal(state['G1'], 0xf);
-  assert.equal(state['G2'], 0);
+  var state = {'G1': 0, 'G2': 1};
+  adderDG(state, {'DG': 7 /* G2-1 */});
   assert.equal(state['G1NEG'], 1);
   assert.equal(state['G2NEG'], 0);
-  adder(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 7 /* G1,2-1 */});
-  adderDG2(state, {'RY': 1 /* R */, 'TC': 1, 'LX': 1 /* L */, 'TR': 7, 'AD': 4 /* BC0 */ , 'AL': 0, 'DG': 7 /* G1,2-1 */});
-  assert.equal(state['G1'], 0xe);
-  assert.equal(state['G2'], 0xf);
+  adderDG2(state, {'DG': 7 /* G2-1 */});
+  assert.equal(state['G1'], 0xf);
+  assert.equal(state['G2'], 0);
+
+  var state = {'G1': 0xf, 'G2': 0};
+  adderDG(state, {'DG': 7 /* G2-1 */});
   assert.equal(state['G1NEG'], 0);
   assert.equal(state['G2NEG'], 1);
+  adderDG2(state, {'DG': 7 /* G2-1 */});
+  assert.equal(state['G1'], 0xe);
+  assert.equal(state['G2'], 0xf);
 });
 
 QUnit.test( "iar0", function(assert) {
