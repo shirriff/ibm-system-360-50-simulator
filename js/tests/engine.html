@@ -768,6 +768,21 @@ QUnit.test( "ab 13 (LSGNS)", function(assert) {
   assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 2);
 });
 
+QUnit.test( "ab 14 (⩝SGNS)", function(assert) {
+  var state = {'LSGNS': 0, 'RSGNS': 0};
+  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 14, 'BB': 0});
+  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 0);
+  state = {'LSGNS': 1, 'RSGNS': 0};
+  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 14, 'BB': 0});
+  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 2);
+  state = {'LSGNS': 0, 'RSGNS': 1};
+  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 14, 'BB': 0});
+  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 2);
+  state = {'LSGNS': 1, 'RSGNS': 1};
+  roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 14, 'BB': 0});
+  assert.equal(state['ROAR'], (0x12 << 6) | (0x7 << 2) | 0);
+});
+
 QUnit.test( "ab 26 (G1MBZ)", function(assert) {
   var state = {'G1': 1, 'MB': 1};
   roar(state, {'ZP': 0x12, 'ZF': 0x7, 'ZN': 4, 'AB': 26, 'BB': 0});
@@ -1159,6 +1174,18 @@ QUnit.test( "stat57", function(assert) {
   assert.equal(state['SCANCTRL'], 0x0c);
 });
 
+/*
+
+QUnit.test( "al1 Q→SR1→F", function(assert) {
+  var state = {'T': 0x12345678, 'Q': 1, 'F': 5};
+  aldg(state, {'AL': 1, 'DG': 0});
+  assert.equal(state['T'], 0x80000000 | (0x12345678 >> 1));
+  assert.equal(state['F'], 0xa);
+  assert.equal(state['Q'], 0);
+});
+
+*/
+
 QUnit.test( "al3 +SGN→", function(assert) {
   var state = {'T': 0x92345678};
   aldg(state, {'AL': 3, 'DG': 0});
@@ -1188,6 +1215,16 @@ QUnit.test( "al6 IA→H", function(assert) {
   aldg(state, {'AL': 6, 'DG': 0});
   assert.equal(state['H'], 0x12345678);
 });
+/*
+QUnit.test( "al7 Q→SL1→F", function(assert) {
+  var state = {'T': 0x82345678, 'Q': 1, 'F': 5};
+  aldg(state, {'AL': 7, 'DG': 0});
+  assert.equal(state['T'], ((0x82345678 << 1) & 0xffffffff) | 1);
+  assert.equal(state['F'], 0xb);
+  assert.equal(state['Q'], 0);
+});
+
+*/
 
 // Overflow bits from T spill into F, which is shifted into T.
 QUnit.test( "al9 F→SL1→F", function(assert) {

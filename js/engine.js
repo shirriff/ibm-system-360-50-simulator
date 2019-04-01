@@ -77,6 +77,7 @@ function adder(state, entry) {
       xg = 4;
       break;
     case 7: // 64C  -- F2E QY310: carry
+      // QG700:0541 64 complement for excess-64 correct
       alert('Unimplemented LX ' + entry['LX'] + " " + labels['LX'][entry['LX']]);
       break;
     default:
@@ -195,7 +196,7 @@ function adder(state, entry) {
       // QB730:220: Save CAR(0) ⩝ CAR(1). Test overflow.
       state['CAR'] = (c0 != c1) ? 1 : 0;
       break;
-    case 6: // BC1B // BC for 489
+    case 6: // BC1B // Block carry from 8, save carry from 1  QG700:503  i.e. MIER+MCND-64 CLF116
       alert('Unimplemented AD ' + entry['AD'] + " " + labels['AD'][entry['AD']]);
       break;
     case 7: // BC8
@@ -271,7 +272,9 @@ function aldg(state, entry) {
     case 0: // Normal
       break;
     case 1: // Q→SR1→F
-      alert('Unimplemented AL ' + entry['AL'] + " " + labels['AL'][entry['AL']]);
+      state['F'] = ((state['T'] & 1) << 3) | (state['F'] >> 1);
+      state['T'] = ((state['Q'] << 31) | (state['T'] >>> 1)) >>> 0;
+      state['Q'] = 0;
       break;
     case 2: // L0,¬S4→
       alert('Unimplemented AL ' + entry['AL'] + " " + labels['AL'][entry['AL']]);
@@ -289,11 +292,13 @@ function aldg(state, entry) {
       if (state['IAR'] == undefined) {alert('undefined iar');}
       state['H'] = state['IAR'];
       break;
-    case 7: // Q→SL→F
+    case 7: // Q→SL→-F
       alert('Unimplemented AL ' + entry['AL'] + " " + labels['AL'][entry['AL']]);
       break;
     case 8: // Q→SL1→F
-      alert('Unimplemented AL ' + entry['AL'] + " " + labels['AL'][entry['AL']]);
+      state['F'] = ((state['F'] << 1) | (state['F'] >> 31)) & 0xf;
+      state['T'] = ((state['T'] << 1) | state['Q']) >>> 0;
+      state['Q'] = 0;
       break;
     case 9: // F→SL1→F
       var f1 = state['T'] >>> 31; // Remember top bit of T
@@ -1203,7 +1208,12 @@ function stat(state, entry) {
       state['S'][6] &= ~((entry['CE'] >>> 1) & 1);
       state['S'][7] &= ~((entry['CE'] >>> 0) & 1);
       break;
-    case 27: // S47,ED*FP
+    case 27: // S47,ED*FP  QG700:0503
+      // Norm sign → S4
+      // Compl add → S4
+      // (ED<16) → S6
+      // (ED=0) → S7
+      // Set exp dif reg 
       alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
       break;
     case 28: // OPPANEL→S47      // Write operator panel to S bits 4-7
@@ -1399,8 +1409,10 @@ function roar(state, entry) {
     case 13: // LSGNS L Sign Stat
       roar |= state['LSGNS'] << 1;
       break;
-    case 14: // VSGNS: LSS xor RSS
-      alert('Unexpected AB LSS xor RSS' + entry['AB'] + " " + labels['AB'][entry['AB']]);
+    case 14: // ⩝SGNS: LSS xor RSS
+      if (state['LSGNS'] != state['RSGNS']) {
+        roar |= 2;
+      }
       break;
     case 15:
       alert('Unexpected AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
