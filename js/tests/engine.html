@@ -858,20 +858,16 @@ QUnit.test("storeMover WM 3 W67→LB", function(assert) {
 });
 
 QUnit.test("storeMover WM 4 W27→PSW4", function(assert) {
-  var state = {'PSW': [0x12345678, 0x82334455], 'R': 0xfe};
-  var entry = {'LU': 2 /* U<-R3 */, 'MV': 0, 'UL': 1 /* U */, 'UR': 1 /* U */}; // R3->W
-  entry['WM'] = 4; // W27→PSW4
-  mover(state, entry);
-  storeMover(state, entry);
-  assert.equal(state['U'], 0xfe);
-  assert.equal(state['PSW'][0], 0x12345678, state['PSW'][0].toString(16));
-  assert.equal(state['PSW'][1], 0xbe334455, state['PSW'][1].toString(16));
+  var state = {'W': 0x98, 'WL': 9, 'WR': 8};
+  storeMover(state, {'WM': 4});
+  assert.equal(state['CC'], 0x1);
+  assert.equal(state['PROGMASK'], 0x8);
 });
 
 QUnit.test("storeMover WM 5 W→PSW0", function(assert) {
   var state = {'W': 0x89, 'WL': 8, 'WR': 9};
   storeMover(state, {'WM': 5});
-  assert.equal(state['LB'], 2);
+  assert.equal(state['SYSMASK'], 0x89);
 });
 
 QUnit.test("storeMover WM 6 WL→J", function(assert) {
@@ -2213,19 +2209,19 @@ QUnit.skip( "stat SS 52: E→CH", function(assert) {
 QUnit.skip( "stat SS 54: 1→TIMERIRPT", function(assert) {
 });
 
+// T to AMWP bits
 QUnit.test( "stat55  T→PSW,IPL→T", function(assert) {
-  var state = {'PSW': [0x12345678, 0x22334455], 'T': 0x45671234};
-  stat(state, {'SS': 55,});
-  assert.equal(state['T'], 0x0c000000);
-  assert.equal(state['PSW'][0], 0x12375678);
-  assert.equal(state['PSW'][1], 0x22334455);
+  var state = {'T': 0x12345678};
+  stat(state, {'SS': 55});
+  assert.equal(state['AMWP'], 4);
+  assert.equal(state['T'], 0x0c000000); // Hardwored card reader IPl
 });
 
+// T to AMWP bits
 QUnit.test( "stat56 T→PSW", function(assert) {
-  var state = {'PSW': [0x12345678, 0x22334455], 'T': 0x456789ab};
-  stat(state, {'SS': 56,});
-  assert.equal(state['PSW'][0], 0x12375678);
-  assert.equal(state['PSW'][1], 0x22334455);
+  var state = {'T': 0x123f5678};
+  stat(state, {'SS': 56});
+  assert.equal(state['AMWP'], 0xf);
 });
 
 QUnit.test( "stat57", function(assert) {

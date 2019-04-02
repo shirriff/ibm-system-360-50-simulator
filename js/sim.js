@@ -213,9 +213,11 @@ function displayOp(saddr, div) {
 
 function createState() {
   // Initialize arbitrarily
-  var state = {'FN': 3, 'J': 3, 'LSAR': 3, 'PSW': [0xffffffff, 0xffffffff], 'L': 0xffffffff, 'R': 0xffffffff, 'MD': 3, 'F': 3, 'Q': 1,
+  var state = {'FN': 3, 'J': 3, 'LSAR': 3,
+  'SYSMASK': 0, 'KEY': 0, 'AMWP': 0, 'IRUPT': 0, 'ILC': 0, 'CC': 0, 'PROGMASK': 0, 'IAR': 0, // PSW
+  'L': 0xffffffff, 'R': 0xffffffff, 'MD': 3, 'F': 3, 'Q': 1,
   'M': 0xffffffff, 'H': 0xffffffff, 'T': 3,
-  'A': 3, 'IAR': 3, 'D': 3, 'XG': 3, 'Y': 3, 'U': 3, 'V': 3, 'W': 3,
+  'A': 3, 'D': 3, 'XG': 3, 'Y': 3, 'U': 3, 'V': 3, 'W': 3,
   'G1': 3, 'G2': 3, 'LB': 3, 'MB': 3, 'SP': 5,
   'WFN': 2, // Set up at QK801:0988 during IPL
   'SAR': 0xffffff, 'SDR': 0xffffffff,
@@ -356,10 +358,6 @@ function displayState(state) {
     } else if (key == 'S') {
       var line = state['S'].join(' ');
       $("#S").html(line);
-    } else if (key == 'PSW') {
-      // PSW is stored in several state variables so reconstruct it.
-      var psw1 = state['PSW'][1] | (state['ILC'] << 30) | (state['CC'] << 28) | state['IAR'];
-      misc.push(key + ': ' + fmtPsw([state['PSW'][0], psw1]));
     } else if (key in formatters) {
       if ( $("#" + key).length) {
         $("#" + key).html(formatters[key](state[key]));

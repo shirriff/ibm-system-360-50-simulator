@@ -44,15 +44,7 @@ function cycle(state, entry) {
   }
 }
 
-// Return PSW word 0 or 1.
-// This is used because IAR and CC are split out of state['PSW']
-function getPSW(n) {
-  if (n == 0) {
-    return state['PSW'][0];
-  } else {
-    return state['PSW'][1] | (state['ILC'] << 30) | (state['CC'] << 28) | state['IAR'];
-  }
-}
+// PSW = SYSMASK, KEY, AMWP, IRUPT; ILC, CC, PROGMASK, IAR
 
 // Format d as 4 hex bytes
 function fmt4(d) {
@@ -661,7 +653,7 @@ function mover(state, entry) {
       u = 0;
       break;
     case 5: // PSW4      // PSW word 4.
-      u = getPSW(1) >>> 24;
+      u = (state['ILC'] << 2) | state['CC'];
       break;
     case 6: // LMB       // L indexed by MB
       u = (state['L'] & bytemask[state['MB']]) >> byteshift[state['MB']];
@@ -806,10 +798,11 @@ function storeMover(state, entry) {
       break;
     case 4: // W27→PSW4 // W bits 2-7 to PSW bits 34-39 QJ200. Turns off load light too.
       // i.e. CC and program mask
-      state['PSW'][1] = ((state['PSW'][1] & ~0x3f000000) | ((state['W'] & 0x3f) << 24)) >>> 0;
+      state['CC'] = (state['W'] & 0x30) >>> 4;
+      state['PROGMASK'] = state['W'] & 0xf;
       break;
     case 5: // W→PSW0    // PSW bits 0-7, system mask
-      state['PSW'][0] = ((state['PSW'][0] & ~0xff000000) | (state['W'] << 24)) >>> 0;
+      state['SYSMASK'] = state['W'];
       break;
     case 6: // WL→J
       state['J'] = state['WL'];
@@ -1339,14 +1332,14 @@ function stat(state, entry) {
     case 55: // T→PSW,IPL→T,      // QU100, 50Maint
       // IPL UA → 0-7, IPL CA → 21-23
       // T 12-15 to PSW AMWP control bits
-      state['PSW'][0] = ((state['PSW'][0] & ~0x000f0000) | state['T'] & 0x000f0000) >>> 0;
-      // Card reader = 00C: channel 0, device 0C
+      state['AMWP'] = (state['T'] & 0x000f0000) >>> 16;
+      // Hardwire card reader = 00C: channel 0, device 0C
       var ca = 0
       var ua = 0x0c;
       state['T'] = ((ua << 24) | (ca << 8)) >>> 0;
       break;
-    case 56: // T→PSW            // T(12-15) to PSW QU100
-      state['PSW'][0] = ((state['PSW'][0] & ~0x000f0000) | state['T'] & 0x000f0000) >>> 0;
+    case 56: // T→PSW            // T(12-15) to PSW control bits QJ200:751
+      state['AMWP'] = (state['T'] & 0x000f0000) >>> 16;
       break;
     case 57: // SCAN*E,00        // E → SCANCTRL(2-5), 0→SCANCTRL(1), (FOLD)→SCANCTRL(0) // U100
       var fold = 0;
