@@ -16,9 +16,9 @@ function cycle(state, entry) {
     roarZN(state, entry);
 
     var msg = adderAL(state, entry);
-    localStorage(state, entry);
     stat(state, entry);
     mover(state, entry);
+    localStorage(state, entry); // Need to do mover before reading localStorage 0126
     storeMover(state, entry);
     iar(state, entry);
     iar2(state, entry); // iar operations after mover
@@ -653,7 +653,7 @@ function mover(state, entry) {
       u = 0;
       break;
     case 5: // PSW4      // PSW word 4.
-      u = (state['ILC'] << 2) | state['CC'];
+      u = state['PROGMASK'];
       break;
     case 6: // LMB       // L indexed by MB
       u = (state['L'] & bytemask[state['MB']]) >> byteshift[state['MB']];

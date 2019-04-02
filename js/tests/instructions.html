@@ -42,9 +42,11 @@ var state;
 
 function init() {
   // Initialize arbitrarily
-  state = {'FN': 3, 'J': 3, 'LSAR': 3, 'PSW': [0xffffffff, 0xffffffff], 'L': 0xffffffff, 'R': 0xffffffff, 'MD': 3, 'F': 3, 'Q': 1,
+  state = {'FN': 3, 'J': 3, 'LSAR': 3,
+  'SYSMASK': 0, 'KEY': 0, 'AMWP': 0, 'IRUPT': 0, 'ILC': 0, 'CC': 0, 'PROGMASK': 0, 'IAR': 0, // PSW
+  'L': 0xffffffff, 'R': 0xffffffff, 'MD': 3, 'F': 3, 'Q': 1,
   'M': 0xffffffff, 'H': 0xffffffff, 'T': 3,
-  'A': 3, 'IAR': 3, 'D': 3, 'XG': 3, 'Y': 3, 'U': 3, 'V': 3, 'W': 3,
+  'A': 3, 'D': 3, 'XG': 3, 'Y': 3, 'U': 3, 'V': 3, 'W': 3,
   'G1': 3, 'G2': 3, 'LB': 3, 'MB': 3, 'SP': 5,
   'WFN': 2, // Set up at QK801:0988 during IPL
   'SAR': 0xffffff, 'SDR': 0xffffffff,
@@ -113,6 +115,7 @@ function executeInstr(instr) {
       ', R: ' + state['R'].toString(16) +
       ', M: ' + state['M'].toString(16) +
       ', T: ' + state['T'].toString(16) +
+      ', F: ' + state['F'].toString(16) +
       ', LB: ' + state['LB'].toString(16) +
       ', MB: ' + state['MB'].toString(16) +
       ', W: ' + state['W'].toString(16) +
@@ -236,7 +239,7 @@ QUnit.module("Instructions", function(hooks) {
   });
 
   QUnit.test( "Load Complement LCR overflow", function(assert) {
-    state['PSW'][1] &= ~0x08000000; // Disable overflow
+    state['PROGMASK'] = 0; // Disable overflow interrupt
     reg(4, 0x80000000);
     execute([0x13340000], assert, 'LCR 3,4');
     // LCR 3, 4
@@ -329,7 +332,7 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.test( "add-overflow-trap-disabled", function(assert) {
     reg(1, 0x7fffffff);
     reg(2, 0x00000001);
-    state['PSW'][1] &= ~0x08000000;
+    state['PROGMASK'] = 0; // Disable overflow interrupt
     execute([0x1a120000], assert, 'AR 1,2');
     assert.equal(reg(1), 0x80000000);
     assert.equal(state['CR'], 3); // Overflow
@@ -338,9 +341,10 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.test( "add-overflow-trap-enabled", function(assert) {
     reg(1, 0x7fffffff);
     reg(2, 0x00000001);
-    state['PSW'][1] |= 0x08000000;
+    state['PROGMASK'] = 8; // Enable overflow interrupt
     assert.throws(function() {
       execute([0x1a120000], assert, 'AR 1,2');
+      console.log('no throw');
     });
   });
 
@@ -505,7 +509,7 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(state['CR'], 1); // First operand is low
   });
 
-  QUnit.skip( "multiply MR", function(assert) {
+  QUnit.test( "multiply MR", function(assert) {
     reg(3, 0x00000004);
     reg(4, 0x00000003);
     execute([0x1c240000], assert, 'MR 2,4');
@@ -822,25 +826,25 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(state['IAR'], 0x12345678);
   });
 
-  QUnit.skip( "Set Program Mask SPM", function(assert) {
-    reg(1, 0x12345678); // Mask 12
-    execute([0x04120000], assert, 'SPM 1');
-    assert.equal(state['PSW'], 0x12); // todo
+  QUnit.test( "Set Program Mask SPM", function(assert) {
+    reg(1, 0x12345678); // Mask 2
+    execute([0x041f0000], assert, 'SPM 1');
+    assert.equal(state['CC'], 0x1);
+    assert.equal(state['PROGMASK'], 0x2);
   });
 
   QUnit.skip( "Supervisor Call SVC", function(assert) {
     execute([0x0a120000], assert, 'SVC 12');
-    // Need to check PSW
   });
 
   QUnit.skip( "Set Storage Key SSK", function(assert) {
     execute([0x08120000], assert, 'SSK 1,2');
-    // Need to check PSW
+    // Need to check
   });
 
   QUnit.skip( "Insert Storage Key ISK", function(assert) {
     execute([0x09120000], assert, 'ISK 1,2');
-    // Need to check PSW
+    // Need to check
   });
 
   QUnit.skip( "Test and Set - not set TS", function(assert) {
