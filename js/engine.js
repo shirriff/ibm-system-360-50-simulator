@@ -19,6 +19,7 @@ function cycle(state, entry) {
     localStorage(state, entry);
     stat(state, entry);
     mover(state, entry);
+    storeMover(state, entry);
     iar(state, entry);
     iar2(state, entry); // iar operations after mover
     counters(state, entry); // Need counters after mover, see QK801:0992
@@ -787,59 +788,61 @@ function mover(state, entry) {
   state['WR'] = wr;
   var w = (wl << 4) | wr;
   state['W'] = w;
+}
 
+function storeMover(state, entry) {
   // Mover output destination W →
   switch (entry['WM']) {
     case 0: // no action
       break;
     case 1: // W→MMB     // W to M indexed by MB
-      state['M'] = ((state['M'] & ~bytemask[state['MB']]) | (w << byteshift[state['MB']])) >>> 0;
+      state['M'] = ((state['M'] & ~bytemask[state['MB']]) | (state['W'] << byteshift[state['MB']])) >>> 0;
       break;
     case 2: // W67→MB    // W bits 6-7 to MB
-      state['MB'] = w & 3;
+      state['MB'] = state['WR'] & 3;
       break;
     case 3: // W67→LB   // W bits 6-7 to LB
-      state['LB'] = w & 3;
+      state['LB'] = state['WR'] & 3;
       break;
     case 4: // W27→PSW4 // W bits 2-7 to PSW bits 34-39 QJ200. Turns off load light too.
       // i.e. CC and program mask
-      state['PSW'][1] = ((state['PSW'][1] & ~0x3f000000) | ((w & 0x3f) << 24)) >>> 0;
+      state['PSW'][1] = ((state['PSW'][1] & ~0x3f000000) | ((state['W'] & 0x3f) << 24)) >>> 0;
       break;
     case 5: // W→PSW0    // PSW bits 0-7, system mask
-      state['PSW'][0] = ((state['PSW'][0] & ~0xff000000) | (w << 24)) >>> 0;
+      state['PSW'][0] = ((state['PSW'][0] & ~0xff000000) | (state['W'] << 24)) >>> 0;
       break;
     case 6: // WL→J
-      state['J'] = wl;
+      state['J'] = state['WL'];
       break;
     case 7: // W→CHCTL           // Channel control: 0001 is start I/O, 0100 is test I/O. Updates R, M, DA, L (see QK800). M0 = unit status. L1 is channel end status
       chctl(state, entry); // in io.js
       break;
     case 8: // W,E→A(BUMP) // W,E(23) selects bump sector address. Bits shuffled, see 5- Maint p81.
       // Fake the bump address for now
-      state['SAR'] = 0x1000000 | (w << 4) | ((entry['CE'] & 3) << 2);
+      state['SAR'] = 0x1000000 | (state['W'] << 4) | ((entry['CE'] & 3) << 2);
       break;
     case 9: // WL→G1
-      state['G1'] = wl & 7;
+      state['G1'] = state['WL'];
       break;
     case 10: // WR→G2
-      state['G2'] = wr & 7;
+      state['G2'] = state['WR'];
       break;
     case 11: // W→G
-      state['G1'] = wl & 7;
-      state['G2'] = wr & 7;
+      state['G1'] = state['WL'];
+      state['G2'] = state['WR'];
       break;
     case 12: // W→MMB(E?) // d29
       alert('Unimplemented WM ' + entry['WM'] + " " + labels['WM'][entry['WM']]);
       break;
     case 13: // WL→MD
-      state['MD'] = wl & 0xf;
+      state['MD'] = state['WL'];
       break;
     case 14: // WR→F
-      state['F'] = wr & 0xf;
+      state['F'] = state['WR'];
       break;
     case 15: // W→MD,F
-      state['MD'] = wl;
-      state['F'] = wr;
+      state['MD'] = state['WL'];
+      state['F'] = state['WR'];
       break;
     default:
       alert('Unexpected WM ' + entry['WM'] + " " + labels['WM'][entry['WM']]);
@@ -870,6 +873,7 @@ function iar2(state, entry) {
   }
 }
 
+// Update LB, MB, MD
 function counters(state, entry) {
   // Counter function control
   switch (entry['UP']) {

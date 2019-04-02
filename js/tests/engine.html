@@ -771,6 +771,7 @@ QUnit.test( "mover", function(assert) {
   var state = {'M': 0x12345678, 'MB': 3};
   var entry = {'LU': 0, 'MV': 2 /* MMB */, 'UL': 0 /* E */, 'UR': 2 /* V */, 'WM': 6 /* WL->J */, 'CE': 0x5};
   mover(state, entry);
+  storeMover(state, entry);
   assert.equal(state['W'], 0x58);
   assert.equal(state['WL'], 0x5);
   assert.equal(state['J'], 0x5);
@@ -779,7 +780,9 @@ QUnit.test( "mover", function(assert) {
 
 QUnit.test( "mover lu 4 XTR", function(assert) {
   var state = {'M': 0x12345678, 'MB': 3};
-  mover(state, {'LU': 4 /* XTR */, 'MV': 2 /* MMB */, 'UL': 0 /* E */, 'UR': 2 /* V */, 'WM': 6 /* WL->J */, 'CE': 0x5});
+  var entry = {'LU': 4 /* XTR */, 'MV': 2 /* MMB */, 'UL': 0 /* E */, 'UR': 2 /* V */, 'WM': 6 /* WL->J */, 'CE': 0x5};
+  mover(state, entry);
+  storeMover(state, entry);
   assert.equal(state['U'], 0);
 });
 
@@ -788,6 +791,7 @@ QUnit.test( "mover2", function(assert) {
   var state = {'MB': 0, 'M': 0x12345678};
   var entry = {'LU': 0, 'MV': 0, 'UL': 1, 'UR': 0, 'WM': 1, 'RY': 0, 'CE': 7};
   mover(state, entry);
+  storeMover(state, entry);
   assert.equal(state['W'], 7);
   assert.equal(state['WL'], 0);
   assert.equal(state['WR'], 7);
@@ -801,50 +805,130 @@ QUnit.test( "movers", function(assert) {
   var entry = {'LU': 7, 'MV': 2, 'UL': 3, 'UR': 3, 'WM': 0};
   state['WFN'] = 1; // or
   mover(state, entry);
+  storeMover(state, entry);
   assert.equal(state['W'], 0x12 | 0x34);
 
   state['WFN'] = 2; // and
   mover(state, entry);
+  storeMover(state, entry);
   assert.equal(state['W'], 0x12 & 0x34);
 
   state['WFN'] = 3; // xor
   mover(state, entry);
+  storeMover(state, entry);
   assert.equal(state['W'], 0x12 ^ 0x34);
 
   state['WFN'] = 4; // char
   mover(state, entry);
+  storeMover(state, entry);
   assert.equal(state['W'], 0x34);
 
   state['WFN'] = 5; // zone
   mover(state, entry);
+  storeMover(state, entry);
   assert.equal(state['W'], 0x32); // Assuming w's zone is overwritten, keep numeric
 
   state['WFN'] = 6; // numeric
   mover(state, entry);
+  storeMover(state, entry);
   assert.equal(state['W'], 0x14);
 
   state['WFN'] = 0; // cross
   mover(state, entry);
+  storeMover(state, entry);
   assert.equal(state['W'], 0x43);
 });
 
-QUnit.test( "WM 4 W27→PSW4", function(assert) {
+QUnit.test("storeMover WM 1 W→MMB", function(assert) {
+  var state = {'W': 0x89, 'WL': 0x8, 'WR': 0x9, 'MB': 2, 'M': 0x11223344};
+  storeMover(state, {'WM': 1});
+  assert.equal(state['M'], 0x11228944);
+});
+
+QUnit.test("storeMover WM 2 W67→MB", function(assert) {
+  var state = {'W': 0x89, 'WL': 8, 'WR': 9};
+  storeMover(state, {'WM': 2});
+  assert.equal(state['MB'], 1);
+});
+
+QUnit.test("storeMover WM 3 W67→LB", function(assert) {
+  var state = {'W': 0x89, 'WL': 8, 'WR': 9};
+  storeMover(state, {'WM': 3});
+  assert.equal(state['LB'], 1);
+});
+
+QUnit.test("storeMover WM 4 W27→PSW4", function(assert) {
   var state = {'PSW': [0x12345678, 0x82334455], 'R': 0xfe};
   var entry = {'LU': 2 /* U<-R3 */, 'MV': 0, 'UL': 1 /* U */, 'UR': 1 /* U */}; // R3->W
   entry['WM'] = 4; // W27→PSW4
   mover(state, entry);
+  storeMover(state, entry);
   assert.equal(state['U'], 0xfe);
   assert.equal(state['PSW'][0], 0x12345678, state['PSW'][0].toString(16));
   assert.equal(state['PSW'][1], 0xbe334455, state['PSW'][1].toString(16));
 });
 
-QUnit.test( "WM 15 W→MD,F", function(assert) {
-  var state = {'PSW': [0x12345678, 0x22334455], 'R': 0x00000034};
-  var entry = {'LU': 2 /* U<-R3 */, 'MV': 0, 'UL': 1 /* U */, 'UR': 1 /* U */}; // R3->W
-  entry['WM'] = 15; // W→MD,F
-  mover(state, entry);
-  assert.equal(state['MD'], 0x3);
-  assert.equal(state['F'], 0x4);
+QUnit.test("storeMover WM 5 W→PSW0", function(assert) {
+  var state = {'W': 0x89, 'WL': 8, 'WR': 9};
+  storeMover(state, {'WM': 5});
+  assert.equal(state['LB'], 2);
+});
+
+QUnit.test("storeMover WM 6 WL→J", function(assert) {
+  var state = {'W': 0x89, 'WL': 8, 'WR': 9};
+  storeMover(state, {'WM': 6});
+  assert.equal(state['J'], 8);
+});
+
+QUnit.skip("storeMover WM 7 W→CHCTL", function(assert) {
+  var state = {'W': 0x89, 'WL': 8, 'WR': 9};
+});
+
+QUnit.test("storeMover WM 8 W,E→A(BUMP)", function(assert) {
+  var state = {'W': 0x89, 'WL': 8, 'WR': 9};
+  storeMover(state, {'WM': 8, 'CE': 7});
+  assert.equal(state['SAR'], 0x100089c);
+});
+
+QUnit.test("storeMover WM 9 WL→G1", function(assert) {
+  var state = {'W': 0x89, 'WL': 8, 'WR': 9};
+  storeMover(state, {'WM': 9});
+  assert.equal(state['G1'], 8);
+});
+
+QUnit.test("storeMover WM 10 WR→G2", function(assert) {
+  var state = {'W': 0x89, 'WL': 8, 'WR': 9};
+  storeMover(state, {'WM': 10});
+  assert.equal(state['G2'], 9);
+});
+
+QUnit.test("storeMover WM 11 W→G", function(assert) {
+  var state = {'W': 0x89, 'WL': 8, 'WR': 9};
+  storeMover(state, {'WM': 11});
+  assert.equal(state['G1'], 8);
+  assert.equal(state['G2'], 9);
+});
+
+QUnit.skip("storeMover WM 12 W→MMB(E?)", function(assert) {
+});
+
+QUnit.test("storeMover WM 13 WL→MD", function(assert) {
+  var state = {'W': 0x89, 'WL': 8, 'WR': 9};
+  storeMover(state, {'WM': 13});
+  assert.equal(state['MD'], 8);
+});
+
+QUnit.test("storeMover WM 14 WR→F", function(assert) {
+  var state = {'W': 0x89, 'WL': 8, 'WR': 9};
+  storeMover(state, {'WM': 14});
+  assert.equal(state['F'], 9);
+});
+
+QUnit.test("storeMover WM 15 W→MD,F", function(assert) {
+  var state = {'W': 0x89, 'WL': 8, 'WR': 9};
+  storeMover(state, {'WM': 15});
+  assert.equal(state['MD'], 8);
+  assert.equal(state['F'], 9);
 });
 
 QUnit.test( "counters", function(assert) {
