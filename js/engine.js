@@ -15,14 +15,14 @@ function cycle(state, entry) {
     roarBB(state, entry);
     roarZN(state, entry);
 
-    adderDG2(state, entry);
     var msg = adderAL(state, entry);
-    iar(state, entry);
     localStorage(state, entry);
     stat(state, entry);
     mover(state, entry);
+    iar(state, entry);
     iar2(state, entry); // iar operations after mover
     counters(state, entry); // Need counters after mover, see QK801:0992
+    storePending(state);
     var msg2 = adderLatch(state, entry);
     localStorageWrite(state, entry); // Need to do this after R is written. See 0220
     if (msg) {
@@ -57,8 +57,6 @@ function getPSW(n) {
 function fmt4(d) {
   return d.toString(16).padStart(8, '0');
 }
-
-
 
 // Sets state['XG'] based on entry['LX'] and TC
 function adderLX(state, entry) {
@@ -137,6 +135,7 @@ function adderRY(state, entry) {
 // Sets carry-in state['CIN'] based on entry['DG']
 // Does other DG functions such as G1, G2
 function adderDG(state, entry) {
+  state['pending'] = state['pending'] || {}; // Initialize if necessary
   var carry = 0;
 
   // Length counter and carry insert ctrl
@@ -148,31 +147,38 @@ function adderDG(state, entry) {
       break;
     case 1: // CSTAT→ADDER
       carry = state['CSTAT'];
-      // Need to figure out CSTAT
       break;
     case 2: // HOT1→ADDER        // Add 1 bit
       carry = 1;
       break;
     case 3: // G1-1
       state['G1NEG'] = (state['G1'] == 0 ? 1 : 0); // Update underflow
-      // Update happens later
+      state['pending']['G1'] = (state['G1'] - 1) & 0xf;
       break;
     case 4: // HOT1,G-1
       carry = 1;
       state['G1NEG'] = (state['G1'] == 0 ? 1 : 0); // Update underflow
+      if (state['G2'] == 0) {
+        state['pending']['G1'] = (state['G1'] - 1) & 0xf;
+      }
+      state['pending']['G2'] = (state['G2'] - 1) & 0xf;
       break;
     case 5: // G2-1
       state['G2NEG'] = (state['G2'] == 0 ? 1 : 0); // Update underflow
-      // Update happens later
+      state['pending']['G2'] = (state['G2'] - 1) & 0xf;
       break;
     case 6: // G-1
       // Need to update G1NEG, G2NEG?
-      // Happens later
+      if (state['G2'] == 0) {
+        state['pending']['G1'] = (state['G1'] - 1) & 0xf;
+      }
+      state['pending']['G2'] = (state['G2'] - 1) & 0xf;
       break;
     case 7: // G1,2-1
       state['G1NEG'] = (state['G1'] == 0 ? 1 : 0); // Update underflow
       state['G2NEG'] = (state['G2'] == 0 ? 1 : 0); // Update underflow
-      // G1 and G2 updated later
+      state['pending']['G1'] = (state['G1'] - 1) & 0xf;
+      state['pending']['G2'] = (state['G2'] - 1) & 0xf;
       break;
     default:
       alert('Unexpected DG ' + entry['DG'] + " " + labels['DG'][entry['DG']]);
@@ -254,46 +260,6 @@ function adderT(state, entry) {
       break
   } // AD
   state['T'] = t;
-}
-
-// This has the later DG logic and the AL logic.
-function adderDG2(state, entry) {
-  // Length counter and carry insert ctrl
-  switch (entry['DG']) {
-    case 0: // default
-      break;
-    case 1: // CSTAT→ADDER
-      // Happened earlier
-      break;
-    case 2: // HOT1→ADDER        // Add 1 bit
-      // Happened earlier
-      break;
-    case 3: // G1-1
-      // NEG happened earlier
-      state['G1'] = (state['G1'] - 1) & 0xf;
-      break;
-    case 5: // G2-1
-      // NEG happened earlier
-      state['G2'] = (state['G2'] - 1) & 0xf;
-      break;
-    case 4: // HOT1,G-1
-      // HOT1, NEG happened earlier
-      // Fall through
-    case 6: // G-1
-      if (state['G2'] == 0) {
-        state['G1'] = (state['G1'] - 1) & 0xf;
-      }
-      state['G2'] = (state['G2'] - 1) & 0xf;
-      break;
-    case 7: // G1,2-1
-      // Neg happened earlier
-      state['G1'] = (state['G1'] - 1) & 0xf;
-      state['G2'] = (state['G2'] - 1) & 0xf;
-      break;
-    default:
-      alert('Unexpected DG ' + entry['DG'] + " " + labels['DG'][entry['DG']]);
-      break;
-  }
 }
 
 function adderAL(state, entry) {
@@ -495,6 +461,19 @@ function syl1(state) {
   } else {
     state['1SYL'] = 0;
   }
+}
+
+// Store any pending entries
+function storePending(state) {
+  var pending = state['pending'];
+  if (pending) {
+    var keys = Object.keys(pending);
+    for (var i = 0; i < keys.length; i++) {
+      state[keys[i]] = state['pending'][keys[i]];
+    }
+  }
+  // Store carry CAR to CSTAT
+  state['CSTAT'] = state['CAR']
 }
 
 function adderLatch(state, entry) {
@@ -1441,7 +1420,6 @@ function roarAB(state, entry) {
       break;
     case 10: // CSTAT carry stat
       roar |= state['CSTAT'] << 1;
-      alert('Need to figure out CSTAT');
       break;
     case 11:
       alert('Unexpected AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);

@@ -356,27 +356,27 @@ QUnit.test( "adder dg 3 G1-1", function(assert) {
   var state = {'G1': 1};
   adderDG(state, {'DG': 3 /* G1-1 */});
   assert.equal(state['G1NEG'], 0);
-  adderDG2(state, {'DG': 3 /* G1-1 */});
+  storePending(state);
   assert.equal(state['G1'], 0);
 
   state = {'G1': 0};
   adderDG(state, {'DG': 3 /* G1-1 */});
   assert.equal(state['G1NEG'], 1);
-  adderDG2(state, {'DG': 3 /* G1-1 */});
+  storePending(state);
   assert.equal(state['G1'], 0xf);
 });
 
 QUnit.test( "adder dg 4 HOT1,G-1", function(assert) {
   var state = {'G1': 2, 'G2':1};
   adderDG(state, {'DG': 4});
-  adderDG2(state, {'DG': 4});
+  storePending(state);
   assert.equal(state['G1'], 2);
   assert.equal(state['G2'], 0);
   assert.equal(state['CIN'], 1);
 
   state = {'G1': 2, 'G2':0};
   adderDG(state, {'DG': 4});
-  adderDG2(state, {'DG': 4});
+  storePending(state);
   assert.equal(state['G1'], 1);
   assert.equal(state['G2'], 0xf);
   assert.equal(state['CIN'], 1);
@@ -386,26 +386,26 @@ QUnit.test( "adder dg 5 G2-1", function(assert) {
   var state = {'G2': 1};
   adderDG(state, {'DG': 5 /* G2-1 */});
   assert.equal(state['G2NEG'], 0);
-  adderDG2(state, {'DG': 5 /* G2-1 */});
+  storePending(state);
   assert.equal(state['G2'], 0);
 
   state = {'G2': 0};
   adderDG(state, {'DG': 5 /* G2-1 */});
   assert.equal(state['G2NEG'], 1);
-  adderDG2(state, {'DG': 5 /* G2-1 */});
+  storePending(state);
   assert.equal(state['G2'], 0xf);
 });
 
 QUnit.test( "adder dg 6 G-1", function(assert) {
   var state = {'G1': 2, 'G2':1};
   adderDG(state, {'DG': 6});
-  adderDG2(state, {'DG': 6});
+  storePending(state);
   assert.equal(state['G1'], 2);
   assert.equal(state['G2'], 0);
 
   state = {'G1': 2, 'G2':0};
   adderDG(state, {'DG': 6});
-  adderDG2(state, {'DG': 6});
+  storePending(state);
   assert.equal(state['G1'], 1);
   assert.equal(state['G2'], 0xf);
 });
@@ -415,7 +415,7 @@ QUnit.test( "adder dg 7 G1,2-1", function(assert) {
   adderDG(state, {'DG': 7 /* G2-1 */});
   assert.equal(state['G1NEG'], 1);
   assert.equal(state['G2NEG'], 0);
-  adderDG2(state, {'DG': 7 /* G2-1 */});
+  storePending(state);
   assert.equal(state['G1'], 0xf);
   assert.equal(state['G2'], 0);
 
@@ -423,7 +423,7 @@ QUnit.test( "adder dg 7 G1,2-1", function(assert) {
   adderDG(state, {'DG': 7 /* G2-1 */});
   assert.equal(state['G1NEG'], 0);
   assert.equal(state['G2NEG'], 1);
-  adderDG2(state, {'DG': 7 /* G2-1 */});
+  storePending(state);
   assert.equal(state['G1'], 0xe);
   assert.equal(state['G2'], 0xf);
 });
@@ -2160,7 +2160,8 @@ QUnit.skip( "stat SS 58: 1→IOMODE", function(assert) {
 
 QUnit.skip( "al1 Q→SR1→F", function(assert) {
   var state = {'T': 0x12345678, 'Q': 1, 'F': 5};
-  adderDG2(state, {'AL': 1, 'DG': 0});
+  adderDG(state, {'AL': 1, 'DG': 0});
+  storePending(state);
   assert.equal(state['T'], 0x80000000 | (0x12345678 >> 1));
   assert.equal(state['F'], 0xa);
   assert.equal(state['Q'], 0);
