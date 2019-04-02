@@ -131,7 +131,7 @@ function adderRY(state, entry) {
       alert('Unexpected RY ' + entry['RY'] + " " + labels['RY'][entry['RY']]);
       break;
   }
-  state['RY'] = y;
+  state['Y'] = y;
 }
 
 // Sets carry-in state['CIN'] based on entry['DG']
@@ -192,7 +192,7 @@ function adderT(state, entry) {
   var t;
 
   var xg = state['XG'];
-  var y = state['RY'];
+  var y = state['Y'];
   var carry = state['CIN']
   t = xg + y + carry;
 
@@ -327,7 +327,7 @@ function adderAL(state, entry) {
       alert('Unimplemented AL ' + entry['AL'] + " " + labels['AL'][entry['AL']]);
       break;
     case 8: // Q→SL1→F
-      state['F'] = ((state['F'] << 1) | (state['F'] >> 31)) & 0xf;
+      state['F'] = ((state['F'] << 1) | (state['T'] >>> 31)) & 0xf;
       state['T'] = ((state['T'] << 1) | state['Q']) >>> 0;
       state['Q'] = 0;
       break;
@@ -451,12 +451,14 @@ function trapInvalidDecimal(state) {
   rosTrap(0x0140);
 }
 
+// Write memory: call after setting SDR
 // Assume SAR and SDR set up
 function store(state) {
   state['MS'][state['SAR'] & ~3] = state['SDR'];
   return 'Storing ' + fmt4(state['SDR']) + ' in ' + fmt4(state['SAR']);
 }
 
+// Read memory: call before using SDR
 // Assume SAR
 function read(state) {
   // Add some bounds to memory? Or just implement the whole 16 MB?
@@ -627,10 +629,11 @@ function adderLatch(state, entry) {
       state['SP'] = t & 0xf;
       break;
     case 29: // D*BS     // SDR bytes stats. Store bytes to D (i.e. main memory) where BS bit is high QK801:09b7
-      var mem = state['MS'][state['SAR']];
+      read(state);
+      var mem = state['SDR'];
       var d = 0;
       for (var i = 0; i < 4; i++) {
-        if (state['BS'] & (1 << (3-i))) {
+        if (state['BS'][i]) {
           d |= state['T'] & bytemask[i];
         } else {
           d |= mem & bytemask[i];
@@ -1105,6 +1108,7 @@ function stat(state, entry) {
       break;
     case 4: // E→SCANCTL // Performs scan operation controlled by E. See 50Maint p32. 0101 clears SCPS,SCFS QU100. 0011 ignore IO error. 0000 test for all ones, step bin trigger. 0001 sets SCPS,SCFS.
       // 1000 moves SDR(0-2) to CTR (clock advance counter) STR(5) to PSS (progressive scan stat), SDR(6) to SST (supervisory stat) QY110
+      alert('Unimplemented SCANTRL ' + entry['CE'] + " " + labels['SS'][entry['SS']]);
       switch (entry['CE']) {
         case 1:
           state['SCPS'] = 1;
@@ -1171,7 +1175,7 @@ function stat(state, entry) {
       state['S'][3] |= (e >> 0) & 1;
       break;
     case 11: // S03ΩE,0→BS
-      state['BS'] = 0;
+      state['BS'] = [0, 0, 0, 0];
       var e = entry['CE'];
       state['S'][0] |= (e >> 3) & 1;
       state['S'][1] |= (e >> 2) & 1;
@@ -1203,11 +1207,15 @@ function stat(state, entry) {
       break;
     case 18: // E→BS,T30→S3
       // 01C6
-      state['BS'] = entry['CE'];
+      for (var i = 0; i < 4; i++) {
+        state['BS'][i] = (entry['CE'] & (1<<(3-i))) ? 1 : 0;
+      }
       state['S'][3] = (state['T'] >> 1) & 1; // T(30)→S3, branch address halfword indicator
       break;
     case 19: // E→BS             // Store E to byte stats (i.e. byte mask)
-      state['BS'] = entry['CE'];
+      for (var i = 0; i < 4; i++) {
+        state['BS'][i] = (entry['CE'] & (1<<(3-i))) ? 1 : 0;
+      }
       break;
     case 20: // 1→BS*MB
       state['BS'][state['MB']] = 1;
@@ -1330,13 +1338,13 @@ function stat(state, entry) {
       alert('Unexpected SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
       break;
     case 50: // E(0)→IBFULL      // Reset MPX Input Buffer Full stat QU100
+      alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
       state['IBFULL'] = (entry['CE'] >> 3) & 1;
       break;
     case 51:
       alert('Unexpected SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
       break;
     case 52: // E→CH             // QY430 E=0110 resets common and mpx channel
-      ech(state, entry);
       alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
       break;
     case 53:
@@ -1452,12 +1460,11 @@ function roarAB(state, entry) {
     case 15:
       alert('Unexpected AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
-    case 16: // CRMD     // masked CR → A, branch on CC=0 (I/O accepted by channel). Test for branch.
+    case 16: // CRMD     // masked CR → A
       // CROS manual: MD bit 0 & CR23 = 00 or MD1 & CR23 = 10 or MD bit 2 & CR23=01 or MD bit 3 & CR23 = 11
-      if (state['CR'] == 0) { // Not sure what mask should be.
+      if (state['MD'] & (1<<(3-state['CR']))) {
         roar |= 2;
       }
-      alert('Unexpected AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
     case 17: // W=0
       if (state['W'] == 0) {
@@ -1578,7 +1585,7 @@ function roarAB(state, entry) {
       alert('Unexpected AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
     case 45: // D(7) // test D bit 7 (SDR) QY510
-      alert('Need to do read?');
+      read(state);
       if (state['SDR'] & (1 << (31-7))) {
         roar |= 2;
       }
@@ -1620,7 +1627,7 @@ function roarAB(state, entry) {
       // 00: off-bounds fetch (i.e. odd halfword)
       // 01: off-bounds, refetch (i.e. can't use instruction in op buffer WS14)
       // 10: on-bounds fetch (i.e. fetching a normal even halfword.)
-      // 11: exception or no-bit in instruction counter position 30 (CROS page 31)
+      // 11: exception for on-bit in instruction counter position 30 (CROS page 31)
       // See e.g. QT105
       if (state['IAR'] & 1) {
         // Alignment exception. Other address exceptions?
@@ -1709,7 +1716,7 @@ function roarBB(state, entry) {
       roar |= state['RSGNS'];
       break;
     case 11: // HSCH HS Channel Special Branch
-      roar |= state['HSCH'];
+      alert('Unexpected BB ' + entry['BB'] + " " + labels['AB'][entry['AB']]);
       break;
     case 12: // EXC      // Exception Branch
       roar |= state['EXC'];
@@ -1790,7 +1797,7 @@ function roarBB(state, entry) {
       }
       break;
     case 28: // IVA // QT110/0149
-      if (state['IVA'] == 1) {
+      if (state['SAR'] & 1) {
         roar |= 1;
       }
       break;

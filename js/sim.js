@@ -219,7 +219,7 @@ function createState() {
   'G1': 3, 'G2': 3, 'LB': 3, 'MB': 3, 'SP': 5,
   'WFN': 2, // Set up at QK801:0988 during IPL
   'SAR': 0xffffff, 'SDR': 0xffffffff,
-  'ROAR': 0xffff,
+  'ROAR': 0xffff, 'BS': [0, 0, 0, 0],
   };
   state['LS'] = new Array(64);
   for (var i = 0; i < 64; i++) {
