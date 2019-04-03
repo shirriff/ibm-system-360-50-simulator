@@ -521,6 +521,7 @@ function storePending(state) {
     for (var i = 0; i < keys.length; i++) {
       state[keys[i]] = state['pending'][keys[i]];
     }
+    delete state['pending'];
   }
   // Store carry CAR to CSTAT
   state['CSTAT'] = state['CAR']
@@ -1231,7 +1232,7 @@ function stat(state, entry) {
       syl1(state);
       break;
     case 16: // S03.¬E           // Clear S03 bits from E
-      for (var i = 0; i < 3; i++) {
+      for (var i = 0; i < 4; i++) {
         state['S'][i] &= ~(entry['CE']>>(3-i));
       }
       break;

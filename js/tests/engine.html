@@ -2017,6 +2017,10 @@ QUnit.test( "stat16: S03.¬E", function(assert) {
   var state = {'S': [0, 0, 1, 1, 0, 0, 0, 1]};
   stat(state, {'CE': 6, 'SS': 16});
   assert.deepEqual(state['S'], [0, 0, 0, 1, 0, 0, 0, 1]);
+
+  state = {'S': [1, 1, 1, 1, 1, 1, 1, 1]};
+  stat(state, {'CE': 15, 'SS': 16});
+  assert.deepEqual(state['S'], [0, 0, 0, 0, 1, 1, 1, 1]);
 });
 
 QUnit.skip( "stat SS 17: (T=0)→S3", function(assert) {
