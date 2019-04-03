@@ -2238,6 +2238,45 @@ QUnit.skip( "stat SS 58: 1→IOMODE", function(assert) {
 
 // ----- AL tests
 
+// test shifter
+
+QUnit.test("sr1", function(assert) {
+  // Start with right field empty
+  assert.deepEqual(sr1(0, 0x12345678, 0), [0x091a2b3c, 0]);
+  assert.deepEqual(sr1(0, 0x12345679, 0), [0x091a2b3c, 8]);
+  assert.deepEqual(sr1(1, 0x12345678, 0), [0x891a2b3c, 0]);
+  assert.deepEqual(sr1(1, 0x12345679, 0), [0x891a2b3c, 8]);
+  // Now with content in right field
+  assert.deepEqual(sr1(0, 0x82345678, 3), [0x411a2b3c, 1]);
+  assert.deepEqual(sr1(0, 0x82345679, 5), [0x411a2b3c, 0xa]);
+  assert.deepEqual(sr1(1, 0x82345678, 8), [0xc11a2b3c, 4]);
+  assert.deepEqual(sr1(1, 0x82345679, 0xf), [0xc11a2b3c, 0xf]);
+});
+
+QUnit.test("sl1", function(assert) {
+  // Start with dest (left) field empty
+  assert.deepEqual(sl1(0, 0x12345678, 0), [0x2468acf0, 0]);
+  assert.deepEqual(sl1(0, 0x92345678, 0), [0x2468acf0, 1]);
+  assert.deepEqual(sl1(8, 0x12345678, 0), [0x2468acf1, 0]);
+  assert.deepEqual(sl1(8, 0x92345678, 0), [0x2468acf1, 1]);
+  // Now with contents in dest field
+  assert.deepEqual(sl1(0, 0x12345678, 0xf), [0x2468acf0, 0xe]);
+  assert.deepEqual(sl1(0, 0x92345678, 0x8), [0x2468acf0, 1]);
+  assert.deepEqual(sl1(8, 0x12345678, 0x5), [0x2468acf1, 0xa]);
+  assert.deepEqual(sl1(8, 0x92345678, 0x2), [0x2468acf1, 5]);
+});
+
+QUnit.test("sr4", function(assert) {
+  assert.deepEqual(sr4(0, 0x12345678), [0x01234567, 8]);
+  assert.deepEqual(sr4(0xf, 0x12345673), [0xf1234567, 3]);
+});
+
+QUnit.test("sl4", function(assert) {
+  assert.deepEqual(sl4(0x1, 0x12345678), [0x23456781, 1]);
+  assert.deepEqual(sl4(0xf, 0x12345678), [0x2345678f, 1]);
+  assert.deepEqual(sl4(0, 0xff345678), [0xf3456780, 0xf]);
+});
+
 QUnit.skip( "al1 Q→SR1→F", function(assert) {
   var state = {'T': 0x12345678, 'Q': 1, 'F': 5};
   adderDG(state, {'AL': 1, 'DG': 0});
@@ -2277,7 +2316,21 @@ QUnit.test( "al6 IA→H", function(assert) {
   assert.equal(state['H'], 0x12345678);
 });
 
-QUnit.skip( "al7 Q→SL→-F", function(assert) {
+QUnit.test( "al7 Q→SL→-F", function(assert) {
+  var state = {'T': 0x12345678, 'Q': 0, 'F': 0xf};
+  adderAL(state, {'AL': 7});
+  assert.equal(state['T'], 0x2468acf0);
+  assert.equal(state['F'], 0xf); // 0 inverted, shifted in
+
+  state = {'T': 0x92345678, 'Q': 0, 'F': 0xf};
+  adderAL(state, {'AL': 7});
+  assert.equal(state['T'], 0x2468acf0);
+  assert.equal(state['F'], 0xe);
+
+  state = {'T': 0x12345678, 'Q': 1, 'F': 0xf};
+  adderAL(state, {'AL': 7});
+  assert.equal(state['T'], 0x2468acf1);
+  assert.equal(state['F'], 0xf);
 });
 
 QUnit.test( "al8 Q→SL1→F", function(assert) {
@@ -2285,25 +2338,21 @@ QUnit.test( "al8 Q→SL1→F", function(assert) {
   adderAL(state, {'AL': 8});
   assert.equal(state['T'], (0x72345678 << 1) >>> 0);
   assert.equal(state['F'], 0x8); // 1100 -> 1000
-  assert.equal(state['Q'], 0x0);
 
   state = {'Q': 1, 'T': 0x72345678, 'F': 0xc}; // Shift 1 in, 0 out
   adderAL(state, {'AL': 8});
   assert.equal(state['T'], ((0x72345678 << 1) | 1) >>> 0);
   assert.equal(state['F'], 0x8);
-  assert.equal(state['Q'], 0x0);
 
   state = {'Q': 0, 'T': 0x92345678, 'F': 0xc}; // Shift 0 in, 1 out
   adderAL(state, {'AL': 8});
   assert.equal(state['T'], (0x92345678 << 1) >>> 0);
   assert.equal(state['F'], 0x9);
-  assert.equal(state['Q'], 0x0);
 
   state = {'Q': 1, 'T': 0x92345678, 'F': 0xc}; // Shift 1 in, 1 out
   adderAL(state, {'AL': 8});
   assert.equal(state['T'], ((0x92345678 << 1) | 1) >>> 0);
   assert.equal(state['F'], 0x9);
-  assert.equal(state['Q'], 0x0);
 });
 
 // Overflow bits from T spill into F, which is shifted into T.
@@ -2331,14 +2380,21 @@ QUnit.test( "al10 SL1→Q", function(assert) {
 });
 
 
-QUnit.skip( "al11 Q→SL1", function(assert) {
+QUnit.test( "al11 Q→SL1", function(assert) {
+  var state = {'T': 0x92345678, 'Q': 0};
+  adderAL(state, {'AL': 11});
+  assert.equal(state['T'], 0x2468acf0);
+
+  state = {'T': 0x92345678, 'Q': 1};
+  adderAL(state, {'AL': 11});
+  assert.equal(state['T'], 0x2468acf1);
 });
 
 QUnit.test( "al12 SR1→F", function(assert) {
-  var state = {'T': 0x12345679};
+  var state = {'T': 0x12345679, 'F': 3};
   adderAL(state, {'AL': 12});
   assert.equal(state['T'], 0x12345679 >> 1);
-  assert.equal(state['F'], 0x1);
+  assert.equal(state['F'], 9);
 });
 
 QUnit.test( "al13 SR1→Q", function(assert) {
@@ -2348,10 +2404,30 @@ QUnit.test( "al13 SR1→Q", function(assert) {
   assert.equal(state['Q'], 0x1);
 });
 
-QUnit.skip( "al14 Q→SR1→Q", function(assert) {
+QUnit.test( "al14 Q→SR1→Q", function(assert) {
+  var state = {'T': 0x92345679, 'Q': 0};
+  adderAL(state, {'AL': 14});
+  assert.equal(state['T'], 0x491a2b3c);
+  assert.equal(state['Q'], 0x1);
+
+  var state = {'T': 0x92345678, 'Q': 1};
+  adderAL(state, {'AL': 14});
+  assert.equal(state['T'], 0xc91a2b3c);
+  assert.equal(state['Q'], 0x0);
 });
 
-QUnit.skip( "al15 F→SL1→Q", function(assert) {
+QUnit.test( "al15 F→SL1→Q", function(assert) {
+  var state = {'T': 0x12345678, 'F': 0x9, 'Q': 0};
+  adderAL(state, {'AL': 15});
+  assert.equal(state['F'], 9); // Assuming unchanged
+  assert.equal(state['T'], 0x2468acf1);
+  assert.equal(state['Q'], 0x0);
+
+  state = {'T': 0x92345678, 'F': 0x7, 'Q': 0};
+  adderAL(state, {'AL': 15});
+  assert.equal(state['F'], 0x7); // Assuming unchanged
+  assert.equal(state['T'], 0x2468acf0);
+  assert.equal(state['Q'], 0x1);
 });
 
 QUnit.test( "al16 SL4→F", function(assert) {
@@ -2425,6 +2501,20 @@ QUnit.test( "al26 E→FPSL4", function(assert) {
 });
 
 QUnit.skip( "al27 F→SR1→Q", function(assert) {
+  var state = {'T': 0x92345678, 'F': 0};
+  adderAL(state, {'AL': 27});
+  assert.equal(state['T'], 0x491a2b3c);
+  assert.equal(state['Q'], 0);
+
+  state = {'T': 0x92345679, 'F': 0xe};
+  adderAL(state, {'AL': 27});
+  assert.equal(state['T'], 0x491a2b3c);
+  assert.equal(state['Q'], 1);
+
+  var state = {'T': 0x92345678, 'F': 3};
+  adderAL(state, {'AL': 27});
+  assert.equal(state['T'], 0xc91a2b3c);
+  assert.equal(state['Q'], 0);
 });
 
 QUnit.skip( "al28 DKEY→", function(assert) {

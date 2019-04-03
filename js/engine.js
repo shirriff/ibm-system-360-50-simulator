@@ -255,6 +255,52 @@ function adderT(state, entry) {
   state['T'] = t;
 }
 
+// Force n to unsigned 32-bit
+function u32(n) {
+  return n >>> 0;
+}
+
+// Force n to unsigned 4-bit
+function u4(n) {
+  return n & 0xf;
+}
+
+// Shifts 32-bit reg right 1 bit, shifting one bit from 4-bit src in at top.
+// Bit from reg is shifted into 4-bit dst
+// Returns [new reg, new dst]
+function sr1(src, reg, dst) {
+  var reg1 = ((src & 1) << 31) | (reg >>> 1);
+  var dst1 = ((reg & 1) << 3) | (dst >> 1);
+  return [u32(reg1), u4(dst1)];
+}
+
+// Shifts 32-bit reg left 1 bit, shifting one bit from 4-bit src in at bottom.
+// Bit from reg is shifted into 4-bit dst
+// Returns [new reg, new dst]
+function sl1(src, reg, dst) {
+  var reg1 = (reg << 1) | ((src >>> 3) & 1);
+  var dst1 = (dst << 1) | (reg >>> 31);
+  return [u32(reg1), u4(dst1)];
+}
+
+// Shifts 32-bit reg right 4 bits, shifting 4-bit src in at top.
+// 4 bottom bits from reg are returned in dst
+// Returns [new reg, dst]
+function sr4(src, reg) {
+  var reg1 = ((src & 0xf) << 28) | (reg >>> 4);
+  var dst1 = reg & 0xf;
+  return [u32(reg1), u4(dst1)];
+}
+
+// Shifts 32-bit reg left 4 bits, shifting 4-bit src in at bottom.
+// 4 top bits from reg are returned in dst
+// Returns [new reg, dst]
+function sl4(src, reg) {
+  var reg1 = (reg << 4) | (src & 0xf);
+  var dst1 = reg >>> 28;
+  return [u32(reg1), u4(dst1)];
+}
+
 function adderAL(state, entry) {
   msg = '';
   // Shift gate and adder latch control
@@ -262,9 +308,9 @@ function adderAL(state, entry) {
     case 0: // Normal
       break;
     case 1: // Q→SR1→F
-      state['F'] = ((state['T'] & 1) << 3) | (state['F'] >> 1);
-      state['T'] = ((state['Q'] << 31) | (state['T'] >>> 1)) >>> 0;
-      state['Q'] = 0;
+      var s = sr1(state['Q'], state['T'], state['F']);
+      state['T'] = s[0];
+      state['F'] = s[1];
       break;
     case 2: // L0,¬S4→
       alert('Unimplemented AL ' + entry['AL'] + " " + labels['AL'][entry['AL']]);
@@ -283,67 +329,76 @@ function adderAL(state, entry) {
       state['H'] = state['IAR'];
       break;
     case 7: // Q→SL→-F
-      alert('Unimplemented AL ' + entry['AL'] + " " + labels['AL'][entry['AL']]);
+      var s = sl1(state['Q'] << 3, state['T'], state['F']);
+      state['T'] = s[0];
+      state['F'] = s[1] ^ 0x1; // Negate new (bottom) bit
       break;
     case 8: // Q→SL1→F
-      state['F'] = ((state['F'] << 1) | (state['T'] >>> 31)) & 0xf;
-      state['T'] = ((state['T'] << 1) | state['Q']) >>> 0;
-      state['Q'] = 0;
+      var s = sl1(state['Q'] << 3, state['T'], state['F']);
+      state['T'] = s[0];
+      state['F'] = s[1];
       break;
     case 9: // F→SL1→F
-      var f1 = state['T'] >>> 31; // Remember top bit of T
-      state['T'] = ((state['T'] << 1) | (state['F'] >>> 3)) >>> 0; // T = (T // F) << 1
-      state['F'] = ((state['F'] << 1) | f1 ) & 0xf; // Shift top bit of T into F
+      var s = sl1(state['F'], state['T'], state['F']);
+      state['T'] = s[0];
+      state['F'] = s[1];
       break;
     case 10: // SL1→Q
-      state['Q'] = (state['T'] & 0x80000000) ? 1 : 0;
-      state['T'] = (state['T'] << 1) >>> 0;
+      var s = sl1(0, state['T'], 0);
+      state['T'] = s[0];
+      state['Q'] = s[1];
       break;
     case 11: // Q→SL1
-      alert('Unimplemented AL ' + entry['AL'] + " " + labels['AL'][entry['AL']]);
+      var s = sl1(state['Q'] << 3, state['T'], 0);
+      state['T'] = s[0];
       break;
     case 12: // SR1→F
-      state['F'] = state['T'] & 1;
-      state['T'] = state['T'] >>> 1;
+      var s = sr1(0, state['T'], state['F']);
+      state['T'] = s[0];
+      state['F'] = s[1];
       break;
     case 13: // SR1→Q
-      state['Q'] = state['T'] & 1;
-      state['T'] = state['T'] >>> 1;
+      var s = sr1(0, state['T'], state['Q']);
+      state['T'] = s[0];
+      state['Q'] = s[1] >> 3; // Convert 4-bit result to 1-bit Q
       break;
     case 14: // Q→SR1→Q
-      alert('Unimplemented AL ' + entry['AL'] + " " + labels['AL'][entry['AL']]);
+      var s = sr1(state['Q'], state['T'], 0);
+      state['T'] = s[0];
+      state['Q'] = s[1] >> 3; // Convert 4-bit result to 1-bit Q
       break;
     case 15: // F→SL1→Q
-      alert('Unimplemented AL ' + entry['AL'] + " " + labels['AL'][entry['AL']]);
+      var s = sl1(state['F'], state['T'], 0);
+      state['T'] = s[0];
+      state['Q'] = s[1];
       break;
     case 16: // SL4→F    // Shift adder output left by 4, also put in F.
-      state['F'] = (state['T'] >>> 28) & 0xf;
-      state['T'] = ((state['T'] << 4) & 0xffffffff) >>> 0; // >>> to make unsigned
+      var s = sl4(0, state['T']);
+      state['T'] = s[0];
+      state['F'] = s[1];
       break;
     case 17: // F→SL4→F
-      var f1 = state['T'] >>> 28;
-      state['T'] = ((state['T'] << 4) | state['F']) >>> 0
-      state['F'] = f1;
+      var s = sl4(state['F'], state['T']);
+      state['T'] = s[0];
+      state['F'] = s[1];
       break;
     case 18: // FPSL4
       // What's the difference between SL4 and FPSL4?
       state['T'] = state['T'] << 4;
       break;
     case 19: // F→FPSL4
-      var f1 = state['T'] >>> 28;
-      state['T'] = ((state['T'] << 4) | state['F']) >>> 0
+      var s = sl4(state['F'], state['T']);
+      state['T'] = s[0];
       break;
     case 20: // SR4→F
-      // Hypothesis
-      var f1 = state['T'] & 0xf;
-      state['T'] = state['T'] >>> 4;
-      state['F'] = f1;
+      var s = sr4(0, state['T']);
+      state['T'] = s[0];
+      state['F'] = s[1];
       break;
     case 21: // F→SR4→F
-      // Hypothesis
-      var f1 = state['T'] & 0xf;
-      state['T'] = (state['T'] >>> 4) | (state['F'] << 28);
-      state['F'] = f1;
+      var s = sr4(state['F'], state['T']);
+      state['T'] = s[0];
+      state['F'] = s[1];
       break;
     case 22: // FPSR4→F
       alert('Unimplemented AL ' + entry['AL'] + " " + labels['AL'][entry['AL']]);
@@ -358,15 +413,17 @@ function adderAL(state, entry) {
       alert('Unimplemented AL ' + entry['AL'] + " " + labels['AL'][entry['AL']]);
       break;
     case 25: // F→SR4
-      // Hypothesis
-      state['T'] = (state['T'] >>> 4) | (state['F'] << 28);
+      var s = sr4(state['F'], state['T']);
+      state['T'] = s[0];
       break;
     case 26: // E→FPSL4
       // Just a guess based on QK800:09b2
       state['T'] = (((state['T'] << 4) | entry['CE']) & 0xffffffff) >>> 0;
       break;
     case 27: // F→SR1→Q
-      alert('Unimplemented AL ' + entry['AL'] + " " + labels['AL'][entry['AL']]);
+      var s = sr1(state['F'], state['T'], 0);
+      state['T'] = s[0];
+      state['Q'] = s[1] >> 3;
       break;
     case 28: // DKEY→ // Handled by D, data keys
       alert('Unimplemented AL ' + entry['AL'] + " " + labels['AL'][entry['AL']]);
