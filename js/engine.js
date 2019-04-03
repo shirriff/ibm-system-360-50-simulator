@@ -15,9 +15,9 @@ function cycle(state, entry) {
     roarBB(state, entry);
     roarZN(state, entry);
 
+    mover(state, entry);
     var msg = adderAL(state, entry);
     stat(state, entry);
-    mover(state, entry);
     localStorage(state, entry); // Need to do mover before reading localStorage 0126
     storeMover(state, entry);
     iar(state, entry);
