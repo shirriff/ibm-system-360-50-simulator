@@ -18,14 +18,14 @@ function cycle(state, entry) {
     mover(state, entry);
     var msg = adderAL(state, entry);
     stat(state, entry);
-    localStorage(state, entry); // Need to do mover before reading localStorage 0126
     storeMover(state, entry);
     iar(state, entry);
     iar2(state, entry); // iar operations after mover
     counters(state, entry); // Need counters after mover, see QK801:0992
     storePending(state);
+    localStorageLSAR(state, entry); // Need to do mover before reading localStorage 0126
     var msg2 = adderLatch(state, entry);
-    localStorageWrite(state, entry); // Need to do this after R is written. See QB730:0220
+    localStorage(state, entry); // Need to do mover before reading localStorage 0126. Need to do this after R is written. See QB730:0220
     if (msg) {
       console.log(msg);
     }
@@ -978,7 +978,7 @@ function counters(state, entry) {
   }
 }
 
-function localStorage(state, entry) {
+function localStorageLSAR(state, entry) {
   // Local storage addressing
   switch (entry['WS']) {
     case 0:
@@ -1012,14 +1012,17 @@ function localStorage(state, entry) {
       alert('Unexpected WS ' + entry['WS'] + " " + labels['WS'][entry['WS']]);
       break;
   }
+}
 
+function localStorage(state, entry) {
   // Local storage function
   switch (entry['SF']) {
     case 0: // R→LS // QT210/1A3
-      // No read from LS
+      state['LS'][state['LSAR']] = state['R'];
       break;
     case 1: // LS→LR→LS, 
-      alert('Unimplemented SF ' + entry['SF'] + " " + labels['SF'][entry['SF']]);
+      state['L'] = state['LS'][state['LSAR']];
+      state['R'] = state['LS'][state['LSAR']];
       break;
     case 2: // LS→R→LS 
       state['R'] = state['LS'][state['LSAR']];
@@ -1028,10 +1031,11 @@ function localStorage(state, entry) {
       alert('Unexpected SF ' + entry['SF'] + " " + labels['SF'][entry['SF']]);
       break;
     case 4: // L→LS // QP206/D95
-      // No read from LS
+      state['LS'][state['LSAR']] = state['L'];
       break;
     case 5: // LS→R,L→LS
-      alert('Unimplemented SF ' + entry['SF'] + " " + labels['SF'][entry['SF']]);
+      state['R'] = state['LS'][state['LSAR']];
+      state['LS'][state['LSAR']] = state['L'];
       break;
     case 6: // LS→L→LS // QP206/D94
       state['L'] = state['LS'][state['LSAR']];
@@ -1043,38 +1047,6 @@ function localStorage(state, entry) {
       break;
     default:
       alert('Unexpected SF ' + entry['SF'] + " " + labels['SF'][entry['SF']]);
-      break;
-  }
-}
-
-// Need to split up local storage read and write since bus can be modified in between
-function localStorageWrite(state, entry) {
-  // Local storage function
-  switch (entry['SF']) {
-    case 0: // R→LS // QT210/1A3
-      state['LS'][state['LSAR']] = state['R'];
-      break;
-    case 1: // LS→LR→LS, 
-      alert('Unimplemented SF ' + entry['SF'] + " " + labels['SF'][entry['SF']]);
-      break;
-    case 2: // LS→R→LS 
-      state['LS'][state['LSAR']] = state['R'];
-      break;
-    case 3:
-      alert('Unexpected WS ' + entry['WS'] + " " + labels['SF'][entry['SF']]);
-      break;
-    case 4: // L→LS // QP206/D95
-      state['LS'][state['LSAR']] = state['L'];
-      break;
-    case 5: // LS→R,L→LS
-      break;
-    case 6: // LS→L→LS // QP206/D94
-      state['LS'][state['LSAR']] = state['L'];
-      break;
-    case 7: // No storage function
-      break;
-    default:
-      alert('Unexpected WS ' + entry['WS'] + " " + labels['SF'][entry['SF']]);
       break;
   }
 }
