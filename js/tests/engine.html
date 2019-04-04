@@ -860,7 +860,7 @@ QUnit.test("storeMover WM 3 W67→LB", function(assert) {
 QUnit.test("storeMover WM 4 W27→PSW4", function(assert) {
   var state = {'W': 0x98, 'WL': 9, 'WR': 8};
   storeMover(state, {'WM': 4});
-  assert.equal(state['CC'], 0x1);
+  assert.equal(state['CR'], 0x1);
   assert.equal(state['PROGMASK'], 0x8);
 });
 

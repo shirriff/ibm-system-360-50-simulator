@@ -44,7 +44,7 @@ function cycle(state, entry) {
   }
 }
 
-// PSW = SYSMASK, KEY, AMWP, IRUPT; ILC, CC, PROGMASK, IAR
+// PSW = SYSMASK, KEY, AMWP, IRUPT; ILC, CR, PROGMASK, IAR
 
 // Format d as 4 hex bytes
 function fmt4(d) {
@@ -855,8 +855,8 @@ function storeMover(state, entry) {
       state['LB'] = state['WR'] & 3;
       break;
     case 4: // W27→PSW4 // W bits 2-7 to PSW bits 34-39 QJ200. Turns off load light too.
-      // i.e. CC and program mask
-      state['CC'] = (state['W'] & 0x30) >>> 4;
+      // i.e. CR and program mask
+      state['CR'] = (state['W'] & 0x30) >>> 4;
       state['PROGMASK'] = state['W'] & 0xf;
       break;
     case 5: // W→PSW0    // PSW bits 0-7, system mask

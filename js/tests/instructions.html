@@ -43,7 +43,7 @@ var state;
 function init() {
   // Initialize arbitrarily
   state = {'FN': 3, 'J': 3, 'LSAR': 3,
-  'SYSMASK': 0, 'KEY': 0, 'AMWP': 0, 'IRUPT': 0, 'ILC': 0, 'CC': 0, 'PROGMASK': 0, 'IAR': 0, // PSW
+  'SYSMASK': 0, 'KEY': 0, 'AMWP': 0, 'IRUPT': 0, 'ILC': 0, 'CR': 0, 'PROGMASK': 0, 'IAR': 0, // PSW
   'L': 0xffffffff, 'R': 0xffffffff, 'MD': 3, 'F': 3, 'Q': 1,
   'M': 0xffffffff, 'H': 0xffffffff, 'T': 3,
   'A': 3, 'D': 3, 'XG': 3, 'Y': 3, 'U': 3, 'V': 3, 'W': 3,
@@ -137,8 +137,9 @@ function executeInstr(instr) {
       return;
     }
     if ([0x218, 0x195, 0x19c, 0x1b0, 0x1b4, 0x1b8, 0x1b1, 0x1b3, 0x1b5, 0x1b7, 0x10e, 0x10f, 
-        0x751, 0x731, 0x733, 0x735, 0x1c6, 0x102, 0x1cc].includes(state['ROAR'])) {
-      console.log("********** Exception **********");
+        0x751, 0x731, 0x733, 0x735].includes(state['ROAR'])) {
+      console.log('********** Exception ' + state['ROAR'].toString(16) + ' **********');
+      console.log('IAR: ' + state['IAR']);
       throw('Exception');
       return;
     }
@@ -851,37 +852,50 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(state['CR'], 1); // Not zero
   });
 
-  QUnit.skip( "Shift Left Single SLL", function(assert) {
+  QUnit.test( "Shift Left Single SLL various", function(assert) {
+    for (var i = 0; i < 40; i++) {
+      reg(1, 1);
+      reg(2, 0x12340000 + i); // Shift i bits
+      execute([0x891f2100], assert, 'SLL 1,100(2)');
+      if (i < 32) {
+        assert.equal(reg(1), (1 << i) >>> 0, 'Shift by ' + i);
+      } else {
+        assert.equal(reg(1), 0, 'Shift by ' + i);
+      }
+    }
+  });
+
+  QUnit.test( "Shift Left Single SLL", function(assert) {
     reg(1, 0x82345678);
     reg(2, 0x12340003); // Shift 3 bits
     execute([0x891f2100], assert, 'SLL 1,100(2)');
-    assert.equal(reg(1), 0x82345678 >>> 2);
+    assert.equal(reg(1), 0x11a2b3c0);
   });
 
-  QUnit.skip( "Shift Right Single SRL", function(assert) {
+  QUnit.test( "Shift Right Single SRL", function(assert) {
     reg(1, 0x82345678);
     reg(2, 0x12340003); // Shift 3 bits
     execute([0x881f2100], assert, 'SRL 1,100(2)');
-    assert.equal(reg(1), 0x82345678 >>> 2);
+    assert.equal(reg(1), 0x82345678 >>> 3);
   });
 
-  QUnit.skip( "Branch on condition BCR", function(assert) {
+  QUnit.test( "Branch on condition BCR", function(assert) {
     reg(1, 0x12345678); // Branch destination
-    state['CC'] = 0;
+    state['CR'] = 0;
     execute([0x07810000], assert, 'BCR 8,1');
     assert.equal(state['IAR'], 0x12345678);
   });
 
-  QUnit.skip( "Branch on condition BCR, always taken", function(assert) {
+  QUnit.test( "Branch on condition BCR, always taken", function(assert) {
     reg(1, 0x12345678); // Branch destination
-    state['CC'] = 0;
-    execute([0x07f10000], 'BCR 15,1'); // always
+    state['CR'] = 0;
+    execute([0x07f10000], assert, 'BCR 15,1'); // always
     assert.equal(state['IAR'], 0x12345678);
   });
 
   QUnit.skip( "Branch on condition BCR, not taken", function(assert) {
     reg(1, 0x12345678); // Branch destination
-    state['CC'] = 1;
+    state['CR'] = 1;
     execute([0x07810000], assert, 'BCR 8,1');
     assert.equal(state['IAR'], 0x402);
   });
@@ -920,7 +934,7 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.test( "Set Program Mask SPM", function(assert) {
     reg(1, 0x12345678); // Mask 2
     execute([0x041f0000], assert, 'SPM 1');
-    assert.equal(state['CC'], 0x1);
+    assert.equal(state['CR'], 0x1);
     assert.equal(state['PROGMASK'], 0x2);
   });
 
@@ -942,7 +956,7 @@ QUnit.module("Instructions", function(hooks) {
     reg(2, 3); // Counter
     state['MS'][0x100] = 0x83857789; // 102 top bit not set
     execute([0x93002100], assert, 'TS 100(2)');
-    assert.equal(state['CC'], 0); // Not set
+    assert.equal(state['CR'], 0); // Not set
     assert.equal(state['MS'][0x100], 0x8385ff89);
   });
 
@@ -950,7 +964,7 @@ QUnit.module("Instructions", function(hooks) {
     reg(2, 3); // Counter
     state['MS'][0x100] = 0x8385c789; // 102 top bit set
     execute([0x93002100], assert, 'TS 100(2)');
-    assert.equal(state['CC'], 1); // Set
+    assert.equal(state['CR'], 1); // Set
     assert.equal(state['MS'][0x100], 0x8385ff89);
   });
 
