@@ -1020,9 +1020,9 @@ function localStorage(state, entry) {
     case 0: // R→LS // QT210/1A3
       state['LS'][state['LSAR']] = state['R'];
       break;
-    case 1: // LS→LR→LS, 
+    case 1: // LS→L,R→LS
       state['L'] = state['LS'][state['LSAR']];
-      state['R'] = state['LS'][state['LSAR']];
+      state['LS'][state['LSAR']] = state['R'];
       break;
     case 2: // LS→R→LS 
       state['R'] = state['LS'][state['LSAR']];
