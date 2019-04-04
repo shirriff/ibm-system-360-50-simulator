@@ -1419,13 +1419,13 @@ QUnit.test( "ab 32 F=0", function(assert) {
 });
 
 QUnit.test( "ab 33 (UNORM)", function(assert) {
-  var state = {'ROAR': 0x49c, 'T': 0xff0fffff, 'S': [0]};
+  var state = {'ROAR': 0x49c, 'Told': 0xff0fffff, 'S': [0]};
   roarAB(state, {'AB': 33});
   assert.equal(state['ROAR'], 0x49c | 2); // T8-11 == 0, not stat 0
   state = {'ROAR': 0x49c, 'S': [1]};
   roarAB(state, {'AB': 33});
   assert.equal(state['ROAR'], 0x49c | 0);
-  state = {'ROAR': 0x49c, 'T': 0xff1fffff, 'S': [0]};
+  state = {'ROAR': 0x49c, 'Told': 0xff1fffff, 'S': [0]};
   roarAB(state, {'AB': 33});
   assert.equal(state['ROAR'], 0x49c | 0);
 });
@@ -1744,68 +1744,68 @@ QUnit.test("bb 13 WR=0", function(assert) {
 // 14 unused
 
 QUnit.test( "bb 15 (T13=0)", function(assert) {
-  var state = {'ROAR': 0x49c, 'T': 0x00040000};
+  var state = {'ROAR': 0x49c, 'Told': 0x00040000};
   roarBB(state, {'BB': 15});
   assert.equal(state['ROAR'], 0x49c | 0);
-  state = {'ROAR': 0x49c, 'T': 0x00030000};
+  state = {'ROAR': 0x49c, 'Told': 0x00030000};
   roarBB(state, {'BB': 15});
   assert.equal(state['ROAR'], 0x49c | 1);
 });
 
 QUnit.test( "bb 16 T(0)", function(assert) {
-  var state = {'ROAR': 0x49c, 'T': 0x80000000};
+  var state = {'ROAR': 0x49c, 'Told': 0x80000000};
   roarBB(state, {'BB': 16});
   assert.equal(state['ROAR'], 0x49c | 1);
-  state = {'ROAR': 0x49c, 'T': 0x7fffffff};
+  state = {'ROAR': 0x49c, 'Told': 0x7fffffff};
   roarBB(state, {'BB': 16});
   assert.equal(state['ROAR'], 0x49c | 0);
 });
 
 QUnit.test( "bb 17 T=0", function(assert) {
-  var state = {'ROAR': 0x49c, 'T': 0};
+  var state = {'ROAR': 0x49c, 'Told': 0};
   roarBB(state, {'BB': 17});
   assert.equal(state['ROAR'], 0x49c | 1);
-  state = {'ROAR': 0x49c, 'T': 1};
+  state = {'ROAR': 0x49c, 'Told': 1};
   roarBB(state, {'BB': 17});
   assert.equal(state['ROAR'], 0x49c | 0);
 });
 
 QUnit.test("bb 18 TZ*BS", function(assert) {
   // Negative cases
-  var state = {'ROAR': 0x49c, 'T': 0x05000000, 'BS': [1, 0, 0, 0]};
+  var state = {'ROAR': 0x49c, 'Told': 0x05000000, 'BS': [1, 0, 0, 0]};
   roarBB(state, {'BB': 18});
   assert.equal(state['ROAR'], 0x49c | 0);
 
-  var state = {'ROAR': 0x49c, 'T': 0x00800000, 'BS': [0, 1, 0, 0]};
+  var state = {'ROAR': 0x49c, 'Told': 0x00800000, 'BS': [0, 1, 0, 0]};
   roarBB(state, {'BB': 18});
   assert.equal(state['ROAR'], 0x49c | 0);
 
-  var state = {'ROAR': 0x49c, 'T': 0x00001000, 'BS': [1, 0, 1, 0]};
+  var state = {'ROAR': 0x49c, 'Told': 0x00001000, 'BS': [1, 0, 1, 0]};
   roarBB(state, {'BB': 18});
   assert.equal(state['ROAR'], 0x49c | 0);
 
-  var state = {'ROAR': 0x49c, 'T': 0x00000004, 'BS': [1, 1, 1, 1]};
+  var state = {'ROAR': 0x49c, 'Told': 0x00000004, 'BS': [1, 1, 1, 1]};
   roarBB(state, {'BB': 18});
   assert.equal(state['ROAR'], 0x49c | 0);
 
   // Positive cases
-  var state = {'ROAR': 0x49c, 'T': 0x00ffffff, 'BS': [1, 0, 0, 0]};
+  var state = {'ROAR': 0x49c, 'Told': 0x00ffffff, 'BS': [1, 0, 0, 0]};
   roarBB(state, {'BB': 18});
   assert.equal(state['ROAR'], 0x49c | 1);
 
-  var state = {'ROAR': 0x49c, 'T': 0xff00ffff, 'BS': [0, 1, 0, 0]};
+  var state = {'ROAR': 0x49c, 'Told': 0xff00ffff, 'BS': [0, 1, 0, 0]};
   roarBB(state, {'BB': 18});
   assert.equal(state['ROAR'], 0x49c | 1);
 
-  var state = {'ROAR': 0x49c, 'T': 0xffff00ff, 'BS': [0, 0, 1, 0]};
+  var state = {'ROAR': 0x49c, 'Told': 0xffff00ff, 'BS': [0, 0, 1, 0]};
   roarBB(state, {'BB': 18});
   assert.equal(state['ROAR'], 0x49c | 1);
 
-  var state = {'ROAR': 0x49c, 'T': 0xffffff00, 'BS': [0, 0, 0, 1]};
+  var state = {'ROAR': 0x49c, 'Told': 0xffffff00, 'BS': [0, 0, 0, 1]};
   roarBB(state, {'BB': 18});
   assert.equal(state['ROAR'], 0x49c | 1);
 
-  var state = {'ROAR': 0x49c, 'T': 0xffffffff, 'BS': [0, 0, 0, 0]};
+  var state = {'ROAR': 0x49c, 'Told': 0xffffffff, 'BS': [0, 0, 0, 0]};
   roarBB(state, {'BB': 18});
   assert.equal(state['ROAR'], 0x49c | 1);
 });

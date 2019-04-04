@@ -8,6 +8,7 @@ function cycle(state, entry) {
     adderLX(state, entry);
     adderRY(state, entry);
     adderDG(state, entry);
+    state['Told'] = state['T']; // roar conditions mostly look at old value of T
     adderT(state, entry);
 
     roar(state, entry); // Need roar before mover to get old W, see 2B7. Need before localStorage read
@@ -1547,7 +1548,7 @@ function roarAB(state, entry) {
       }
       break;
     case 33: // UNORM   T8-11 zero and not stat 0
-      if (((state['T'] & 0x00f00000) == 0) && state['S'][0] == 0) {
+      if (((state['Told'] & 0x00f00000) == 0) && state['S'][0] == 0) {
         roar |= 2;
       }
       break;
@@ -1735,25 +1736,25 @@ function roarBB(state, entry) {
       alert('Unexpected BB ' + entry['BB'] + " " + labels['AB'][entry['AB']]);
       break;
     case 15: // T13=0
-      if ((state['T'] & (1<<31-13)) == 0) {
+      if ((state['Told'] & (1<<31-13)) == 0) {
         roar |= 1;
       }
       break;
     case 16: // T(0)
-      if (state['T'] & (1<<31)) {
+      if (state['Told'] & (1<<31)) {
         roar |= 1;
       }
       break;
     case 17: // T=0
-      if (state['T'] == 0) {
+      if (state['Told'] == 0) {
         roar |= 1;
       }
       break;
     case 18: // TZ*BS    // Latch zero test per byte stats. QA700
-      if ((state['BS'][0] == 0 || (state['T'] & 0xff000000) == 0)
-          && (state['BS'][1] == 0 || (state['T'] & 0x00ff0000) == 0)
-          && (state['BS'][2] == 0 || (state['T'] & 0x0000ff00) == 0)
-          && (state['BS'][3] == 0 || (state['T'] & 0x000000ff) == 0)) {
+      if ((state['BS'][0] == 0 || (state['Told'] & 0xff000000) == 0)
+          && (state['BS'][1] == 0 || (state['Told'] & 0x00ff0000) == 0)
+          && (state['BS'][2] == 0 || (state['Told'] & 0x0000ff00) == 0)
+          && (state['BS'][3] == 0 || (state['Told'] & 0x000000ff) == 0)) {
         roar |= 1;
       }
       break;
@@ -1814,7 +1815,7 @@ function roarBB(state, entry) {
         roar |= 1;
       }
       break;
-    case 31: // (Z00)
+    case 31: // (Z00): looks at current T
       if (state['T'] & 0x80000000) {
         roar |= 1;
       }
