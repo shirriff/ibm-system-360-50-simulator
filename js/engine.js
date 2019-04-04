@@ -25,7 +25,7 @@ function cycle(state, entry) {
     counters(state, entry); // Need counters after mover, see QK801:0992
     storePending(state);
     var msg2 = adderLatch(state, entry);
-    localStorageWrite(state, entry); // Need to do this after R is written. See 0220
+    localStorageWrite(state, entry); // Need to do this after R is written. See QB730:0220
     if (msg) {
       console.log(msg);
     }
