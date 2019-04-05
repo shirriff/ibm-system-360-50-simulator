@@ -8,7 +8,6 @@ function cycle(state, entry) {
     adderLX(state, entry);
     adderRY(state, entry);
     adderDG(state, entry);
-    state['Told'] = state['T']; // roar conditions mostly look at old value of T
     adderT(state, entry);
 
     roar(state, entry); // Need roar before mover to get old W, see 2B7. Need before localStorage read
@@ -17,13 +16,12 @@ function cycle(state, entry) {
     roarZN(state, entry);
 
     mover(state, entry);
-    var msg = adderAL(state, entry);
+    var msg = adderAL(state, entry); // Finalizes T
     stat(state, entry);
     storeMover(state, entry);
     iar(state, entry);
     iar2(state, entry); // iar operations after mover
     counters(state, entry); // Need counters after mover, see QK801:0992
-    storePending(state);
     localStorageLSAR(state, entry); // Need to do mover before reading localStorage 0126
     var msg2 = adderLatch(state, entry);
     localStorage(state, entry); // Need to do mover before reading localStorage 0126. Need to do this after R is written. See QB730:0220
@@ -200,7 +198,6 @@ function adderT(state, entry) {
   var c1 = (((xg & 0x7fffffff) + (y & 0x7fffffff) + carry) & 0x80000000) ? 1 : 0;
 
   t = t >>> 0; // Force Javascript to give an unsigned result
-  state['T'] = t;
  
   // See CROS page 33 for carry info
   switch (entry['AD']) {
@@ -253,7 +250,7 @@ function adderT(state, entry) {
       alert('Unexpected AD ' + entry['AD'] + " " + labels['AD'][entry['AD']]);
       break
   } // AD
-  state['T'] = t;
+  state['T0'] = t; // Internal T before shifting
 }
 
 // Force n to unsigned 32-bit
@@ -305,6 +302,7 @@ function sl4(src, reg) {
 function adderAL(state, entry) {
   msg = '';
   // Shift gate and adder latch control
+  state['T'] = state['T0']; // may be overwritten below
   switch (entry['AL']) {
     case 0: // Normal
       break;
@@ -317,7 +315,7 @@ function adderAL(state, entry) {
       alert('Unimplemented AL ' + entry['AL'] + " " + labels['AL'][entry['AL']]);
       break;
     case 3: // +SGN→
-      state['T'] &= 0x7fffffff;
+      state['T'] = state['T'] & 0x7fffffff;
       break;
     case 4: // -SGN→
       state['T'] = (state['T'] | 0x80000000) >>> 0;
@@ -514,8 +512,9 @@ function syl1(state) {
   }
 }
 
+function adderLatch(state, entry) {
+
 // Store any pending entries
-function storePending(state) {
   var pending = state['pending'];
   if (pending) {
     var keys = Object.keys(pending);
@@ -526,10 +525,8 @@ function storePending(state) {
   }
   // Store carry CAR to CSTAT
   state['CSTAT'] = state['CAR']
-}
 
-function adderLatch(state, entry) {
-  // Adder latch destination
+  // Latch registers from T
   var msg = '';
   var t = state['T'];
   switch (entry['TR']) {
@@ -1548,7 +1545,7 @@ function roarAB(state, entry) {
       }
       break;
     case 33: // UNORM   T8-11 zero and not stat 0
-      if (((state['Told'] & 0x00f00000) == 0) && state['S'][0] == 0) {
+      if (((state['T'] & 0x00f00000) == 0) && state['S'][0] == 0) {
         roar |= 2;
       }
       break;
@@ -1736,25 +1733,25 @@ function roarBB(state, entry) {
       alert('Unexpected BB ' + entry['BB'] + " " + labels['AB'][entry['AB']]);
       break;
     case 15: // T13=0
-      if ((state['Told'] & (1<<31-13)) == 0) {
+      if ((state['T'] & (1<<31-13)) == 0) {
         roar |= 1;
       }
       break;
     case 16: // T(0)
-      if (state['Told'] & (1<<31)) {
+      if (state['T'] & (1<<31)) {
         roar |= 1;
       }
       break;
     case 17: // T=0
-      if (state['Told'] == 0) {
+      if (state['T'] == 0) {
         roar |= 1;
       }
       break;
     case 18: // TZ*BS    // Latch zero test per byte stats. QA700
-      if ((state['BS'][0] == 0 || (state['Told'] & 0xff000000) == 0)
-          && (state['BS'][1] == 0 || (state['Told'] & 0x00ff0000) == 0)
-          && (state['BS'][2] == 0 || (state['Told'] & 0x0000ff00) == 0)
-          && (state['BS'][3] == 0 || (state['Told'] & 0x000000ff) == 0)) {
+      if ((state['BS'][0] == 0 || (state['T'] & 0xff000000) == 0)
+          && (state['BS'][1] == 0 || (state['T'] & 0x00ff0000) == 0)
+          && (state['BS'][2] == 0 || (state['T'] & 0x0000ff00) == 0)
+          && (state['BS'][3] == 0 || (state['T'] & 0x000000ff) == 0)) {
         roar |= 1;
       }
       break;
@@ -1816,7 +1813,7 @@ function roarBB(state, entry) {
       }
       break;
     case 31: // (Z00): looks at current T
-      if (state['T'] & 0x80000000) {
+      if (state['T0'] & 0x80000000) {
         roar |= 1;
       }
       break;
