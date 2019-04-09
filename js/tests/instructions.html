@@ -999,42 +999,54 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(state['IAR'], 0x12345678);
   });
 
-  QUnit.skip( "Branch on condition BCR, not taken", function(assert) {
+  QUnit.test( "Branch on condition BCR, not taken", function(assert) {
     reg(1, 0x12345678); // Branch destination
     state['CR'] = 1;
     execute([0x07810000], assert, 'BCR 8,1');
     assert.equal(state['IAR'], 0x402);
   });
 
-  QUnit.skip( "Branch and link BALR", function(assert) {
+  QUnit.test( "Branch and link BALR", function(assert) {
+    state['ILC'] = 2; // overwritten with 1
+    state['CR'] = 3;
+    state['PROGMASK'] = 0xa;
     reg(2, 0x12345678); // Branch destination
     execute([0x05120000], assert, 'BALR 1,2');
-    assert.equal(reg(1), 0xffffffff); // PSW
+    assert.equal(reg(1), 0x7a000402); // low-order PSW: ILC, CR, PROGMASK, return IAR
     assert.equal(state['IAR'], 0x12345678);
   });
 
-  QUnit.skip( "Branch and link BALR -not taken", function(assert) {
-    reg(2, 0x12345678); // Branch destination
+  QUnit.test( "Branch and link BALR -not taken", function(assert) {
+    state['ILC'] = 2; // overwritten with 1
+    state['CR'] = 3;
+    state['PROGMASK'] = 0xa;
     execute([0x05100000], assert, 'BALR 1,0');
-    assert.equal(reg(1), psw, reg(1).toString(16) + ' ' + psw.toString(16));
+    assert.equal(reg(1), 0x7a000402); // low-order PSW: ILC, CR, PROGMASK, return IAR
     assert.equal(state['IAR'], 0x402);
   });
 
-  QUnit.skip( "Branch on Count BCTR - not taken", function(assert) {
+  QUnit.test( "Branch on Count BCTR - taken", function(assert) {
     reg(1, 3); // Counter
     reg(2, 0x12345678); // Branch destination
     execute([0x06120000], assert, 'BCTR 1,2');
     assert.equal(reg(1), 2);
-    assert.equal(state['IAR'], 0x402);
+    assert.equal(state['IAR'], 0x12345678);
   });
 
+  QUnit.test( "Branch on Count BCTR - taken, negative", function(assert) {
+    reg(1, 0); // Counter
+    reg(2, 0x12345678); // Branch destination
+    execute([0x06120000], assert, 'BCTR 1,2');
+    assert.equal(reg(1), 0xffffffff);
+    assert.equal(state['IAR'], 0x12345678);
+  });
 
-  QUnit.skip( "Branch on Count BCTR - taken", function(assert) {
+  QUnit.test( "Branch on Count BCTR - not taken", function(assert) {
     reg(1, 1); // Counter
     reg(2, 0x12345678); // Branch destination
     execute([0x06120000], assert, 'BCTR 1,2');
     assert.equal(reg(1), 0);
-    assert.equal(state['IAR'], 0x12345678);
+    assert.equal(state['IAR'], 0x402);
   });
 
   QUnit.test( "Set Program Mask SPM", function(assert) {
