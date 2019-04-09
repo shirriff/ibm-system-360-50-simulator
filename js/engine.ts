@@ -15,7 +15,10 @@ function cycle(state, entry) {
     roarBB(state, entry);
     roarZN(state, entry);
 
-    mover(state, entry);
+    moverU(state, entry);
+    moverV(state, entry);
+    moverWL(state, entry);
+    moverWR(state, entry);
     var msg = adderAL(state, entry); // Finalizes T
     stat(state, entry);
     storeMover(state, entry);
@@ -43,7 +46,7 @@ function cycle(state, entry) {
   }
 }
 
-// PSW = SYSMASK, KEY, AMWP, IRUPT; ILC, CR, PROGMASK, IAR
+// PSW = SYSMASK(8), KEY(4), AMWP(4), IRUPT(16);   ILC(2), CR(2), PROGMASK(4), IAR(24)
 
 // Sets state['XG'] based on entry['LX'] and TC
 function adderLX(state, entry) {
@@ -703,7 +706,7 @@ function adderLatch(state, entry) {
 var bytemask = [0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff];
 var byteshift = [24, 16, 8, 0];
 
-function mover(state, entry) {
+function moverU(state, entry) {
   // Mover input left side → U
   var u;
   // See CROS manual page 25 for left mover bit patterns
@@ -736,8 +739,11 @@ function mover(state, entry) {
       alert('Unexpected LU ' + entry['LU'] + " " + labels['LU'][entry['LU']]);
       break;
   }
+  state['U'] = u;
+}
 
   // Mover input right side → V
+function moverV(state, entry) {
   var v = undefined;
   switch (entry['MV']) {
     case 0: // no value
@@ -754,7 +760,12 @@ function mover(state, entry) {
       alert('Unexpected MV ' + entry['MV'] + " " + labels['MV'][entry['MV']]);
       break;
   }
+  state['V'] = v;
+}
 
+function moverWL(state, entry) {
+  var u = state['U'];
+  var v = state['V'];
   var wl = 0; // wl is a 4-bit value
   switch (entry['UL']) {
     case 0: // E // E→WL in d29
@@ -799,8 +810,15 @@ function mover(state, entry) {
     default:
       alert('Unexpected UL ' + entry['UL'] + " " + labels['UL'][entry['UL']]);
   }
+  state['WL'] = wl;
+}
 
+// Also sets W
+// This is almost the same as moverWL, but uses right nibble instead of left, so not close enough to merge
+function moverWR(state, entry) {
   var wr;
+  var u = state['U'];
+  var v = state['V'];
   switch (entry['UR']) {
     case 0: // E
       wr = entry['CE'];
@@ -844,13 +862,8 @@ function mover(state, entry) {
       alert('Unexpected UR ' + entry['UR'] + " " + labels['UR'][entry['UR']]);
       break;
   }
-
-  state['U'] = u;
-  state['V'] = v;
-  state['WL'] = wl;
   state['WR'] = wr;
-  var w = (wl << 4) | wr;
-  state['W'] = w;
+  state['W'] = (state['WL'] << 4) | wr;
 }
 
 function storeMover(state, entry) {
