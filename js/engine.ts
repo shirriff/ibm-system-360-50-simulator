@@ -33,7 +33,7 @@ function cycle(state, entry) {
     }
     return msg || msg2;
   } catch (e) {
-    if (e == 'TRAP') {
+    if (e.message == 'TRAP') {
       state['TRAP'] = 1; // For testing
       return 'Trap to ' + state['ROAR'];
     } else {
@@ -44,11 +44,6 @@ function cycle(state, entry) {
 }
 
 // PSW = SYSMASK, KEY, AMWP, IRUPT; ILC, CR, PROGMASK, IAR
-
-// Format d as 4 hex bytes
-function fmt4a(d) {
-  return d.toString(16).padStart(8, '0');
-}
 
 // Sets state['XG'] based on entry['LX'] and TC
 function adderLX(state, entry) {
@@ -227,18 +222,37 @@ function adderT(state, entry) {
     case 7: // BC8
       alert('Unimplemented AD ' + entry['AD'] + " " + labels['AD'][entry['AD']]);
       break;
-    case 8: // DHL
-      alert('Unimplemented AD ' + entry['AD'] + " " + labels['AD'][entry['AD']]);
+    case 8: // DHL Decimal half correction low QE900. See DHH below.
+      var corr = state['AUX'] ? 0x60000000 : 0; // Top correction digit based on AUX
+      for (var i = 1; i < 8; i++) {
+        if (t & (1 << (i * 4 + 1))) {
+          corr |= 6 << ((i - 1) * 4);
+        }
+      }
+      state['L'] = corr;
+      state['AUX'] = 0; // Clearing AUX seems like a sensible thing to do, but unclear if this is correct.
       break;
     case 9: // DC0
       state['S'][1] = c0;
-      state['L'] = 0x66666666; // Decimal correction to L
+      state['L'] = 0x66666666; // Decimal correction to L. Needs to be based on something, to catch bad digits.
       break;
     case 10: // DDC0
       alert('Unimplemented AD ' + entry['AD'] + " " + labels['AD'][entry['AD']]);
       break;
-    case 11: // DHH
-      alert('Unimplemented AD ' + entry['AD'] + " " + labels['AD'][entry['AD']]);
+    case 11: // DHH Decimal half correction high: QE900:83d
+      // The idea is if a BCD number is divided by 2, need to subtract 6 from 0x10 before dividing, to get 0x5.
+      // Specifically, if the 1's bit is set in a BCD digit, subtract 6 from the lower digit.
+      // However, this test is done one shift earlier, so the 2's bit is tested.
+      // This correction value is put into L.
+      // DHH/DHL are used for two-word corrections. DHH stores the 1's digit in "Aux" so DHL can use it for the top correction digit.
+      var corr = 0;
+      for (var i = 1; i < 8; i++) {
+        if (t & (1 << (i * 4 + 1))) {
+          corr |= 6 << ((i - 1) * 4);
+        }
+      }
+      state['L'] = corr;
+      state['AUX'] = (t & 2) ? 1 : 0;
       break;
     case 12: // DCBS
       alert('Unimplemented AD ' + entry['AD'] + " " + labels['AD'][entry['AD']]);
@@ -444,33 +458,34 @@ function adderAL(state, entry) {
 }
 
 // Perform a ROS-level trap. See CLF 122 / QT300
-function rosTrap(state, addr) {
+function rosTrap(state, addr, trap) {
   state['ROAR'] = addr;
+  console.log('Trap ' + trap + ' at ' + fmtAddress(addr));
   throw(Error('TRAP'));
 }
 
 function trapStorProt(state) {
-  rosTrap(state, 0x0142);
+  rosTrap(state, 0x0142, 'storage protect');
 }
 
 function trapInvalidOpndAddr(state) {
-  rosTrap(state, 0x01c0);
+  rosTrap(state, 0x01c0, 'invalid operand addr');
 }
 
 function trapAddrSpecViolation(state) {
-  rosTrap(state, 0x01c2);
+  rosTrap(state, 0x01c2, 'addr spec violation');
 }
 
 // Invalid decimal data or sign
 function trapInvalidDecimal(state) {
-  rosTrap(state, 0x0140);
+  rosTrap(state, 0x0140, 'invalid decimal');
 }
 
 // Write memory: call after setting SDR
 // Assume SAR and SDR set up
 function store(state) {
   state['MS'][state['SAR'] & ~3] = state['SDR'];
-  return 'Storing ' + fmt4a(state['SDR']) + ' in ' + fmt4(state['SAR']);
+  return 'Storing ' + fmt4(state['SDR']) + ' in ' + fmt4(state['SAR']);
 }
 
 // Read memory: call before using SDR
@@ -481,7 +496,7 @@ function read(state) {
   if (state['SDR'] == undefined) {
     state['SDR'] = 0x12345678; // Random value in uninitialized memory.
   }
-  return 'Read ' + fmt4a(state['SDR']) + ' from ' + fmt4(state['SAR']);
+  return 'Read ' + fmt4(state['SDR']) + ' from ' + fmt4(state['SAR']);
 }
 
 function checkaddr(state, alignment) {
@@ -1140,9 +1155,9 @@ function stat(state, entry) {
       // QS400 0d05: if -, 1→LSGN, ¬RSGN
       // if +, 0→LSGN
       // Value tested is in U apparently.
-      if ([0xa, 0xc, 0xe, 0xf].includes(state['U'])) { // Positive
+      if ([0xa, 0xc, 0xe, 0xf].includes(state['U'] & 0xf)) { // Positive
         state['LSGNS'] = 0;
-      } else if ([0xb, 0xd].includes(state['U'])) { // Negative
+      } else if ([0xb, 0xd].includes(state['U'] & 0xf)) { // Negative
         state['LSGNS'] = 1;
         state['RSGNS'] = 0;
       } else {
@@ -1550,7 +1565,12 @@ function roarAB(state, entry) {
       }
       break;
     case 34: // TZ*BS  T zero per byte stat
-      alert('Unimplemented AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
+      if ((state['BS'][0] == 0 || (state['T'] & 0xff000000) == 0)
+          && (state['BS'][1] == 0 || (state['T'] & 0x00ff0000) == 0)
+          && (state['BS'][2] == 0 || (state['T'] & 0x0000ff00) == 0)
+          && (state['BS'][3] == 0 || (state['T'] & 0x000000ff) == 0)) {
+        roar |= 2;
+      }
       break;
     case 35: // EDITPAT
       // CROS manual page 31: sets A with edit stat 1, B with edit stat 2.

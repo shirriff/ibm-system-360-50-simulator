@@ -639,17 +639,110 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(reg(3), 0x286dead6); // Quotient
   });
 
+  QUnit.test( "Convert to Binary CVB: princ op", function(assert) {
+    // Example from Principles of Operation p122
+    reg(5, 50); // Example seems to have addresses in decimal?
+    reg(6, 900);
+    state['MS'][1000] = 0x00000000;
+    state['MS'][1004] = 0x0025594f;
+    execute([0x4f756032], assert, 'CVB 7,32(5,6)');
+    assert.equal(reg(7), 25594); // Note: decimal, not hex
+  });
+
+  QUnit.test( "Convert to Binary CVB: bad sign", function(assert) {
+    reg(5, 50);
+    reg(6, 900);
+    state['MS'][1000] = 0x00000000;
+    state['MS'][1004] = 0x00255941; // 1 is not a valid sign
+    assert.throws(function() {
+      execute([0x4f756032], assert, 'CVB 7,32(5,6)');
+    });
+  });
+
+  // Needs DC0 to support correction properly
+  QUnit.skip( "Convert to Binary CVB: bad digit", function(assert) {
+    reg(5, 50);
+    reg(6, 900);
+    state['MS'][1000] = 0x00000000;
+    state['MS'][1004] = 0x002a594f;
+    assert.throws(function() {
+      execute([0x4f756032], assert, 'CVB 7,32(5,6)');
+    });
+  });
+
+  QUnit.test( "Convert to Binary CVB: doubleword unaligned", function(assert) {
+    reg(5, 0);
+    reg(6, 0);
+    state['MS'][1000] = 0x00000000;
+    state['MS'][1004] = 0x002a594f;
+    assert.throws(function() {
+      execute([0x4f756034], assert, 'CVB 7,34(5,6)');
+    });
+    assert.throws(function() {
+      execute([0x4f756032], assert, 'CVB 7,32(5,6)');
+    });
+    assert.throws(function() {
+      execute([0x4f756031], assert, 'CVB 7,31(5,6)');
+    });
+  });
+
+  QUnit.test( "Convert to Binary CVB: overflow", function(assert) {
+    reg(5, 50);
+    reg(6, 900);
+    state['MS'][1000] = 0x00000214;
+    state['MS'][1004] = 0x8000000f;
+    assert.throws(function() {
+      execute([0x4f756032], assert, 'CVB 7,32(5,6)');
+    });
+    assert.equal(reg(7), 2148000000); // Note: decimal, not hex
+  });
+
+  QUnit.test( "Convert to Binary CVB: big overflow", function(assert) {
+    reg(5, 50);
+    reg(6, 900);
+    state['MS'][1000] = 0x12345678;
+    state['MS'][1004] = 0x4800000f;
+    assert.throws(function() {
+      execute([0x4f756032], assert, 'CVB 7,32(5,6)');
+    });
+  });
+
+  QUnit.test( "Convert to Binary CVB: large", function(assert) {
+    reg(5, 50);
+    reg(6, 900);
+    state['MS'][1000] = 0x00000021;
+    state['MS'][1004] = 0x2345678f;
+    execute([0x4f756032], assert, 'CVB 7,32(5,6)');
+    assert.equal(reg(7), 212345678); // Note: decimal, not hex
+  });
+
+
+  QUnit.test( "Convert to Binary CVB: negative", function(assert) {
+    reg(5, 50);
+    reg(6, 900);
+    state['MS'][1000] = 0x00000000;
+    state['MS'][1004] = 0x0025594d; // d is negative
+    execute([0x4f756032], assert, 'CVB 7,32(5,6)');
+    assert.equal(reg(7), (-25594) >>> 0); // Note: decimal, not hex
+  });
+
   // QE900/073C, CLF 112
-  QUnit.skip( "Convert to Binary CVB", function(assert) {
-    state['MS'][0x500] = 0x1234567f; // Decimal 1234567+
+  QUnit.test( "Convert to Binary CVB", function(assert) {
+    reg(5, 0x100);
+    reg(6, 0x200);
+    state['MS'][0x500] = 0;
+    state['MS'][0x504] = 0x1234567f; // Decimal 1234567+
     execute([0x4f156200], assert, 'CVB 1,200(5,6)');
     assert.equal(reg(1), 1234567); // Note: decimal, not hex
   });
 
-  QUnit.skip( "Convert to Binary CVB", function(assert) {
-    state['MS'][0x500] = 0x1234567b; // Decimal 1234567-
+  QUnit.test( "Convert to Binary CVB neg", function(assert) {
+    reg(5, 0x100);
+    reg(6, 0x200);
+    state['MS'][0x500] = 0;
+    state['MS'][0x504] = 0x1234567b; // Decimal 1234567-
     execute([0x4f156200], assert, 'CVB 1,200(5,6)');
-    assert.equal(reg(1), (-1234567) & 0xffffffff); // Note: decimal, not hex
+    assert.equal(reg(1), (-1234567) >>> 0); // Note: decimal, not hex
   });
 
   QUnit.test( "Shift Left Single SLA", function(assert) {
