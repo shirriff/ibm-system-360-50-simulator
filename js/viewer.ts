@@ -1,6 +1,7 @@
 var data = undefined;
 var div = undefined;
 var div2 = undefined;
+var nextaddr: number;
 
 $(document).ready(function() {
   div = $("#div")[0];
@@ -31,7 +32,7 @@ $(document).ready(function() {
       }
     });
     $("#next").click(function(e) {
-      redraw(window.nextaddr, true);
+      redraw(nextaddr, true);
     });
 
     redraw(window.location.hash.substr(1), false);
@@ -46,8 +47,8 @@ $(document).ready(function() {
 
 // Search
 function search() {
-  var label = $("#label").val()
-  var values = $("#values").val().split(',').map(parseInt);
+  var label = <string> $("#label").val();
+  var values = (<string> $("#values").val()).split(',').map(parseInt);
   var keys = Object.keys(data);
   keys.sort();
   var found = '';
@@ -57,11 +58,11 @@ function search() {
     var entry = data[addr];
     var val = entry[label];
     if (values.includes(val)) {
+      console.log(addr);
       if (entry['AD'] == undefined) {
         // console.log("I/O: " + addr + ' ' + entry['TR']);
       } else {
-        if (entry['SS'] != 38) continue;
-        results.push(["Found: " + addr + ' ' + val + ', CE: ' + entry['CE']]);
+        results.push(["Found: " + addr + ' ' + val + ' AD: ' + entry['AD']]);
         found = addr;
       }
     }
@@ -71,8 +72,8 @@ function search() {
 }
 
 function diff() {
-  var addr1 = $("#addr").val().padStart(4, '0');
-  var addr2 = $("#diff2").val().padStart(4, '0');
+  var addr1 = (<string> $("#addr").val()).padStart(4, '0');
+  var addr2 = (<string> $("#diff2").val()).padStart(4, '0');
   $("#addr").val(addr1);
   $("#diff2").val(addr2);
   var entry1 = data[addr1];
