@@ -1,0 +1,14 @@
+{
+    "compilerOptions": {
+        "target": "es2017"
+    },
+    "files": [
+        "decode.ts",
+        "disasm.ts",
+        "engine.ts",
+        "io.ts",
+        "sim.ts",
+        "utils.ts",
+        "viewer.ts"
+    ]
+}

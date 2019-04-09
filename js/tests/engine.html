@@ -950,7 +950,7 @@ QUnit.test( "localStorage", function(assert) {
   var entry = {'WS': 1 /* WS1 -> LSA */, 'SF': 2 /* LS->R->LS */};
   localStorageLSAR(state, {'WS': 1 /* WS1 -> LSA */});
   assert.equal(state['LSAR'], 49); // LSFN = 0b110001
-  localStorage(state, {'SF': 2 /* LS->R->LS */});
+  localStore(state, {'SF': 2 /* LS->R->LS */});
   assert.equal(state['R'], 49);
 });
 
@@ -1001,14 +1001,14 @@ QUnit.test("localStorage LSAR 7 FN,MDΩ1→LSA", function(assert) {
 
 QUnit.test( "localStorage SF=0 R→LS", function(assert) {
   var state = {'LSAR': 0x32, 'LS':{0x32: 0x12345678}, 'R': 0x11223344};
-  localStorage(state, {'SF': 0});
+  localStore(state, {'SF': 0});
   assert.equal(state['LS'][0x32], 0x11223344);
   assert.equal(state['R'], 0x11223344);
 });
 
 QUnit.test( "localStorage SF=1 LS→L,R→LS", function(assert) {
   var state = {'LSAR': 0x32, 'LS':{0x32: 0x12345678}, 'R': 0x11223344};
-  localStorage(state, {'SF': 1});
+  localStore(state, {'SF': 1});
   assert.equal(state['LS'][0x32], 0x11223344);
   assert.equal(state['L'], 0x12345678);
   assert.equal(state['R'], 0x11223344);
@@ -1018,20 +1018,20 @@ QUnit.test( "localStorage WS=2 WS2→LSA, SF=2 LS→R→LS", function(assert) {
   var state = {'LS':{0x32: 0x12345678}, 'R': 0x11223344};
   localStorageLSAR(state, {'WS': 2}); // WS2→LSA
   assert.equal(state['LSAR'], 0x32);
-  localStorage(state, {'SF': 2});
+  localStore(state, {'SF': 2});
   assert.equal(state['R'], 0x12345678);
 });
 
 QUnit.test( "localStorage SF=4 L→LS", function(assert) {
   var state = {'LSAR': 0x32, 'LS':{0x32: 0x12345678}, 'L': 0x11223344};
-  localStorage(state, {'SF': 4});
+  localStore(state, {'SF': 4});
   assert.equal(state['LS'][0x32], 0x11223344);
   assert.equal(state['L'], 0x11223344);
 });
 
 QUnit.test( "localStorage SF=5 LS→R,L→LS", function(assert) {
   var state = {'LSAR': 0x32, 'LS':{0x32: 0x12345678}, 'L': 0x11223344, 'R': 0x55667788};
-  localStorage(state, {'SF': 5});
+  localStore(state, {'SF': 5});
   assert.equal(state['LS'][0x32], 0x11223344);
   assert.equal(state['L'], 0x11223344);
   assert.equal(state['R'], 0x12345678);
@@ -1039,7 +1039,7 @@ QUnit.test( "localStorage SF=5 LS→R,L→LS", function(assert) {
 
 QUnit.test( "localStorage SF=6 LS→L→LS", function(assert) {
   var state = {'LSAR': 0x32, 'LS':{0x32: 0x12345678}, 'L': 0x11223344};
-  localStorage(state, {'SF': 6});
+  localStore(state, {'SF': 6});
   assert.equal(state['LS'][0x32], 0x12345678);
   assert.equal(state['L'], 0x12345678);
 });
@@ -1049,7 +1049,7 @@ QUnit.test( "ls sf 0 R→LS", function(assert) {
   // Update LSA
   localStorageLSAR(state, {'CE': 4, 'WS': 3 /* WS,E→LSA */});
   // Update LS
-  localStorage(state, {'SF': 0 /* R→LS */});
+  localStore(state, {'SF': 0 /* R→LS */});
   assert.equal(state['LS'][0x34], 0x12345678);
 });
 
@@ -1057,7 +1057,7 @@ QUnit.test( "ls3  WS,E→LSA", function(assert) {
   var state = {'LS': [], 'R': 0x12345678};
   localStorageLSAR(state, {'CE': 5, 'WS': 3 /* WS,E→LSA */});
   assert.equal(state['LSAR'], 0x35); // LSFN = 0b110101
-  localStorage(state, {'SF': 0 /* R→LS */});
+  localStore(state, {'SF': 0 /* R→LS */});
   assert.equal(state['LS'][0x35], 0x12345678);
 });
 

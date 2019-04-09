@@ -3,10 +3,14 @@ env/
 *.swp
 *.png
 *.pdf
-*.json
 *.txt
+*.map
+js/package-lock.json
+ocr/data.json
 js/jquery.min.js
+js/node_modules/
 js/tests/qunit*
 js/display.html
+js.old/*
 parsem.py
 scanner/microcode
