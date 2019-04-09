@@ -726,8 +726,9 @@ function moverU(state, entry) {
     case 4: // XTR       // Parity error (extra bit)? Reset by reading. QU100
       u = 0;
       break;
-    case 5: // PSW4      // PSW word 4.
-      u = state['PROGMASK'];
+    case 5: // PSW4      // PSW byte 4.
+      // PSW = SYSMASK(8), KEY(4), AMWP(4), IRUPT(16);   ILC(2), CR(2), PROGMASK(4), IAR(24)
+      u = (state['ILC'] << 6) | (state['CR'] << 4) | state['PROGMASK'];
       break;
     case 6: // LMB       // L indexed by MB
       u = (state['L'] & bytemask[state['MB']]) >> byteshift[state['MB']];
@@ -763,42 +764,45 @@ function moverV(state, entry) {
   state['V'] = v;
 }
 
-function moverWL(state, entry) {
+// Apply mover operation to both halves to generate an 8-bit value.
+// The appropriate half will need to be used.
+// Returns value
+function moverOp(state, entry, op) {
   var u = state['U'];
   var v = state['V'];
-  var wl = 0; // wl is a 4-bit value
-  switch (entry['UL']) {
+  var w = 0; // 8-bit value
+  switch (op) {
     case 0: // E // E→WL in d29
-      wl = entry['CE'];
+      w = (entry['CE'] << 4) | entry['CE'];
       break;
     case 1: // U   default: pass undefined through
-      wl = u >> 4;
+      w = u;
       break;
     case 2: // V
-      wl = v >> 4;
+      w = v;
       break;
     case 3: // ? Use mover function
       switch (state['WFN']) {
         case 0: // cross
-          wl = u & 0xf;
+          w = ((u & 0xf) << 4) | (u >> 4);
           break;
         case 1: // or
-          wl = (u | v) >>> 4;
+          w = (u | v);
           break;
         case 2: // and
-          wl = (u & v) >>> 4;
+          w = (u & v);
           break;
         case 3: // xor
-          wl = (u ^ v) >>> 4;
+          w = (u ^ v);
           break;
         case 4: // character
-          wl = u >>> 4;
+          w = u;
           break;
         case 5: // zone
-          wl = u >>> 4; // move uppwer nybble
+          w = (u & 0xf0) | (v & 0x0f) // move upper nibble
           break;
         case 6: // numeric
-          wl = v >>> 4; // Don't move lower nybble
+          w = (u & 0x0f) | (v & 0xf0) // move lower nibble
           break;
         case 7: //unused
         default:
@@ -810,60 +814,19 @@ function moverWL(state, entry) {
     default:
       alert('Unexpected UL ' + entry['UL'] + " " + labels['UL'][entry['UL']]);
   }
-  state['WL'] = wl;
+  return w;
+}
+
+// This is almost the same as moverWL, but uses right nibble instead of left, so not close enough to merge
+function moverWL(state, entry) {
+  state['WL'] = moverOp(state, entry, entry['UL']) >> 4;
 }
 
 // Also sets W
 // This is almost the same as moverWL, but uses right nibble instead of left, so not close enough to merge
 function moverWR(state, entry) {
-  var wr;
-  var u = state['U'];
-  var v = state['V'];
-  switch (entry['UR']) {
-    case 0: // E
-      wr = entry['CE'];
-      break;
-    case 1: // U   default: pass undefined through
-      wr = u & 0xf;
-      break;
-    case 2: // V // or VR
-      wr = v & 0xf;
-      break;
-    case 3: // ? use mover function
-      switch (state['WFN']) {
-        case 0: // cross
-          wr = u >>> 4;
-          break;
-        case 1: // or
-          wr = (u | v) & 0xf;
-          break;
-        case 2: // and
-          wr = (u & v) & 0xf;
-          break;
-        case 3: // xor
-          wr = (u ^ v) & 0xf;
-          break;
-        case 4: // character
-          wr = u & 0xf;
-          break;
-        case 5: // zone
-          wr = v & 0xf; // Don't move low nybble
-          break;
-        case 6: // numeric
-          wr = u & 0xf;
-          break;
-        case 7: //unused
-        default:
-          alert('Unexpected mover function ' + state['WFN']);
-          break;
-      }
-      break;
-    default:
-      alert('Unexpected UR ' + entry['UR'] + " " + labels['UR'][entry['UR']]);
-      break;
-  }
-  state['WR'] = wr;
-  state['W'] = (state['WL'] << 4) | wr;
+  state['WR'] = moverOp(state, entry, entry['UR']) & 0xf;
+  state['W'] = (state['WL'] << 4) | state['WR'];
 }
 
 function storeMover(state, entry) {

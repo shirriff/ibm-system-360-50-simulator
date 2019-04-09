@@ -808,7 +808,10 @@ QUnit.test( "mover", function(assert) {
   // Extract 5 from E, 8 from M3
   var state = {'M': 0x12345678, 'MB': 3};
   var entry = {'LU': 0, 'MV': 2 /* MMB */, 'UL': 0 /* E */, 'UR': 2 /* V */, 'WM': 6 /* WL->J */, 'CE': 0x5};
-  mover(state, entry);
+  moverU(state, entry);
+  moverV(state, entry);
+  moverWL(state, entry);
+  moverWR(state, entry);
   storeMover(state, entry);
   assert.equal(state['W'], 0x58);
   assert.equal(state['WL'], 0x5);
@@ -819,7 +822,10 @@ QUnit.test( "mover", function(assert) {
 QUnit.test( "mover lu 4 XTR", function(assert) {
   var state = {'M': 0x12345678, 'MB': 3};
   var entry = {'LU': 4 /* XTR */, 'MV': 2 /* MMB */, 'UL': 0 /* E */, 'UR': 2 /* V */, 'WM': 6 /* WL->J */, 'CE': 0x5};
-  mover(state, entry);
+  moverU(state, entry);
+  moverV(state, entry);
+  moverWL(state, entry);
+  moverWR(state, entry);
   storeMover(state, entry);
   assert.equal(state['U'], 0);
 });
@@ -828,7 +834,10 @@ QUnit.test( "mover2", function(assert) {
   // E->WR, W->MMB
   var state = {'MB': 0, 'M': 0x12345678};
   var entry = {'LU': 0, 'MV': 0, 'UL': 1, 'UR': 0, 'WM': 1, 'RY': 0, 'CE': 7};
-  mover(state, entry);
+  moverU(state, entry);
+  moverV(state, entry);
+  moverWL(state, entry);
+  moverWR(state, entry);
   storeMover(state, entry);
   assert.equal(state['W'], 7);
   assert.equal(state['WL'], 0);
@@ -842,39 +851,120 @@ QUnit.test( "movers", function(assert) {
   // LLB -> U, MLB -> V, ?->WL, ?->WR
   var entry = {'LU': 7, 'MV': 2, 'UL': 3, 'UR': 3, 'WM': 0};
   state['WFN'] = 1; // or
-  mover(state, entry);
+  moverU(state, entry);
+  moverV(state, entry);
+  moverWL(state, entry);
+  moverWR(state, entry);
   storeMover(state, entry);
   assert.equal(state['W'], 0x12 | 0x34);
 
   state['WFN'] = 2; // and
-  mover(state, entry);
+  moverU(state, entry);
+  moverV(state, entry);
+  moverWL(state, entry);
+  moverWR(state, entry);
   storeMover(state, entry);
   assert.equal(state['W'], 0x12 & 0x34);
 
   state['WFN'] = 3; // xor
-  mover(state, entry);
+  moverU(state, entry);
+  moverV(state, entry);
+  moverWL(state, entry);
+  moverWR(state, entry);
   storeMover(state, entry);
   assert.equal(state['W'], 0x12 ^ 0x34);
 
   state['WFN'] = 4; // char
-  mover(state, entry);
+  moverU(state, entry);
+  moverV(state, entry);
+  moverWL(state, entry);
+  moverWR(state, entry);
   storeMover(state, entry);
   assert.equal(state['W'], 0x34);
 
   state['WFN'] = 5; // zone
-  mover(state, entry);
+  moverU(state, entry);
+  moverV(state, entry);
+  moverWL(state, entry);
+  moverWR(state, entry);
   storeMover(state, entry);
   assert.equal(state['W'], 0x32); // Assuming w's zone is overwritten, keep numeric
 
   state['WFN'] = 6; // numeric
-  mover(state, entry);
+  moverU(state, entry);
+  moverV(state, entry);
+  moverWL(state, entry);
+  moverWR(state, entry);
   storeMover(state, entry);
   assert.equal(state['W'], 0x14);
 
   state['WFN'] = 0; // cross
-  mover(state, entry);
+  moverU(state, entry);
+  moverV(state, entry);
+  moverWL(state, entry);
+  moverWR(state, entry);
   storeMover(state, entry);
   assert.equal(state['W'], 0x43);
+});
+
+QUnit.test("moverU 0", function(assert) {
+  state = {};
+  moverU(state, {'LU': 0});
+  assert.equal(state['U'], 0);
+});
+
+QUnit.test("moverU 1 MD,F", function(assert) {
+  state = {'MD': 0x3, 'F': 0x4};
+  moverU(state, {'LU': 1});
+  assert.equal(state['U'], 0x34);
+});
+
+QUnit.test("moverU 2 R3", function(assert) {
+  state = {'R': 0x11223344};
+  moverU(state, {'LU': 2});
+  assert.equal(state['U'], 0x44);
+});
+
+QUnit.test("moverU 4 XTR", function(assert) {
+  state = {};
+  moverU(state, {'LU': 4});
+  assert.equal(state['U'], 0);
+});
+
+QUnit.test("moverU 5 PSW4", function(assert) {
+  state = {'ILC': 2, 'CR': 3, 'PROGMASK': 0xa};
+  moverU(state, {'LU': 5});
+  assert.equal(state['U'], 0xba);
+});
+
+QUnit.test("moverU 6 LMB", function(assert) {
+  state = {'L': 0x11223344, 'MB': 2};
+  moverU(state, {'LU': 6});
+  assert.equal(state['U'], 0x33);
+});
+
+QUnit.test("moverU 7 LLB", function(assert) {
+  state = {'L': 0x11223344, 'LB': 1};
+  moverU(state, {'LU': 7});
+  assert.equal(state['U'], 0x22);
+});
+
+QUnit.test("moverV 0 0", function(assert) {
+  state = {};
+  moverV(state, {'MV': 0});
+  assert.equal(state['V'], 0);
+});
+
+QUnit.test("moverV 1 MLB", function(assert) {
+  state = {'M': 0x11223344, 'LB': 1};
+  moverV(state, {'MV': 1});
+  assert.equal(state['V'], 0x22);
+});
+
+QUnit.test("moverV 2 MMB", function(assert) {
+  state = {'M': 0x11223344, 'MB': 2};
+  moverV(state, {'MV': 2});
+  assert.equal(state['V'], 0x33);
 });
 
 QUnit.test("storeMover WM 1 W→MMB", function(assert) {
