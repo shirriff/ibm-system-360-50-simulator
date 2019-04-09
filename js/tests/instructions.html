@@ -259,14 +259,14 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(state['CR'], 0); // Zero
   });
 
-  QUnit.skip( "Load Multiple LM", function(assert) {
+  QUnit.test( "Load Multiple LM", function(assert) {
     reg(3, 0x10);
-    state['MS][0x1010'] = 0x12345678;
-    state['MS][0x1014'] = 0x11223344;
-    state['MS][0x1018'] = 0x55667788;
-    state['MS][0x1020'] = 0x99aabbcc;
-    execute([0x98253100], assert, 'LM 2,5,1000(3)');
-    // LM 2, 5, 1000(3)
+    state['MS'][0x110] = 0x12345678;
+    state['MS'][0x114] = 0x11223344;
+    state['MS'][0x118] = 0x55667788;
+    state['MS'][0x11c] = 0x99aabbcc;
+    execute([0x98253100], assert, 'LM 2,5,100(3)');
+    // Load registers 2 through 5 starting at 0x110
     assert.equal(reg(2), 0x12345678);
     assert.equal(reg(3), 0x11223344);
     assert.equal(reg(4), 0x55667788);
