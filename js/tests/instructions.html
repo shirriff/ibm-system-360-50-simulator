@@ -917,14 +917,14 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(state['MS'][0x200], 0x11223344); // Unchanged
   });
 
-  QUnit.skip( "Move MVC 2", function(assert) {
+  QUnit.test( "Move MVC 2", function(assert) {
     state['MS'][0x100] = 0x12345678;
     state['MS'][0x104] = 0xabcdef01;
-    reg(1, 1);
+    reg(1, 2);
     reg(2, 0);
-    execute([0xd2021100, 0x01050000], assert, 'MVC 100(2,1),105(0)'); // Move 3 bytes from 105 to 101
-    assert.equal(state['MS'][0x100], 0x1bcd5678);
-    assert.equal(state['MS'][0x104], 0xaabbccdd); // Unchanged
+    execute([0xd2011100, 0x01050000], assert, 'MVC 100(1,1),105(0)'); // Move 2 bytes from 105 to 102
+    assert.equal(state['MS'][0x100], 0x1234cdef);
+    assert.equal(state['MS'][0x104], 0xabcdef01); // Unchanged
   });
 
   QUnit.test( "Compare Logical CLR", function(assert) {
