@@ -318,6 +318,21 @@ QUnit.test( "adder-subtract-overflow ad 5 BC⩝C", function(assert) {
 QUnit.skip( "adder ad 6 BC1B", function(assert) {
 });
 
+// Carry out of pos 8
+QUnit.test( "adderT ad 7 BC8", function(assert) {
+  var state = {'XG': 0x00000000, 'AUX': 0, 'Y': 0xffffffff, 'CIN': 0};
+  adderT(state, {'AD': 7});
+  assert.equal(state['CAR'], 0);
+
+  state = {'XG': 0x00800000, 'AUX': 0, 'Y': 0x00800000, 'CIN': 0};
+  adderT(state, {'AD': 7});
+  assert.equal(state['CAR'], 1);
+
+  state = {'XG': 0x00ffffff, 'AUX': 0, 'Y': 0x00000001, 'CIN': 0};
+  adderT(state, {'AD': 7});
+  assert.equal(state['CAR'], 1);
+});
+
 QUnit.test( "adderT ad 8 DHL", function(assert) {
   var state = {'XG': 0xdddddddd, 'AUX': 0, 'Y': 0, 'CIN': 0};
   adderT(state, {'AD': 8});

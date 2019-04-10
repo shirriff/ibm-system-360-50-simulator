@@ -218,8 +218,10 @@ function adderT(state, entry) {
   var carry = state['CIN']
   t = xg + y + carry;
 
+  var carries = t ^ (xg ^ y ^ carry); // A bit difference between sum and xor must be due to carry-in.
   var c0 = (t >= 0x100000000) ? 1 : 0;
-  var c1 = (((xg & 0x7fffffff) + (y & 0x7fffffff) + carry) & 0x80000000) ? 1 : 0;
+  var c1 = (carries & 0x80000000) ? 1 : 0;
+  var c8 = (carries & 0x01000000) ? 1 : 0;
 
   t = t >>> 0; // Force Javascript to give an unsigned result
  
@@ -248,8 +250,8 @@ function adderT(state, entry) {
     case 6: // BC1B // Block carry from 8, save carry from 1  QG700:503  i.e. MIER+MCND-64 CLF116
       alert('Unimplemented AD ' + entry['AD'] + " " + labels['AD'][entry['AD']]);
       break;
-    case 7: // BC8
-      alert('Unimplemented AD ' + entry['AD'] + " " + labels['AD'][entry['AD']]);
+    case 7: // BC8 - carry from position 8
+      state['CAR'] = c8;
       break;
     case 8: // DHL Decimal half correction low QE900. See DHH below.
       var corr = state['AUX'] ? 0x60000000 : 0; // Top correction digit based on AUX

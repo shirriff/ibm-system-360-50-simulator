@@ -902,19 +902,27 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(reg(4), 0x92345678);
   });
 
-  QUnit.skip( "Move MVI", function(assert) {
+  QUnit.test( "Move MVI", function(assert) {
     state['MS'][0x100] = 0x11223344;
     reg(1, 1);
     execute([0x92551100], assert, 'MVI 100(1),55'); // Move byte 55 to location 101
     assert.equal(state['MS'][0x100], 0x11553344);
   });
 
-  QUnit.skip( "Move MVC", function(assert) {
+  QUnit.test( "Move MVC", function(assert) {
+    state['MS'][0x100] = 0x12345678;
+    state['MS'][0x200] = 0x11223344;
+    execute([0xd2030100, 0x02000000], assert, 'MVC 100(3,0),200(0)'); // Move 4 bytes from 200 to 100
+    assert.equal(state['MS'][0x100], 0x11223344);
+    assert.equal(state['MS'][0x200], 0x11223344); // Unchanged
+  });
+
+  QUnit.skip( "Move MVC 2", function(assert) {
     state['MS'][0x100] = 0x12345678;
     state['MS'][0x104] = 0xabcdef01;
     reg(1, 1);
     reg(2, 0);
-    execute([0xd2030100, 0x21040000], assert, 'MVC 100(3,1),105(0)'); // Move 3 bytes from 105 to 101
+    execute([0xd2021100, 0x01050000], assert, 'MVC 100(2,1),105(0)'); // Move 3 bytes from 105 to 101
     assert.equal(state['MS'][0x100], 0x1bcd5678);
     assert.equal(state['MS'][0x104], 0xaabbccdd); // Unchanged
   });
