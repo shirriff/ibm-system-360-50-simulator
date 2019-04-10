@@ -142,33 +142,59 @@ function adderDG(state, entry) {
       carry = 1;
       break;
     case 3: // G1-1
-      state['G1NEG'] = (state['G1'] == 0 ? 1 : 0); // Update underflow
-      state['pending']['G1'] = (state['G1'] - 1) & 0xf;
+      if (state['G1'] == 0) {
+        state['G1NEG'] = 1; // Update underflow
+        // Hold at 0. Seems from QP100 that wrapping doesn't work.
+      } else {
+        state['G1NEG'] = 0;
+        state['pending']['G1'] = state['G1'] - 1;
+      }
       break;
     case 4: // HOT1,G-1
       carry = 1;
-      state['G1NEG'] = (state['G1'] == 0 ? 1 : 0); // Update underflow
-      if (state['G2'] == 0) {
-        state['pending']['G1'] = (state['G1'] - 1) & 0xf;
+      // Unclear how negative works
+      if (state['G1'] == 0 && state['G2'] == 0) {
+        state['G1NEG'] = 1; // Update underflow, hoild at 0
+      } else {
+        if (state['G2'] == 0) {
+          state['pending']['G1'] = state['G1'] - 1;
+        }
+        state['pending']['G2'] = (state['G2'] - 1) & 0xf;
       }
-      state['pending']['G2'] = (state['G2'] - 1) & 0xf;
       break;
     case 5: // G2-1
-      state['G2NEG'] = (state['G2'] == 0 ? 1 : 0); // Update underflow
-      state['pending']['G2'] = (state['G2'] - 1) & 0xf;
+      if (state['G2'] == 0) {
+        state['G2NEG'] = 1; // Update underflow, hold at 0.
+      } else {
+        state['G2NEG'] = 0;
+        state['pending']['G2'] = state['G2'] - 1;
+      }
       break;
     case 6: // G-1
-      // Need to update G1NEG, G2NEG?
-      if (state['G2'] == 0) {
-        state['pending']['G1'] = (state['G1'] - 1) & 0xf;
+      // Unclear how negative works
+      if (state['G1'] == 0 && state['G2'] == 0) {
+        state['G1NEG'] = 1; // Update underflow
+      } else {
+        state['G1NEG'] = 0;
+        if (state['G2'] == 0) {
+          state['pending']['G1'] = state['G1'] - 1;
+        }
+        state['pending']['G2'] = (state['G2'] - 1) & 0xf;
       }
-      state['pending']['G2'] = (state['G2'] - 1) & 0xf;
       break;
     case 7: // G1,2-1
-      state['G1NEG'] = (state['G1'] == 0 ? 1 : 0); // Update underflow
-      state['G2NEG'] = (state['G2'] == 0 ? 1 : 0); // Update underflow
-      state['pending']['G1'] = (state['G1'] - 1) & 0xf;
-      state['pending']['G2'] = (state['G2'] - 1) & 0xf;
+      if (state['G1'] == 0) {
+        state['G1NEG'] = 1; // Update underflow, hold at 0
+      } else {
+        state['G1NEG'] = 0;
+        state['pending']['G1'] = state['G1'] - 1;
+      }
+      if (state['G2'] == 0) {
+        state['G2NEG'] = 1; // Update underflow, hold at 0.
+      } else {
+        state['G2NEG'] = 0;
+        state['pending']['G2'] = state['G2'] - 1;
+      }
       break;
     default:
       alert('Unexpected DG ' + entry['DG'] + " " + labels['DG'][entry['DG']]);
@@ -268,6 +294,7 @@ function adderT(state, entry) {
       break
   } // AD
   state['T0'] = t; // Internal T before shifting
+  state['c0'] = c0; // Used by SETCRLOG
 }
 
 // Force n to unsigned 32-bit
@@ -497,15 +524,14 @@ function read(state) {
   // Add some bounds to memory? Or just implement the whole 16 MB?
   state['SDR'] = state['MS'][state['SAR'] & ~3];
   if (state['SDR'] == undefined) {
-    state['SDR'] = 0x12345678; // Random value in uninitialized memory.
+    state['SDR'] = 0xdeadbeef; // Random value in uninitialized memory.
   }
   return 'Read ' + fmt4(state['SDR']) + ' from ' + fmt4(state['SAR']);
 }
 
 function checkaddr(state, alignment) {
   if (state['SAR'] & (alignment-1)) {
-   console.log('alignment?');
-   // trapAddrSpecViolation(state);
+   trapAddrSpecViolation(state);
   }
 }
 
@@ -516,8 +542,12 @@ function x0(state) {
 }
 
 function b0(state) {
-  // (B=0)→S1, where B = T(16-19)
-  state['S'][1] = (state['T'] & 0x0000f000) == 0 ? 1 : 0;
+  // B0 is usually in T(0-3), which equals MD, e.g. QT115:14c, 
+  // Unclear if T(0-3) is the right source, or MD is better
+  state['S'][1] = (state['T'] & 0xf0000000) == 0 ? 1 : 0;
+  if (state['T'] >>> 28 != state['MD']) {
+    console.log('**** b0 mismatch T:' + (state['T'] >>> 28) + ' vs MD:' + state['MD'] + ', using T');
+  }
 }
 
 function syl1(state) {
@@ -569,7 +599,7 @@ function adderLatch(state, entry) {
     case 6: // R,A       // stores to R and address reg.
       state['R'] = t;
       state['SAR'] = t;
-      checkaddr(state, 8);
+      checkaddr(state, 1);
       break;
     case 7: // L
       state['L'] = t;
@@ -607,12 +637,12 @@ function adderLatch(state, entry) {
       break;
     case 15: // A // QP100/614
       state['SAR'] = t;
-      checkaddr(state, 2);
+      checkaddr(state, 1);
       break;
     case 16: // L,A
       state['L'] = t;
       state['SAR'] = t;
-      checkaddr(state, 2);
+      checkaddr(state, 1);
       break;
     case 17:
       alert('Unimplemented I/O TR ' + entry['TR'] + " " + labels['TR'][entry['TR']]);
@@ -649,7 +679,7 @@ function adderLatch(state, entry) {
       state['REFETCH'] = 0;
       state['J'] = (state['T'] >>> 16) & 0xf;
       state['MD'] = (state['T'] >>> 12) & 0xf;
-      b0(state);
+      state['S'][1] = (state['T'] & 0x0000f000) == 0 ? 1 : 0; // Equivalent to b0, but with bits 16-19
       x0(state);
       syl1(state);
       var op0 = state['T'] >>> 28;
@@ -740,7 +770,7 @@ function moverU(state, entry) {
       alert('Unexpected LU ' + entry['LU'] + " " + labels['LU'][entry['LU']]);
       break;
   }
-  state['U'] = u;
+  state['U'] = u >>> 0;
 }
 
   // Mover input right side → V
@@ -761,7 +791,7 @@ function moverV(state, entry) {
       alert('Unexpected MV ' + entry['MV'] + " " + labels['MV'][entry['MV']]);
       break;
   }
-  state['V'] = v;
+  state['V'] = v >>> 0;
 }
 
 // Apply mover operation to both halves to generate an 8-bit value.
@@ -814,7 +844,7 @@ function moverOp(state, entry, op) {
     default:
       alert('Unexpected UL ' + entry['UL'] + " " + labels['UL'][entry['UL']]);
   }
-  return w;
+  return w >>> 0;
 }
 
 // This is almost the same as moverWL, but uses right nibble instead of left, so not close enough to merge
@@ -1298,7 +1328,7 @@ function stat(state, entry) {
     case 40: // E(23)→CR
       state['CR'] = entry['CE'] & 3;
       break;
-    case 41: // SETCRALG
+    case 41: // SETCRALG   Set condition register from algebraic comparison
       // If T=0 00→CR, if T<0, 01→CR, QE580/222. Part may be BCVC
       if (state['T'] == 0) {
         state['CR'] = 0;
@@ -1308,8 +1338,16 @@ function stat(state, entry) {
         state['CR'] = 2; // Positive
       }
       break;
-    case 42: // SETCRLOG
-      alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
+    case 42: // SETCRLOG   Set condition register from logical comparison
+      // QB500:246: If T*BS=0, 00→CR.  If T*BS≠0, and CAR(0)=0, 01→CR.
+      // If T*BS≠0, and CAR(0)=1, 10→CR.
+      if (tzbs(state)) {
+        state['CR'] = 0; // Equal
+      } else if (state['c0'] == 0) {
+        state['CR'] = 1; // First lower
+      } else {
+        state['CR'] = 2; // First higher
+      }
       break;
     case 43: // ¬S4,S4→CR
       alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
@@ -1398,6 +1436,18 @@ function roar(state, entry) {
   }
   // otherwise ZF function generates roar bits at bottom of routine
   state['ROAR'] = roar;
+}
+
+// Evaluate TZ*BS, i.e. T zero, masked by BS
+function tzbs(state) {
+  if ((state['BS'][0] == 0 || (state['T'] & 0xff000000) == 0)
+      && (state['BS'][1] == 0 || (state['T'] & 0x00ff0000) == 0)
+      && (state['BS'][2] == 0 || (state['T'] & 0x0000ff00) == 0)
+      && (state['BS'][3] == 0 || (state['T'] & 0x000000ff) == 0)) {
+    return 1;
+  } else {
+    return 0;
+  }
 }
   
 function roarAB(state, entry) {
@@ -1541,10 +1591,7 @@ function roarAB(state, entry) {
       }
       break;
     case 34: // TZ*BS  T zero per byte stat
-      if ((state['BS'][0] == 0 || (state['T'] & 0xff000000) == 0)
-          && (state['BS'][1] == 0 || (state['T'] & 0x00ff0000) == 0)
-          && (state['BS'][2] == 0 || (state['T'] & 0x0000ff00) == 0)
-          && (state['BS'][3] == 0 || (state['T'] & 0x000000ff) == 0)) {
+      if (tzbs(state)) {
         roar |= 2;
       }
       break;
@@ -1744,10 +1791,7 @@ function roarBB(state, entry) {
       }
       break;
     case 18: // TZ*BS    // Latch zero test per byte stats. QA700
-      if ((state['BS'][0] == 0 || (state['T'] & 0xff000000) == 0)
-          && (state['BS'][1] == 0 || (state['T'] & 0x00ff0000) == 0)
-          && (state['BS'][2] == 0 || (state['T'] & 0x0000ff00) == 0)
-          && (state['BS'][3] == 0 || (state['T'] & 0x000000ff) == 0)) {
+      if (tzbs(state)) {
         roar |= 1;
       }
       break;

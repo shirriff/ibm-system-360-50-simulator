@@ -11,6 +11,7 @@ function createState() {
   'WFN': 2, // Set up at QK801:0988 during IPL
   'SAR': 0xffffff, 'SDR': 0xffffffff,
   'ROAR': 0xffff, 'BS': [0, 0, 0, 0],
+  'LSGNS': 0, 'RSGNS': 0, 'CR': 0,
   };
   state['LS'] = new Array(64);
   for (var i = 0; i < 64; i++) {
