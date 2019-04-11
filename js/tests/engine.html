@@ -2079,18 +2079,25 @@ QUnit.test("bb 25 G2LBZ", function(assert) {
 // 26 I/O
 
 QUnit.test( "bb 27 (MD/JI)", function(assert) {
-  var state = {'ROAR': 0x49c, 'MD': 7, 'J': 14};
+  var state = {'ROAR': 0x49c, 'MD': 2, 'J': 4}; // FP register # must be 0, 2, 4, 6
   roarBB(state, {'BB': 27});
   assert.equal(state['ROAR'], 0x49c | 0);
-  state = {'ROAR': 0x49c, 'MD': 14, 'J': 7};
+
+  state = {'ROAR': 0x49c, 'MD': 2, 'J': 5};
   roarBB(state, {'BB': 27});
-  assert.equal(state['ROAR'], 0x49c | 0);
-  state = {'ROAR': 0x49c, 'MD': 9, 'J': 14};
+  assert.equal(state['ROAR'], 0x49c | 1);
+
+  state = {'ROAR': 0x49c, 'MD': 2, 'J': 8};
   roarBB(state, {'BB': 27});
-  assert.equal(state['ROAR'], 0x49c | 1); // MD odd, > 8
-  state = {'ROAR': 0x49c, 'MD': 7, 'J': 15};
+  assert.equal(state['ROAR'], 0x49c | 1);
+
+  state = {'ROAR': 0x49c, 'MD': 1, 'J': 4};
   roarBB(state, {'BB': 27});
-  assert.equal(state['ROAR'], 0x49c | 1); // J odd, > 8
+  assert.equal(state['ROAR'], 0x49c | 1);
+
+  state = {'ROAR': 0x49c, 'MD': 12, 'J': 4};
+  roarBB(state, {'BB': 27});
+  assert.equal(state['ROAR'], 0x49c | 1);
 });
 
 QUnit.skip("bb 28 IVA", function(assert) {
@@ -2515,13 +2522,30 @@ QUnit.test( "stat SS 42: SETCRLOG", function(assert) {
   assert.equal(state['CR'], 2); // First higher
 });
 
-QUnit.skip( "stat SS 43: ¬S4,S4→CR", function(assert) {
+QUnit.test( "stat SS 43: ¬S4,S4→CR", function(assert) {
+  var state = {'S': [0, 0, 0, 0, 0, 0, 0, 0]};
+  stat(state, {'SS': 43});
+  assert.equal(state['CR'], 2);
+
+  var state = {'S': [0, 0, 0, 0, 1, 0, 0, 0]};
+  stat(state, {'SS': 43});
+  assert.equal(state['CR'], 1);
 });
 
-QUnit.skip( "stat SS 44: S4,¬S4→CR", function(assert) {
+QUnit.test( "stat SS 44: S4,¬S4→CR", function(assert) {
+  var state = {'S': [0, 0, 0, 0, 0, 0, 0, 0]};
+  stat(state, {'SS': 44});
+  assert.equal(state['CR'], 1);
+
+  var state = {'S': [0, 0, 0, 0, 1, 0, 0, 0]};
+  stat(state, {'SS': 44});
+  assert.equal(state['CR'], 2);
 });
 
-QUnit.skip( "stat SS 45: 1→REFETCH", function(assert) {
+QUnit.test( "stat SS 45: 1→REFETCH", function(assert) {
+  var state = {};
+  stat(state, {'SS': 45});
+  assert.equal(state['REFETCH'], 1);
 });
 
 QUnit.skip( "stat SS 46: SYNC→OPPANEL", function(assert) {

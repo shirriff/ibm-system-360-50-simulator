@@ -1362,13 +1362,13 @@ function stat(state, entry) {
       }
       break;
     case 43: // ¬S4,S4→CR
-      alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
+      state['CR'] = ((state['S'][4] ^ 1) << 1) | state['S'][4];
       break;
     case 44: // S4,¬S4→CR
-      alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
+      state['CR'] = (state['S'][4] << 1) | (state['S'][4] ^ 1);
       break;
     case 45: // 1→REFETCH
-      alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
+      state['REFETCH'] = 1;
       break;
     case 46: // SYNC→OPPANEL // QT200/0107
       alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
@@ -1848,8 +1848,8 @@ function roarBB(state, entry) {
     case 26: // I/O  CROS manual: IO Stat 1 to CPU
       alert('Unimplemented I/O BB ' + entry['BB'] + " " + labels['BB'][entry['BB']]);
       break;
-    case 27: // MD/JI   CROS manual: MD Odd Gt 8 or J odd gt 8
-      if (((state['MD'] & 1) && state['MD'] > 8) || ((state['J'] & 1) && state['J'] > 8)) {
+    case 27: // MD/JI   CROS manual: MD Odd Gt 8 or J odd gt 8.  From FP register defs, apparently that means odd or >= 8.
+      if ((state['MD'] & 1) || state['MD'] >= 8 || (state['J'] & 1) || state['J'] >= 8) {
         roar |= 1;
       }
       break;

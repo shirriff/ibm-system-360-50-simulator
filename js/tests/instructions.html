@@ -41,12 +41,23 @@ window.alert = function() {
 
 var state;
 
+// Read or write register
 function reg(num, data) {
   if (data == undefined) {
     // read
-    return state['LS'][48 + num];
+    return state['LS'][0x30 + num];
   } else {
-    state['LS'][48 + num] = data;
+    state['LS'][0x30 + num] = data;
+  }
+}
+
+// Read or write half FP register
+function fpreg(num, data) {
+  if (data == undefined) {
+    // read
+    return state['LS'][0x20 + num];
+  } else {
+    state['LS'][0x20 + num] = data;
   }
 }
 
@@ -94,6 +105,7 @@ function executeInstr(instr) {
       ', T: ' + state['T'].toString(16) +
       ', F: ' + state['F'].toString(16) +
       ', H: ' + state['H'].toString(16) +
+      ', J: ' + state['J'].toString(16) +
       ', U: ' + state['U'].toString(16) +
       ', V: ' + state['V'].toString(16) +
       ', W: ' + state['W'].toString(16) +
@@ -105,6 +117,7 @@ function executeInstr(instr) {
       ', LSAR: ' + state['LSAR'].toString(16) +
       ', SGNS: ' + state['LSGNS'] + ' ' + state['RSGNS'] +
       ', S: ' + state['S'] +
+      ', BS: ' + state['BS'] +
       ', CR: ' + state['CR']);
     // Check if done
     if (count > 5 && [0x149, 0x14a, 0x14c, 0x14e, 0x184, 0x185, 0x187, 0x188, 0x189, 0x19b].includes(state['ROAR'])) {
@@ -879,35 +892,60 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(state['MS'][0x101],  0x3a000000); // 3+
   });
 
-  QUnit.skip( "Load (FP short) LER", function(assert) {
-    reg(2, 0x12345678); // Source
-    reg(3, 0x9abcdef0);
-    reg(4, 0x22334455); // Destination
-    reg(5, 0xaabbccdd);
+  QUnit.test( "Load (FP short) LER", function(assert) {
+    fpreg(2, 0x12345678); // Source
+    fpreg(3, 0x9abcdef0);
+    fpreg(4, 0x22334455); // Destination
+    fpreg(5, 0xaabbccdd);
     execute([0x38420000], assert, 'LER 4,2');
-    assert.equal(reg(2), 0x12345678);
-    assert.equal(reg(3), 0x9abcdef0);
-    assert.equal(reg(4), 0x12345678);
-    assert.equal(reg(5), 0xaabbccdd);
+    assert.equal(fpreg(2), 0x12345678);
+    assert.equal(fpreg(3), 0x9abcdef0);
+    assert.equal(fpreg(4), 0x12345678);
+    assert.equal(fpreg(5), 0xaabbccdd);
   });
 
-  QUnit.skip( "Load (FP long) LDR - bad register", function(assert) {
+  QUnit.test( "Load (FP short) LER - bad register", function(assert) {
+    assert.throws(function() {
+      execute([0x38120000], assert, 'LER 1,2');
+    });
+  });
+
+  QUnit.test( "Load (FP short) LER - bad register", function(assert) {
+    assert.throws(function() {
+      execute([0x38410000], assert, 'LER 4,1');
+    });
+  });
+
+  QUnit.test( "Load (FP long) LDR - bad register", function(assert) {
     assert.throws(function() {
       execute([0x28410000], assert, 'LDR 4,1');
     });
   });
 
-  QUnit.skip( "Load Complement (FP) LCER", function(assert) {
-    reg(1, 0x12345678);
-    reg(4, 0x22334455);
-    execute([0x33410000], assert, 'LCER 4,1');
-    assert.equal(reg(4), 0x92344455);
+  QUnit.test( "Load (FP long) LDR - bad register", function(assert) {
+    assert.throws(function() {
+      execute([0x28140000], assert, 'LDR 1,4');
+    });
   });
 
-  QUnit.skip( "Load Complement (FP long) LCDR", function(assert) {
-    reg(1, 0x12345678);
-    execute([0x23410000], assert, 'LCDR 4,1');
-    assert.equal(reg(4), 0x92345678);
+  QUnit.test( "Load Complement (FP short) LCER", function(assert) {
+    fpreg(2, 0x12345678);
+    fpreg(3, 0x33333333);
+    fpreg(4, 0x22334455); // Destination
+    fpreg(5, 0x55555555);
+    execute([0x33420000], assert, 'LCER 4,2');
+    assert.equal(fpreg(2), 0x12345678);
+    assert.equal(fpreg(3), 0x33333333);
+    assert.equal(fpreg(4), 0x92345678);
+    assert.equal(fpreg(5), 0x55555555);
+  });
+
+  QUnit.test( "Load Complement (FP long) LCDR", function(assert) {
+    fpreg(0, 0x12345678);
+    fpreg(1, 0x9abcdef0);
+    execute([0x23400000], assert, 'LCDR 4,0');
+    assert.equal(fpreg(4), 0x92345678);
+    assert.equal(fpreg(5), 0x9abcdef0);
   });
 
   QUnit.test( "Move MVI", function(assert) {
