@@ -2153,7 +2153,46 @@ QUnit.test( "roar AB 56 I-FETCH", function(assert) {
 
 // ----------- SS tests
 
-// SS 1, 2,3: unused
+// SS 1, 2: unused
+
+QUnit.test( "stat SS 3 D→CR*BS", function(assert) {
+  var state = {'SAR': 0x30, 'MS': {}, 'BS': [1, 0, 0, 0]};
+  state['MS'][0x30] = 0x81234567; // Leftmost bit of byte 0 set
+  stat(state, {'SS': 3});
+  assert.equal(state['CR'], 1);
+
+  state['MS'][0x30] = 0x71234567; // Leftmost bit of byte 0 clear
+  stat(state, {'SS': 3});
+  assert.equal(state['CR'], 0);
+
+  state = {'SAR': 0x30, 'MS': {}, 'BS': [0, 1, 0, 0]};
+  state['MS'][0x30] = 0x81a34567; // Leftmost bit of byte 1 set
+  stat(state, {'SS': 3});
+  assert.equal(state['CR'], 1);
+
+  state['MS'][0x30] = 0x81234567; // Leftmost bit of byte 1 clear
+  stat(state, {'SS': 3});
+  assert.equal(state['CR'], 0);
+
+  state = {'SAR': 0x30, 'MS': {}, 'BS': [0, 0, 1, 0]};
+  state['MS'][0x30] = 0x8123c567; // Leftmost bit of byte 2 set
+  stat(state, {'SS': 3});
+  assert.equal(state['CR'], 1);
+
+  state['MS'][0x30] = 0x81234567; // Leftmost bit of byte 2 clear
+  stat(state, {'SS': 3});
+  assert.equal(state['CR'], 0);
+
+  state = {'SAR': 0x30, 'MS': {}, 'BS': [0, 0, 0, 1]};
+  state['MS'][0x30] = 0x812345f7; // Leftmost bit of byte 3 set
+  stat(state, {'SS': 3});
+  assert.equal(state['CR'], 1);
+
+  state['MS'][0x30] = 0x81234567; // Leftmost bit of byte 3 clear
+  stat(state, {'SS': 3});
+  assert.equal(state['CR'], 0);
+
+});
 
 QUnit.skip( "stat SS 4 E→SCANCTL", function(assert) {
 });

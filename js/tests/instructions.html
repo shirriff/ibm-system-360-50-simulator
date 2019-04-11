@@ -1122,14 +1122,14 @@ QUnit.module("Instructions", function(hooks) {
     });
   });
 
-  QUnit.skip( "Set Storage Key SSK - no priv", function(assert) {
+  QUnit.test( "Set Storage Key SSK - no priv", function(assert) {
     state['AMWP'] = 0; // Privileged
     assert.throws(function() {
       execute([0x08120000], assert, 'SSK 1,2');
     });
   });
 
-  QUnit.skip( "Set Storage Key SSK - priv", function(assert) {
+  QUnit.test( "Set Storage Key SSK - priv", function(assert) {
     state['AMWP'] = 0; // Privileged
     reg(1, 0x11223344); // Key
     reg(2, 0x12345670); // Address: last 4 bits must be 0
@@ -1137,7 +1137,7 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(state['KEYS'][0x12345678 & 0x00fff100], 4);
   });
 
-  QUnit.skip( "Set Storage Key SSK - unaligned", function(assert) {
+  QUnit.test( "Set Storage Key SSK - unaligned", function(assert) {
     state['AMWP'] = 0; // Privileged
     reg(1, 0x11223344); // Key
     reg(2, 0x12345674); // Unaligned: last 4 bits not 0
@@ -1176,16 +1176,16 @@ QUnit.module("Instructions", function(hooks) {
     });
   });
 
-  QUnit.skip( "Test and Set - not set TS", function(assert) {
-    reg(2, 3); // Counter
+  QUnit.test( "Test and Set - not set TS", function(assert) {
+    reg(2, 2); // Index
     state['MS'][0x100] = 0x83857789; // 102 top bit not set
     execute([0x93002100], assert, 'TS 100(2)');
     assert.equal(state['CR'], 0); // Not set
     assert.equal(state['MS'][0x100], 0x8385ff89);
   });
 
-  QUnit.skip( "Test and Set - set TS", function(assert) {
-    reg(2, 3); // Counter
+  QUnit.test( "Test and Set - set TS", function(assert) {
+    reg(2, 2); // Index
     state['MS'][0x100] = 0x8385c789; // 102 top bit set
     execute([0x93002100], assert, 'TS 100(2)');
     assert.equal(state['CR'], 1); // Set

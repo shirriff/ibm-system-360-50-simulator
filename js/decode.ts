@@ -262,7 +262,8 @@ var labels = {
 
 // C: Stat setting and misc control
 'SS': {
-// 1,2,3 not present
+// 1,2 not present
+3: 'D→CR*BS',
 4: 'E→SCANCTL', // Performs scan operation controlled by E. See 50Maint p32. 0101 clears SCPS,SCFS QU100. 0011 ignore IO error. 0000 test for all ones, step bin trigger. 0001 sets SCPS,SCFS.
 // 1000 moves SDR(0-2) to CTR (clock advance counter), STR(5) to PSS (progressive scan stat), SDR(6) to SST (supervisory stat) QY110
 5: 'L,RSGNS',

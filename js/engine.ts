@@ -1130,8 +1130,18 @@ function stat(state, entry) {
       break;
     case 1:
     case 2:
-    case 3:
       alert('Unexpected SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
+      break;
+    case 3: // D→CR*BS  Set Cond Reg for Test and Set Instruction  QK300:905
+      // Unclear what to do if multiple BS set.
+      read(state);
+      var d = state['SDR'];
+      var bs = state['BS'];
+      if ((bs[0] && (d & 0x80000000)) || (bs[1] && (d & 0x00800000)) || (bs[2] && (d & 0x00008000)) || (bs[3] && (d & 0x00000080))) {
+        state['CR'] = 1;
+      } else {
+        state['CR'] = 0;
+      }
       break;
     case 4: // E→SCANCTL // Performs scan operation controlled by E. See 50Maint p32. 0101 clears SCPS,SCFS QU100. 0011 ignore IO error. 0000 test for all ones, step bin trigger. 0001 sets SCPS,SCFS.
       // 1000 moves SDR(0-2) to CTR (clock advance counter) STR(5) to PSS (progressive scan stat), SDR(6) to SST (supervisory stat) QY110
