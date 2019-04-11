@@ -107,7 +107,10 @@ function executeInstr(instr) {
       ', S: ' + state['S'] +
       ', CR: ' + state['CR']);
     // Check if done
-    if (count > 5 && [0x148, 0x149, 0x14a, 0x14c, 0x14e, 0x184, 0x185, 0x187, 0x188, 0x189, 0x19b].includes(state['ROAR'])) {
+    if (count > 5 && [0x149, 0x14a, 0x14c, 0x14e, 0x184, 0x185, 0x187, 0x188, 0x189, 0x19b].includes(state['ROAR'])) {
+      return;
+    }
+    if (count > 8 && [0x148].includes(state['ROAR'])) {
       return;
     }
     if (state['TRAP']) {
@@ -877,16 +880,21 @@ QUnit.module("Instructions", function(hooks) {
   });
 
   QUnit.skip( "Load (FP short) LER", function(assert) {
-    reg(1, 0x12345678);
-    reg(4, 0x22334455);
-    execute([0x38410000], assert, 'LER 4,1');
-    assert.equal(reg(4), 0x12344455);
+    reg(2, 0x12345678); // Source
+    reg(3, 0x9abcdef0);
+    reg(4, 0x22334455); // Destination
+    reg(5, 0xaabbccdd);
+    execute([0x38420000], assert, 'LER 4,2');
+    assert.equal(reg(2), 0x12345678);
+    assert.equal(reg(3), 0x9abcdef0);
+    assert.equal(reg(4), 0x12345678);
+    assert.equal(reg(5), 0xaabbccdd);
   });
 
-  QUnit.skip( "Load (FP long) LDR", function(assert) {
-    reg(1, 0x12345678);
-    execute([0x28410000], assert, 'LDR 4,1');
-    assert.equal(reg(4), 0x12345678);
+  QUnit.skip( "Load (FP long) LDR - bad register", function(assert) {
+    assert.throws(function() {
+      execute([0x28410000], assert, 'LDR 4,1');
+    });
   });
 
   QUnit.skip( "Load Complement (FP) LCER", function(assert) {
@@ -1107,18 +1115,65 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(state['PROGMASK'], 0x2);
   });
 
-  QUnit.skip( "Supervisor Call SVC", function(assert) {
-    execute([0x0a120000], assert, 'SVC 12');
+  QUnit.test( "Supervisor Call SVC", function(assert) {
+    // Need more testing here
+    assert.throws(function() {
+      execute([0x0a120000], assert, 'SVC 12');
+    });
   });
 
-  QUnit.skip( "Set Storage Key SSK", function(assert) {
+  QUnit.skip( "Set Storage Key SSK - no priv", function(assert) {
+    state['AMWP'] = 0; // Privileged
+    assert.throws(function() {
+      execute([0x08120000], assert, 'SSK 1,2');
+    });
+  });
+
+  QUnit.skip( "Set Storage Key SSK - priv", function(assert) {
+    state['AMWP'] = 0; // Privileged
+    reg(1, 0x11223344); // Key
+    reg(2, 0x12345670); // Address: last 4 bits must be 0
     execute([0x08120000], assert, 'SSK 1,2');
-    // Need to check
+    assert.equal(state['KEYS'][0x12345678 & 0x00fff100], 4);
   });
 
-  QUnit.skip( "Insert Storage Key ISK", function(assert) {
+  QUnit.skip( "Set Storage Key SSK - unaligned", function(assert) {
+    state['AMWP'] = 0; // Privileged
+    reg(1, 0x11223344); // Key
+    reg(2, 0x12345674); // Unaligned: last 4 bits not 0
+    assert.throws(function() {
+      execute([0x08120000], assert, 'SSK 1,2');
+    });
+  });
+
+  // ISK reads the storage key
+  QUnit.test( "Insert Storage Key ISK -priv", function(assert) {
+    state['AMWP'] = 0; // Privileged
+    state['KEYS'][0x12345670 & 0x00fff100] = 2;
+    reg(1, 0x89abcdef);
+    reg(2, 0x12345670); // Aligned: last 4 bits 0
     execute([0x09120000], assert, 'ISK 1,2');
-    // Need to check
+    assert.equal(reg(1), 0x89abcd20);
+  });
+
+  QUnit.test( "Insert Storage Key ISK -no priv", function(assert) {
+    state['AMWP'] = 1; // Unprivileged
+    state['KEYS'][0x12345670 & 0x00fff100] = 2;
+    reg(1, 0xaabbccdd);
+    reg(2, 0x12345674); // Unaligned: last 4 bits not 0
+    assert.throws(function() {
+      execute([0x09120000], assert, 'ISK 1,2');
+    });
+  });
+
+  QUnit.test( "Insert Storage Key ISK -unaligned", function(assert) {
+    state['AMWP'] = 0; // Privileged
+    state['KEYS'][0x12345670 & 0x00fff100] = 2;
+    reg(1, 0xaabbccdd);
+    reg(2, 0x12345674); // Unaligned: last 4 bits not 0
+    assert.throws(function() {
+      execute([0x09120000], assert, 'ISK 1,2');
+    });
   });
 
   QUnit.skip( "Test and Set - not set TS", function(assert) {

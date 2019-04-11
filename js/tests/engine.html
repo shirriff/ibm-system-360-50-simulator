@@ -1616,7 +1616,14 @@ QUnit.test("ab 34 TZ*BS", function(assert) {
 QUnit.skip( "ab 35 EDITPAT", function(assert) {
 });
 
-QUnit.skip( "ab 36 PROB", function(assert) {
+QUnit.test( "ab 36 PROB", function(assert) {
+  var state = {'ROAR': 0x49c, 'AMWP': 0xe};
+  roarAB(state, {'AB': 36});
+  assert.equal(state['ROAR'], 0x49c | 0);
+
+  state = {'ROAR': 0x49c, 'AMWP': 1};
+  roarAB(state, {'AB': 36});
+  assert.equal(state['ROAR'], 0x49c | 2);
 });
 
 QUnit.skip( "ab 37 TIMUP", function(assert) {
@@ -2368,10 +2375,17 @@ QUnit.test( "stat29: CAR,(T≠0)→CR", function(assert) {
   assert.deepEqual(state['CR'], 3);
 });
 
-QUnit.skip( "stat30: KEY→F", function(assert) {
+QUnit.test( "stat30: KEY→F", function(assert) {
+  var state = {'SAR': 0x12345670, 'KEYS': {}};
+  state['KEYS'][0x12345670 & 0x00fff100] = 4;
+  stat(state, {'SS': 30});
+  assert.equal(state['F'], 4);
 });
 
-QUnit.skip( "stat31: F→KEY", function(assert) {
+QUnit.test( "stat31: F→KEY", function(assert) {
+  var state = {'F': 4, 'SAR': 0x12345670, 'KEYS': {}};
+  stat(state, {'SS': 31});
+  assert.equal(state['KEYS'][0x12345670 & 0x00fff100], 4);
 });
 
 QUnit.test( "stat32: 1→LSGNS", function(assert) {

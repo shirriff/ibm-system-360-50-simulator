@@ -1290,10 +1290,10 @@ function stat(state, entry) {
       state['CR'] = (state['CAR'] ? 2 : 0) | (state['T'] != 0 ? 1 : 0);
       break;
     case 30: // KEY→F // QT115/020E
-      alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
+      state['F'] = state['KEYS'][state['SAR'] & 0x00fff100] | 0; // 0 if undefined
       break;
-    case 31: // F→KEY // QT220/02BF
-      alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
+    case 31: // F→KEY // QT220/02BF  QA800: write storage key
+      state['KEYS'][state['SAR'] & 0x00fff100] = state['F'];
       break;
     case 32: // 1→LSGNS
       state['LSGNS'] = 1;
@@ -1601,8 +1601,10 @@ function roarAB(state, entry) {
       // CROS manual page 31: sets A with edit stat 1, B with edit stat 2.
       alert('Unimplemented AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
-    case 36: // PROB     // Privileged op? QY110  Monitor stat
-      alert('Unimplemented AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
+    case 36: // PROB     // Check problelm state (i.e. user vs supervisor)? QY110, QA800  Monitor stat
+      if (state['AMWP'] & 1) {
+        roar |= 2;
+      }
       break;
     case 37: // TIMUP   Timer update signal and not manual trigger
       alert('Unimplemented AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);

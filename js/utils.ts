@@ -3,15 +3,16 @@
 function createState() {
   // Initialize arbitrarily
   var state = {'FN': 3, 'J': 3, 'LSAR': 3,
-  'SYSMASK': 0, 'KEY': 0, 'AMWP': 0, 'IRUPT': 0, 'ILC': 0, 'CC': 0, 'PROGMASK': 0, 'IAR': 0, // PSW
-  'L': 0xffffffff, 'R': 0xffffffff, 'MD': 3, 'F': 3, 'Q': 1,
-  'M': 0xffffffff, 'H': 0xffffffff, 'T': 3,
-  'A': 3, 'D': 3, 'XG': 3, 'Y': 3, 'U': 3, 'V': 3, 'W': 3,
-  'G1': 3, 'G2': 3, 'LB': 3, 'MB': 3, 'SP': 5,
-  'WFN': 2, // Set up at QK801:0988 during IPL
-  'SAR': 0xffffff, 'SDR': 0xffffffff,
-  'ROAR': 0xffff, 'BS': [0, 0, 0, 0],
-  'LSGNS': 0, 'RSGNS': 0, 'CR': 0,
+    'SYSMASK': 0, 'KEY': 0, 'AMWP': 0, 'IRUPT': 0, 'ILC': 0, 'CC': 0, 'PROGMASK': 0, 'IAR': 0, // PSW
+    'L': 0xffffffff, 'R': 0xffffffff, 'MD': 3, 'F': 3, 'Q': 1,
+    'M': 0xffffffff, 'H': 0xffffffff, 'T': 3,
+    'A': 3, 'D': 3, 'XG': 3, 'Y': 3, 'U': 3, 'V': 3, 'W': 3,
+    'G1': 3, 'G2': 3, 'LB': 3, 'MB': 3, 'SP': 5,
+    'WFN': 2, // Set up at QK801:0988 during IPL
+    'SAR': 0xffffff, 'SDR': 0xffffffff,
+    'ROAR': 0xffff, 'BS': [0, 0, 0, 0],
+    'LSGNS': 0, 'RSGNS': 0, 'CR': 0,
+    'KEYS': {},
   };
   state['LS'] = new Array(64);
   for (var i = 0; i < 64; i++) {
