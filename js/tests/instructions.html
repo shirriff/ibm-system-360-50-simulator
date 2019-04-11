@@ -161,37 +161,6 @@ QUnit.module("Instructions", function(hooks) {
     // L 3, 984(4, 5): load R3 with mem[984+R4+R45)
     assert.equal(reg(3), 0x12345678);
   });
-
-  QUnit.test( "Load Halfword LH sign-extend", function(assert) {
-    reg(3, 0xffffffff);
-    reg(4, 0x1000);
-    reg(5, 0x200);
-    state['MS'][0x1b84] = 0x87654321;
-    execute([0x48345984], assert, 'LH 3,984(4,5)');
-    // LH 3, 984(4, 5): load R3 with mem[984+R4+R45)
-    assert.equal(reg(3), 0xffff8765, reg(3).toString(16)); // sign extension
-  });
-
-  QUnit.test( "Load Halfword LH sign-extend unaligned", function(assert) {
-    reg(3, 0xffffffff);
-    reg(4, 0x1000);
-    reg(5, 0x202);
-    state['MS'][0x1b84] = 0x07658321;
-    execute([0x48345984], assert, 'LH 3,984(4,5)');
-    // LH 3, 984(4, 5): load R3 with mem[984+R4+R45)
-    assert.equal(reg(3), 0xffff8321, reg(3).toString(16)); // sign extension
-  });
-
-  QUnit.test( "Load Halfword LH halfword aligned", function(assert) {
-    reg(3, 0xffffffff);
-    reg(4, 0x1000);
-    reg(5, 0x200);
-    state['MS'][0x1b84] = 0x87654321;
-    execute([0x48345986], assert, 'LH 3,986(4,5)');
-    // LH 3, 986(4, 5): load R3 with mem[986+R4+R45)
-    assert.equal(reg(3), 0x00004321, reg(3).toString(16));
-  });
-
   QUnit.test( "Load and Test LTR", function(assert) {
     reg(4, 0xcdef1234);
     execute([0x12340000], assert, 'LTR 3,4');
@@ -290,7 +259,7 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(reg(5), 0x99aabbcc);
   });
 
-  QUnit.test( "add", function(assert) {
+  QUnit.test( "AR add", function(assert) {
     reg(1, 0x12345678);
     reg(2, 0x00000005);
     execute([0x1a120000], assert, 'AR 1,2');
@@ -299,7 +268,7 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(state['CR'], 2); // Positive
   });
 
-  QUnit.test( "two adds", function(assert) {
+  QUnit.test( "AR two adds", function(assert) {
     reg(1, 0x12345678);
     reg(2, 0x00000001);
     reg(3, 0x00000010);
@@ -311,7 +280,7 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(state['CR'], 2); // Positive
   });
 
-  QUnit.test( "add-negative", function(assert) {
+  QUnit.test( "AR add-negative", function(assert) {
     reg(1, 0x81234567);
     reg(2, 0x00000001);
     execute([0x1a120000], assert, 'AR 1,2');
@@ -319,7 +288,7 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(state['CR'], 1); // Negative
   });
 
-  QUnit.test( "add-zero", function(assert) {
+  QUnit.test( "AR add-zero", function(assert) {
     reg(1, 0x00000002);
     reg(2, 0xfffffffe);
     execute([0x1a120000], assert, 'AR 1,2');
@@ -327,7 +296,7 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(state['CR'], 0); // Zero
   });
 
-  QUnit.test( "add-overflow-trap-disabled", function(assert) {
+  QUnit.test( "AR add-overflow-trap-disabled", function(assert) {
     reg(1, 0x7fffffff);
     reg(2, 0x00000001);
     state['PROGMASK'] = 0; // Disable overflow interrupt
@@ -336,7 +305,7 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(state['CR'], 3); // Overflow
   });
 
-  QUnit.test( "add-overflow-trap-enabled", function(assert) {
+  QUnit.test( "AR add-overflow-trap-enabled", function(assert) {
     reg(1, 0x7fffffff);
     reg(2, 0x00000001);
     state['PROGMASK'] = 8; // Enable overflow interrupt
@@ -419,7 +388,7 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(state['CR'], 3); // Not zero, carry
   });
 
-  QUnit.test( "subtract", function(assert) {
+  QUnit.test( "SR subtract", function(assert) {
     reg(1, 0x12345678);
     reg(2, 0x00000001);
     execute([0x1b120000], assert, 'SR 1,2');
@@ -656,112 +625,6 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(reg(3), 0x286dead6); // Quotient
   });
 
-  QUnit.test( "Convert to Binary CVB: princ op", function(assert) {
-    // Example from Principles of Operation p122
-    reg(5, 50); // Example seems to have addresses in decimal?
-    reg(6, 900);
-    state['MS'][1000] = 0x00000000;
-    state['MS'][1004] = 0x0025594f;
-    execute([0x4f756032], assert, 'CVB 7,32(5,6)');
-    assert.equal(reg(7), 25594); // Note: decimal, not hex
-  });
-
-  QUnit.test( "Convert to Binary CVB: bad sign", function(assert) {
-    reg(5, 50);
-    reg(6, 900);
-    state['MS'][1000] = 0x00000000;
-    state['MS'][1004] = 0x00255941; // 1 is not a valid sign
-    assert.throws(function() {
-      execute([0x4f756032], assert, 'CVB 7,32(5,6)');
-    });
-  });
-
-  // Needs DC0 to support correction properly
-  QUnit.skip( "Convert to Binary CVB: bad digit", function(assert) {
-    reg(5, 50);
-    reg(6, 900);
-    state['MS'][1000] = 0x00000000;
-    state['MS'][1004] = 0x002a594f;
-    assert.throws(function() {
-      execute([0x4f756032], assert, 'CVB 7,32(5,6)');
-    });
-  });
-
-  QUnit.test( "Convert to Binary CVB: doubleword unaligned", function(assert) {
-    reg(5, 0);
-    reg(6, 0);
-    state['MS'][1000] = 0x00000000;
-    state['MS'][1004] = 0x002a594f;
-    assert.throws(function() {
-      execute([0x4f756034], assert, 'CVB 7,34(5,6)');
-    });
-    assert.throws(function() {
-      execute([0x4f756032], assert, 'CVB 7,32(5,6)');
-    });
-    assert.throws(function() {
-      execute([0x4f756031], assert, 'CVB 7,31(5,6)');
-    });
-  });
-
-  QUnit.test( "Convert to Binary CVB: overflow", function(assert) {
-    reg(5, 50);
-    reg(6, 900);
-    state['MS'][1000] = 0x00000214;
-    state['MS'][1004] = 0x8000000f;
-    assert.throws(function() {
-      execute([0x4f756032], assert, 'CVB 7,32(5,6)');
-    });
-    assert.equal(reg(7), 2148000000); // Note: decimal, not hex
-  });
-
-  QUnit.test( "Convert to Binary CVB: big overflow", function(assert) {
-    reg(5, 50);
-    reg(6, 900);
-    state['MS'][1000] = 0x12345678;
-    state['MS'][1004] = 0x4800000f;
-    assert.throws(function() {
-      execute([0x4f756032], assert, 'CVB 7,32(5,6)');
-    });
-  });
-
-  QUnit.test( "Convert to Binary CVB: large", function(assert) {
-    reg(5, 50);
-    reg(6, 900);
-    state['MS'][1000] = 0x00000021;
-    state['MS'][1004] = 0x2345678f;
-    execute([0x4f756032], assert, 'CVB 7,32(5,6)');
-    assert.equal(reg(7), 212345678); // Note: decimal, not hex
-  });
-
-
-  QUnit.test( "Convert to Binary CVB: negative", function(assert) {
-    reg(5, 50);
-    reg(6, 900);
-    state['MS'][1000] = 0x00000000;
-    state['MS'][1004] = 0x0025594d; // d is negative
-    execute([0x4f756032], assert, 'CVB 7,32(5,6)');
-    assert.equal(reg(7), (-25594) >>> 0); // Note: decimal, not hex
-  });
-
-  // QE900/073C, CLF 112
-  QUnit.test( "Convert to Binary CVB", function(assert) {
-    reg(5, 0x100);
-    reg(6, 0x200);
-    state['MS'][0x500] = 0;
-    state['MS'][0x504] = 0x1234567f; // Decimal 1234567+
-    execute([0x4f156200], assert, 'CVB 1,200(5,6)');
-    assert.equal(reg(1), 1234567); // Note: decimal, not hex
-  });
-
-  QUnit.test( "Convert to Binary CVB neg", function(assert) {
-    reg(5, 0x100);
-    reg(6, 0x200);
-    state['MS'][0x500] = 0;
-    state['MS'][0x504] = 0x1234567b; // Decimal 1234567-
-    execute([0x4f156200], assert, 'CVB 1,200(5,6)');
-    assert.equal(reg(1), (-1234567) >>> 0); // Note: decimal, not hex
-  });
-
   QUnit.test( "Shift Left Single SLA", function(assert) {
     reg(1, 0x12345678);
     reg(2, 0x00000001);
@@ -892,6 +755,126 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(state['MS'][0x101],  0x3a000000); // 3+
   });
 
+  QUnit.test( "Load Positive (FP long) LPDR", function(assert) {
+    fpreg(0, 0x82345678);
+    fpreg(1, 0x9abcdef0);
+    execute([0x20400000], assert, 'LPDR 4,0');
+    assert.equal(fpreg(4), 0x02345678);
+    assert.equal(fpreg(5), 0x9abcdef0);
+  });
+
+  QUnit.test( "Load Negative (FP long) LNDR", function(assert) {
+    fpreg(0, 0x12345678);
+    fpreg(1, 0x9abcdef0);
+    execute([0x21400000], assert, 'LNDR 4,0');
+    assert.equal(fpreg(4), 0x92345678);
+    assert.equal(fpreg(5), 0x9abcdef0);
+  });
+
+  QUnit.test( "Load and Test (FP) LTDR - positive", function(assert) {
+    fpreg(0, 0x12345678);
+    fpreg(1, 0x9abcdef0);
+    execute([0x22400000], assert, 'LTDR 4,0');
+    assert.equal(fpreg(4), 0x12345678);
+    assert.equal(fpreg(5), 0x9abcdef0);
+    assert.equal(state['CR'], 2); // Greater than zero
+  });
+
+  QUnit.test( "Load and Test (FP) LTDR - negative", function(assert) {
+    fpreg(0, 0x92345678);
+    fpreg(1, 0x9abcdef0);
+    execute([0x22400000], assert, 'LTDR 4,0');
+    assert.equal(fpreg(4), 0x92345678);
+    assert.equal(fpreg(5), 0x9abcdef0);
+    assert.equal(state['CR'], 1); // Less than zero
+  });
+
+  QUnit.test( "Load and Test (FP) LTDR - zero negative", function(assert) {
+    fpreg(0, 0xff000000);
+    fpreg(1, 0x00000000);
+    execute([0x22400000], assert, 'LTDR 4,0');
+    assert.equal(fpreg(4), 0xff000000);
+    assert.equal(fpreg(5), 0x00000000);
+    assert.equal(state['CR'], 0); // Zero
+  });
+
+  QUnit.test( "Load and Test (FP) LTDR - zero positive", function(assert) {
+    fpreg(0, 0x1f000000);
+    fpreg(1, 0x00000000);
+    execute([0x22400000], assert, 'LTDR 4,0');
+    assert.equal(fpreg(4), 0x1f000000);
+    assert.equal(fpreg(5), 0x00000000);
+    assert.equal(state['CR'], 0); // Zero
+  });
+
+  QUnit.test( "Load Complement (FP long) LCDR", function(assert) {
+    fpreg(0, 0x12345678);
+    fpreg(1, 0x9abcdef0);
+    execute([0x23400000], assert, 'LCDR 4,0');
+    assert.equal(fpreg(4), 0x92345678);
+    assert.equal(fpreg(5), 0x9abcdef0);
+  });
+
+  QUnit.skip( "Halve (FP) HDR", function(assert) {
+  });
+
+  QUnit.test( "Load (FP long) LDR - bad register", function(assert) {
+    assert.throws(function() {
+      execute([0x28410000], assert, 'LDR 4,1');
+    });
+  });
+
+  QUnit.test( "Load (FP long) LDR - bad register", function(assert) {
+    assert.throws(function() {
+      execute([0x28140000], assert, 'LDR 1,4');
+    });
+  });
+
+  QUnit.skip( "Compare (FP) CDR", function(assert) {
+  });
+
+  QUnit.skip( "Add N (FP) ADR", function(assert) {
+  });
+
+  QUnit.skip( "Subtract N (FP) SDR", function(assert) {
+  });
+
+  QUnit.skip( "Multiply (FP) MDR", function(assert) {
+  });
+
+  QUnit.skip( "Divide (FP) DDR", function(assert) {
+  });
+
+  QUnit.skip( "Add U (FP) AWR", function(assert) {
+  });
+
+  QUnit.skip( "Subtract U (FP) SWR", function(assert) {
+  });
+
+  QUnit.skip( "Subtract U (FP) SWR", function(assert) {
+  });
+
+  QUnit.skip( "Load Positive (FP short) LPER", function(assert) {
+  });
+
+  QUnit.skip( "Load Negative (FP short) LNER", function(assert) {
+  });
+
+  QUnit.skip( "Load and Test (FP short) LTER", function(assert) {
+  });
+
+  QUnit.test( "Load Complement (FP short) LCER", function(assert) {
+    fpreg(2, 0x12345678);
+    fpreg(3, 0x33333333);
+    fpreg(4, 0x22334455); // Destination
+    fpreg(5, 0x55555555);
+    execute([0x33420000], assert, 'LCER 4,2');
+    assert.equal(fpreg(2), 0x12345678);
+    assert.equal(fpreg(3), 0x33333333);
+    assert.equal(fpreg(4), 0x92345678);
+    assert.equal(fpreg(5), 0x55555555);
+  });
+
   QUnit.test( "Load (FP short) LER", function(assert) {
     fpreg(2, 0x12345678); // Source
     fpreg(3, 0x9abcdef0);
@@ -916,36 +899,295 @@ QUnit.module("Instructions", function(hooks) {
     });
   });
 
-  QUnit.test( "Load (FP long) LDR - bad register", function(assert) {
+  QUnit.skip("Compare (FP short) CER ", function(assert) {
+  });
+
+  QUnit.skip("Add N (FP short) ALR ", function(assert) {
+  });
+
+  QUnit.skip("Subtract N (FP short) SER ", function(assert) {
+  });
+
+  QUnit.skip("Multiply N (FP short) MER ", function(assert) {
+  });
+
+  QUnit.skip("Divide N (FP short) DER ", function(assert) {
+  });
+
+  QUnit.skip("Add U (FP short) AUR ", function(assert) {
+  });
+
+  QUnit.skip("Subtract U (FP short) SUR ", function(assert) {
+  });
+
+  QUnit.skip("Store STH ", function(assert) {
+  });
+
+  QUnit.skip("Load Address LA ", function(assert) {
+  });
+
+  QUnit.skip("Store Character STC", function(assert) {
+  });
+
+  QUnit.skip("Insert Character IC", function(assert) {
+  });
+
+  QUnit.skip("Execute EX", function(assert) {
+  });
+
+  QUnit.skip("Branch and Link BAL", function(assert) {
+  });
+
+  QUnit.skip("Branch on Count BCT", function(assert) {
+  });
+
+  QUnit.skip("Branch/Condition BC", function(assert) {
+  });
+
+  QUnit.test( "Load Halfword LH sign-extend", function(assert) {
+    reg(3, 0xffffffff);
+    reg(4, 0x1000);
+    reg(5, 0x200);
+    state['MS'][0x1b84] = 0x87654321;
+    execute([0x48345984], assert, 'LH 3,984(4,5)');
+    // LH 3, 984(4, 5): load R3 with mem[984+R4+R45)
+    assert.equal(reg(3), 0xffff8765, reg(3).toString(16)); // sign extension
+  });
+
+  QUnit.test( "Load Halfword LH sign-extend unaligned", function(assert) {
+    reg(3, 0xffffffff);
+    reg(4, 0x1000);
+    reg(5, 0x202);
+    state['MS'][0x1b84] = 0x07658321;
+    execute([0x48345984], assert, 'LH 3,984(4,5)');
+    // LH 3, 984(4, 5): load R3 with mem[984+R4+R45)
+    assert.equal(reg(3), 0xffff8321, reg(3).toString(16)); // sign extension
+  });
+
+  QUnit.test( "Load Halfword LH halfword aligned", function(assert) {
+    reg(3, 0xffffffff);
+    reg(4, 0x1000);
+    reg(5, 0x200);
+    state['MS'][0x1b84] = 0x87654321;
+    execute([0x48345986], assert, 'LH 3,986(4,5)');
+    // LH 3, 986(4, 5): load R3 with mem[986+R4+R45)
+    assert.equal(reg(3), 0x00004321, reg(3).toString(16));
+  });
+
+  QUnit.skip("Compare CH", function(assert) {
+  });
+
+  QUnit.skip("Add AH", function(assert) {
+  });
+
+  QUnit.skip("Subtract SH", function(assert) {
+  });
+
+  QUnit.skip("Multiply MH", function(assert) {
+  });
+
+  QUnit.test( "Convert to Binary CVB: princ op", function(assert) {
+    // Example from Principles of Operation p122
+    reg(5, 50); // Example seems to have addresses in decimal?
+    reg(6, 900);
+    state['MS'][1000] = 0x00000000;
+    state['MS'][1004] = 0x0025594f;
+    execute([0x4f756032], assert, 'CVB 7,32(5,6)');
+    assert.equal(reg(7), 25594); // Note: decimal, not hex
+  });
+
+  QUnit.test( "Convert to Binary CVB: bad sign", function(assert) {
+    reg(5, 50);
+    reg(6, 900);
+    state['MS'][1000] = 0x00000000;
+    state['MS'][1004] = 0x00255941; // 1 is not a valid sign
     assert.throws(function() {
-      execute([0x28410000], assert, 'LDR 4,1');
+      execute([0x4f756032], assert, 'CVB 7,32(5,6)');
     });
   });
 
-  QUnit.test( "Load (FP long) LDR - bad register", function(assert) {
+  // Needs DC0 to support correction properly
+  QUnit.skip( "Convert to Binary CVB: bad digit", function(assert) {
+    reg(5, 50);
+    reg(6, 900);
+    state['MS'][1000] = 0x00000000;
+    state['MS'][1004] = 0x002a594f;
     assert.throws(function() {
-      execute([0x28140000], assert, 'LDR 1,4');
+      execute([0x4f756032], assert, 'CVB 7,32(5,6)');
     });
   });
 
-  QUnit.test( "Load Complement (FP short) LCER", function(assert) {
-    fpreg(2, 0x12345678);
-    fpreg(3, 0x33333333);
-    fpreg(4, 0x22334455); // Destination
-    fpreg(5, 0x55555555);
-    execute([0x33420000], assert, 'LCER 4,2');
-    assert.equal(fpreg(2), 0x12345678);
-    assert.equal(fpreg(3), 0x33333333);
-    assert.equal(fpreg(4), 0x92345678);
-    assert.equal(fpreg(5), 0x55555555);
+  QUnit.test( "Convert to Binary CVB: doubleword unaligned", function(assert) {
+    reg(5, 0);
+    reg(6, 0);
+    state['MS'][1000] = 0x00000000;
+    state['MS'][1004] = 0x002a594f;
+    assert.throws(function() {
+      execute([0x4f756034], assert, 'CVB 7,34(5,6)');
+    });
+    assert.throws(function() {
+      execute([0x4f756032], assert, 'CVB 7,32(5,6)');
+    });
+    assert.throws(function() {
+      execute([0x4f756031], assert, 'CVB 7,31(5,6)');
+    });
   });
 
-  QUnit.test( "Load Complement (FP long) LCDR", function(assert) {
-    fpreg(0, 0x12345678);
-    fpreg(1, 0x9abcdef0);
-    execute([0x23400000], assert, 'LCDR 4,0');
-    assert.equal(fpreg(4), 0x92345678);
-    assert.equal(fpreg(5), 0x9abcdef0);
+  QUnit.test( "Convert to Binary CVB: overflow", function(assert) {
+    reg(5, 50);
+    reg(6, 900);
+    state['MS'][1000] = 0x00000214;
+    state['MS'][1004] = 0x8000000f;
+    assert.throws(function() {
+      execute([0x4f756032], assert, 'CVB 7,32(5,6)');
+    });
+    assert.equal(reg(7), 2148000000); // Note: decimal, not hex
+  });
+
+  QUnit.test( "Convert to Binary CVB: big overflow", function(assert) {
+    reg(5, 50);
+    reg(6, 900);
+    state['MS'][1000] = 0x12345678;
+    state['MS'][1004] = 0x4800000f;
+    assert.throws(function() {
+      execute([0x4f756032], assert, 'CVB 7,32(5,6)');
+    });
+  });
+
+  QUnit.test( "Convert to Binary CVB: large", function(assert) {
+    reg(5, 50);
+    reg(6, 900);
+    state['MS'][1000] = 0x00000021;
+    state['MS'][1004] = 0x2345678f;
+    execute([0x4f756032], assert, 'CVB 7,32(5,6)');
+    assert.equal(reg(7), 212345678); // Note: decimal, not hex
+  });
+
+  QUnit.test( "Convert to Binary CVB: negative", function(assert) {
+    reg(5, 50);
+    reg(6, 900);
+    state['MS'][1000] = 0x00000000;
+    state['MS'][1004] = 0x0025594d; // d is negative
+    execute([0x4f756032], assert, 'CVB 7,32(5,6)');
+    assert.equal(reg(7), (-25594) >>> 0); // Note: decimal, not hex
+  });
+
+  // QE900/073C, CLF 112
+  QUnit.test( "Convert to Binary CVB", function(assert) {
+    reg(5, 0x100);
+    reg(6, 0x200);
+    state['MS'][0x500] = 0;
+    state['MS'][0x504] = 0x1234567f; // Decimal 1234567+
+    execute([0x4f156200], assert, 'CVB 1,200(5,6)');
+    assert.equal(reg(1), 1234567); // Note: decimal, not hex
+  });
+
+  QUnit.test( "Convert to Binary CVB neg", function(assert) {
+    reg(5, 0x100);
+    reg(6, 0x200);
+    state['MS'][0x500] = 0;
+    state['MS'][0x504] = 0x1234567b; // Decimal 1234567-
+    execute([0x4f156200], assert, 'CVB 1,200(5,6)');
+    assert.equal(reg(1), (-1234567) >>> 0); // Note: decimal, not hex
+  });
+
+  QUnit.skip( "Convert to Decimal CVD", function(assert) {
+  });
+
+  QUnit.skip( "Store ST", function(assert) {
+  });
+
+  QUnit.skip( "AND N", function(assert) {
+  });
+
+  QUnit.skip( "Compare Logical CL", function(assert) {
+  });
+
+  QUnit.skip( "OR O", function(assert) {
+  });
+
+  QUnit.skip( "Exclusive OR X", function(assert) {
+  });
+
+  QUnit.skip( "Load L", function(assert) {
+  });
+
+  QUnit.skip( "Compare C", function(assert) {
+  });
+
+  QUnit.skip( "Compare C", function(assert) {
+  });
+
+  QUnit.skip("  Add A", function(assert) {
+  });
+
+  QUnit.skip("  Subtract C", function(assert) {
+  });
+
+  QUnit.skip("  Multiply M", function(assert) {
+  });
+
+  QUnit.skip("  Divide D", function(assert) {
+  });
+
+  QUnit.skip("  Add Logical AL", function(assert) {
+  });
+
+  QUnit.skip("  Subtracdt Logical SL", function(assert) {
+  });
+
+  QUnit.skip("  Store (FP long) STD", function(assert) {
+  });
+
+  QUnit.skip("  Load (FP long) LD", function(assert) {
+  });
+
+  QUnit.skip("  Compare (FP long) CD", function(assert) {
+  });
+
+  QUnit.skip("  Add N (FP long )AD", function(assert) {
+  });
+
+  QUnit.skip("  Subtract N (FP long) SD", function(assert) {
+  });
+
+  QUnit.skip("  Multiply (FP long) MD", function(assert) {
+  });
+
+  QUnit.skip("  Divide (FP long) DD", function(assert) {
+  });
+
+  QUnit.skip("  Add U (FP long) AW", function(assert) {
+  });
+
+  QUnit.skip("  Subtract U (FP long) SW", function(assert) {
+  });
+
+  QUnit.skip("  Store (FP short) STE", function(assert) {
+  });
+
+  QUnit.skip("  Load (FP short) LE", function(assert) {
+  });
+
+  QUnit.skip("  Compare (FP short) CE", function(assert) {
+  });
+
+  QUnit.skip("  Add N (FP short )AE", function(assert) {
+  });
+
+  QUnit.skip("  Subtract N (FP short) SE", function(assert) {
+  });
+
+  QUnit.skip("  Multiply (FP short) ME", function(assert) {
+  });
+
+  QUnit.skip("  Divide (FP short) DE", function(assert) {
+  });
+
+  QUnit.skip("  Add U (FP short) AU", function(assert) {
+  });
+
+  QUnit.skip("  Subtract U (FP short) SU", function(assert) {
   });
 
   QUnit.test( "Move MVI", function(assert) {
