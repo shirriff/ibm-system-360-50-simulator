@@ -99,6 +99,16 @@ function executeInstr(instr) {
       alert('Bailing out');
       return;
     }
+
+    // Check validity
+    var keys = Object.keys(state);
+    for (var i = 0; i < keys.length; i++) {
+      var key = keys[i];
+      if (typeof state[key] == 'number' && state[key] < 0) {
+        alert('Negative value for state ' + key + ' ' + state[key]);
+      }
+    }
+
     console.log('L: ' + state['L'].toString(16) +
       ', R: ' + state['R'].toString(16) +
       ', M: ' + state['M'].toString(16) +
@@ -1289,19 +1299,74 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.skip("Test Under Mask TM", function(assert) {
   });
 
-  QUnit.skip("Move MVI", function(assert) {
+  QUnit.test("Move immediate MVI", function(assert) {
+    reg(1, 0x123456);
+    state['CR'] = 2;
+    state['MS'][0x123464] = 0x12345678;
+    execute([0x92421010], assert, 'MVI 10(1),42');
+    assert.equal(state['MS'][0x123464], 0x12344278);
+    assert.equal(state['CR'], 2); // Unchanged
   });
 
-  QUnit.skip("NI", function(assert) {
+  QUnit.test("AND immediate NI", function(assert) {
+    reg(1, 0x123456);
+    state['MS'][0x123464] = 0x12345678;
+    execute([0x94f01010], assert, 'NI 10(1),f0');
+    assert.equal(state['MS'][0x123464], 0x12345078);
+    assert.equal(state['CR'], 1); // Not zero
   });
 
-  QUnit.skip("Compare Logical CLI", function(assert) {
+  QUnit.test("AND immediate NI - zero", function(assert) {
+    reg(1, 0x123456);
+    state['MS'][0x123464] = 0x12345678;
+    execute([0x94001010], assert, 'NI 10(1),0');
+    assert.equal(state['MS'][0x123464], 0x12340078);
+    assert.equal(state['CR'], 0); // Zero
   });
 
-  QUnit.skip("OR OI", function(assert) {
+  QUnit.test("Compare Logical immediate CLI - equal", function(assert) {
+    reg(1, 0x123456);
+    state['MS'][0x123464] = 0x12345678;
+    execute([0x95561010], assert, 'CLI 10(1),56');
+    assert.equal(state['CR'], 0); // Equal
   });
 
-  QUnit.skip("Exclusive OR XI", function(assert) {
+  QUnit.test("Compare Logical immediate CLI - low", function(assert) {
+    reg(1, 0x123456);
+    state['MS'][0x123464] = 0x12345678;
+    execute([0x95ff1010], assert, 'CLI 10(1),ff');
+    assert.equal(state['CR'], 1); // First operand is low
+  });
+
+  QUnit.test("Compare Logical immediate CLI - all", function(assert) {
+    for (var i = 0; i < 256; i++) {
+      reg(1, 0x123456);
+      state['MS'][0x123464] = 0x12345678;
+      execute([0x95001010 | (i << 16)], assert, 'CLI 10(1),' + i.toString(16));
+      if (i == 0x56) {
+        assert.equal(state['CR'], 0); // Equal
+      } else if (i < 0x56) {
+        assert.equal(state['CR'], 2); // First operand is high
+      } else {
+        assert.equal(state['CR'], 1); // First operand is low
+      }
+    }
+  });
+
+  QUnit.test("OR immediate OI", function(assert) {
+    reg(1, 2);
+    state['MS'][0x1000] = 0x12345678;
+    execute([0x96421fff], assert, 'OI fff(1),42');
+    assert.equal(state['MS'][0x1000], 0x12765678);
+    assert.equal(state['CR'], 1); // Not zero
+  });
+
+  QUnit.test("Exclusive OR immediate XI", function(assert) {
+    reg(0, 0x100); // Not used
+    state['MS'][0x120] = 0x12345678;
+    execute([0x970f0123], assert, 'XI 123(0),f');
+    assert.equal(state['MS'][0x120], 0x12345677);
+    assert.equal(state['CR'], 1); // Not zero
   });
 
   QUnit.skip("Start I/O SIO", function(assert) {

@@ -66,7 +66,7 @@ function adderLX(state, entry) {
       break;
     case 4: // LRL // L23→XG01 QT115/0189, QC301/003F
       // and L(16-13) to M(16-31) via BUS (0-15) LRL→MHL QE580/070b
-      xg = (state['L'] & 0xffff) << 16;
+      xg = ((state['L'] & 0xffff) << 16) >>> 0;
       break;
     case 5: // LWA
       alert('Unimplemented LX ' + entry['LX'] + " " + labels['LX'][entry['LX']]);
@@ -214,6 +214,10 @@ function adderT(state, entry) {
   var t;
 
   var xg = state['XG'];
+  if (entry['SS'] == 42) {
+    // Hack for SETCRLOG
+    xg = (xg & bsmask(state)) >>> 0;
+  }
   var y = state['Y'];
   var carry = state['CIN']
   t = xg + y + carry;
@@ -524,7 +528,7 @@ function store(state) {
 // Assume SAR
 function read(state) {
   // Add some bounds to memory? Or just implement the whole 16 MB?
-  state['SDR'] = state['MS'][state['SAR'] & ~3];
+  state['SDR'] = state['MS'][state['SAR'] & ~3] >>> 0;
   if (state['SDR'] == undefined) {
     state['SDR'] = 0xdeadbeef; // Random value in uninitialized memory.
   }
@@ -708,17 +712,8 @@ function adderLatch(state, entry) {
       break;
     case 29: // D*BS     // SDR bytes stats. Store bytes to D (i.e. main memory) where BS bit is high QK801:09b7
       read(state);
-      var mem = state['SDR'];
-      var d = 0;
-      for (var i = 0; i < 4; i++) {
-        if (state['BS'][i]) {
-          d |= state['T'] & bytemask[i];
-        } else {
-          d |= mem & bytemask[i];
-        }
-      }
-      d = d >>> 0; // convert to unsigned
-      state['SDR'] = d;
+      var mask = bsmask(state);
+      state['SDR'] = ((state['SDR'] & ~mask) | (state['T'] & mask)) >>> 0;
       msg = store(state);
       break;
     case 30: // L13 // QP206/0D95
@@ -851,14 +846,14 @@ function moverOp(state, entry, op) {
 
 // This is almost the same as moverWL, but uses right nibble instead of left, so not close enough to merge
 function moverWL(state, entry) {
-  state['WL'] = moverOp(state, entry, entry['UL']) >> 4;
+  state['WL'] = moverOp(state, entry, entry['UL']) >>> 4;
 }
 
 // Also sets W
 // This is almost the same as moverWL, but uses right nibble instead of left, so not close enough to merge
 function moverWR(state, entry) {
-  state['WR'] = moverOp(state, entry, entry['UR']) & 0xf;
-  state['W'] = (state['WL'] << 4) | state['WR'];
+  state['WR'] = (moverOp(state, entry, entry['UR']) & 0xf) >>> 0;
+  state['W'] = ((state['WL'] << 4) | state['WR']) >>> 0;
 }
 
 function storeMover(state, entry) {
@@ -1450,12 +1445,14 @@ function roar(state, entry) {
   state['ROAR'] = roar;
 }
 
+function bsmask(state) {
+  return ((state['BS'][0] ? 0xff000000 : 0) | (state['BS'][1] ? 0x00ff0000 : 0) |
+      (state['BS'][2] ? 0x0000ff00 : 0) | (state['BS'][3] ? 0x000000ff : 0)) >>> 0;
+}
+
 // Evaluate TZ*BS, i.e. T zero, masked by BS
 function tzbs(state) {
-  if ((state['BS'][0] == 0 || (state['T'] & 0xff000000) == 0)
-      && (state['BS'][1] == 0 || (state['T'] & 0x00ff0000) == 0)
-      && (state['BS'][2] == 0 || (state['T'] & 0x0000ff00) == 0)
-      && (state['BS'][3] == 0 || (state['T'] & 0x000000ff) == 0)) {
+  if ((state['T'] & bsmask(state)) == 0) {
     return 1;
   } else {
     return 0;
