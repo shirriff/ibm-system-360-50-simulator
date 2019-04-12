@@ -983,7 +983,15 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.skip("Execute EX", function(assert) {
   });
 
-  QUnit.skip("Branch and Link BAL", function(assert) {
+  QUnit.test( "Branch and link BAL", function(assert) {
+    reg(3, 0x12300000);
+    reg(4, 0x00045600);
+    state['ILC'] = 0; // overwritten with 2
+    state['CR'] = 3;
+    state['PROGMASK'] = 0xa;
+    execute([0x45134078], assert, 'BAL 1,78(3,4)');
+    assert.equal(reg(1), 0xba000404); // low-order PSW: ILC, CR, PROGMASK, return IAR
+    assert.equal(state['IAR'], 0x00345678);
   });
 
   QUnit.skip("Branch on Count BCT", function(assert) {
