@@ -245,20 +245,6 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(state['CR'], 0); // Zero
   });
 
-  QUnit.test( "Load Multiple LM", function(assert) {
-    reg(3, 0x10);
-    state['MS'][0x110] = 0x12345678;
-    state['MS'][0x114] = 0x11223344;
-    state['MS'][0x118] = 0x55667788;
-    state['MS'][0x11c] = 0x99aabbcc;
-    execute([0x98253100], assert, 'LM 2,5,100(3)');
-    // Load registers 2 through 5 starting at 0x110
-    assert.equal(reg(2), 0x12345678);
-    assert.equal(reg(3), 0x11223344);
-    assert.equal(reg(4), 0x55667788);
-    assert.equal(reg(5), 0x99aabbcc);
-  });
-
   QUnit.test( "AR add", function(assert) {
     reg(1, 0x12345678);
     reg(2, 0x00000005);
@@ -741,20 +727,6 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(state['CR'], 2); // Positive
   });
 
-  QUnit.skip( "Zero and Add ZAP", function(assert) {
-    state['MS'][0x100] = 0x2a000000; // 2+
-    state['MS'][0x200] = 0x3a000000; // 3+
-    execute([0xf8110100, 0x02000000], assert, 'ZAP 100(1, 0), 200(1, 0)');
-    assert.equal(state['MS'][0x100],  0x3a000000); // 3+
-  });
-
-  QUnit.skip( "Zero and Add ZAP offset", function(assert) {
-    state['MS'][0x100] = 0x02a00000; // 2+
-    state['MS'][0x200] = 0x0003a000; // 3+
-    execute([0xf8110100, 0x02000000], assert, 'ZAP 100(1, 0), 200(1, 0)');
-    assert.equal(state['MS'][0x101],  0x3a000000); // 3+
-  });
-
   QUnit.test( "Load Positive (FP long) LPDR", function(assert) {
     fpreg(0, 0x82345678);
     fpreg(1, 0x9abcdef0);
@@ -1184,83 +1156,167 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.skip( "Compare C", function(assert) {
   });
 
-  QUnit.skip("  Add A", function(assert) {
+  QUnit.skip("Add A", function(assert) {
   });
 
-  QUnit.skip("  Subtract C", function(assert) {
+  QUnit.skip("Subtract C", function(assert) {
   });
 
-  QUnit.skip("  Multiply M", function(assert) {
+  QUnit.skip("Multiply M", function(assert) {
   });
 
-  QUnit.skip("  Divide D", function(assert) {
+  QUnit.skip("Divide D", function(assert) {
   });
 
-  QUnit.skip("  Add Logical AL", function(assert) {
+  QUnit.skip("Add Logical AL", function(assert) {
   });
 
-  QUnit.skip("  Subtracdt Logical SL", function(assert) {
+  QUnit.skip("Subtracdt Logical SL", function(assert) {
   });
 
-  QUnit.skip("  Store (FP long) STD", function(assert) {
+  QUnit.skip("Store (FP long) STD", function(assert) {
   });
 
-  QUnit.skip("  Load (FP long) LD", function(assert) {
+  QUnit.skip("Load (FP long) LD", function(assert) {
   });
 
-  QUnit.skip("  Compare (FP long) CD", function(assert) {
+  QUnit.skip("Compare (FP long) CD", function(assert) {
   });
 
-  QUnit.skip("  Add N (FP long )AD", function(assert) {
+  QUnit.skip("Add N (FP long )AD", function(assert) {
   });
 
-  QUnit.skip("  Subtract N (FP long) SD", function(assert) {
+  QUnit.skip("Subtract N (FP long) SD", function(assert) {
   });
 
-  QUnit.skip("  Multiply (FP long) MD", function(assert) {
+  QUnit.skip("Multiply (FP long) MD", function(assert) {
   });
 
-  QUnit.skip("  Divide (FP long) DD", function(assert) {
+  QUnit.skip("Divide (FP long) DD", function(assert) {
   });
 
-  QUnit.skip("  Add U (FP long) AW", function(assert) {
+  QUnit.skip("Add U (FP long) AW", function(assert) {
   });
 
-  QUnit.skip("  Subtract U (FP long) SW", function(assert) {
+  QUnit.skip("Subtract U (FP long) SW", function(assert) {
   });
 
-  QUnit.skip("  Store (FP short) STE", function(assert) {
+  QUnit.skip("Store (FP short) STE", function(assert) {
   });
 
-  QUnit.skip("  Load (FP short) LE", function(assert) {
+  QUnit.skip("Load (FP short) LE", function(assert) {
   });
 
-  QUnit.skip("  Compare (FP short) CE", function(assert) {
+  QUnit.skip("Compare (FP short) CE", function(assert) {
   });
 
-  QUnit.skip("  Add N (FP short )AE", function(assert) {
+  QUnit.skip("Add N (FP short )AE", function(assert) {
   });
 
-  QUnit.skip("  Subtract N (FP short) SE", function(assert) {
+  QUnit.skip("Subtract N (FP short) SE", function(assert) {
   });
 
-  QUnit.skip("  Multiply (FP short) ME", function(assert) {
+  QUnit.skip("Multiply (FP short) ME", function(assert) {
   });
 
-  QUnit.skip("  Divide (FP short) DE", function(assert) {
+  QUnit.skip("Divide (FP short) DE", function(assert) {
   });
 
-  QUnit.skip("  Add U (FP short) AU", function(assert) {
+  QUnit.skip("Add U (FP short) AU", function(assert) {
   });
 
-  QUnit.skip("  Subtract U (FP short) SU", function(assert) {
+  QUnit.skip("Subtract U (FP short) SU", function(assert) {
   });
 
-  QUnit.test( "Move MVI", function(assert) {
-    state['MS'][0x100] = 0x11223344;
-    reg(1, 1);
-    execute([0x92551100], assert, 'MVI 100(1),55'); // Move byte 55 to location 101
-    assert.equal(state['MS'][0x100], 0x11553344);
+  QUnit.skip("Set System Mask SSM", function(assert) {
+  });
+
+  QUnit.skip("Load PSW LPSW", function(assert) {
+  });
+
+  QUnit.skip( "Diagnose", function(assert) {
+    reg(2, 3); // Counter
+    execute([0x83123456], assert, 'diagnose');
+  });
+
+  QUnit.skip("Write Direct WRD", function(assert) {
+  });
+
+  QUnit.skip("Read Direct RDD", function(assert) {
+  });
+
+  QUnit.skip("Branch/High BXH", function(assert) {
+  });
+
+  QUnit.skip("Brach/Low-Equal BXLE", function(assert) {
+  });
+
+  QUnit.test( "Shift Left Single SLL", function(assert) {
+    reg(1, 0x82345678);
+    reg(2, 0x12340003); // Shift 3 bits
+    execute([0x891f2100], assert, 'SLL 1,100(2)');
+    assert.equal(reg(1), 0x11a2b3c0);
+  });
+
+  QUnit.test( "Shift Right Single SRL", function(assert) {
+    reg(1, 0x82345678);
+    reg(2, 0x12340003); // Shift 3 bits
+    execute([0x881f2100], assert, 'SRL 1,100(2)');
+    assert.equal(reg(1), 0x82345678 >>> 3);
+  });
+
+  QUnit.skip("Shift Right S SRA", function(assert) {
+  });
+
+  QUnit.skip("Shift Left S SLA", function(assert) {
+  });
+
+  QUnit.skip("Shift Right DL SRDL", function(assert) {
+  });
+
+  QUnit.skip("Shift Left DL SLDL", function(assert) {
+  });
+
+  QUnit.skip("Shift Right D SRDA", function(assert) {
+  });
+
+  QUnit.skip("Shift Left D SLDA", function(assert) {
+  });
+
+  QUnit.skip("Store Multiple STM", function(assert) {
+  });
+
+  QUnit.skip("Test Under Mask TM", function(assert) {
+  });
+
+  QUnit.skip("Move MVI", function(assert) {
+  });
+
+  QUnit.skip("NI", function(assert) {
+  });
+
+  QUnit.skip("Compare Logical CLI", function(assert) {
+  });
+
+  QUnit.skip("OR OI", function(assert) {
+  });
+
+  QUnit.skip("Exclusive OR XI", function(assert) {
+  });
+
+  QUnit.skip("Start I/O SIO", function(assert) {
+  });
+
+  QUnit.skip("Test I/O TIO", function(assert) {
+  });
+
+  QUnit.skip("Halt I/O HIO", function(assert) {
+  });
+
+  QUnit.skip("Test Channel TCH", function(assert) {
+  });
+
+  QUnit.skip("Move Numeric MVN", function(assert) {
   });
 
   QUnit.test( "Move MVC", function(assert) {
@@ -1279,6 +1335,92 @@ QUnit.module("Instructions", function(hooks) {
     execute([0xd2011100, 0x01050000], assert, 'MVC 100(1,1),105(0)'); // Move 2 bytes from 105 to 102
     assert.equal(state['MS'][0x100], 0x1234cdef);
     assert.equal(state['MS'][0x104], 0xabcdef01); // Unchanged
+  });
+
+  QUnit.skip("Move Zone MVZ", function(assert) {
+  });
+
+  QUnit.skip("AND NC", function(assert) {
+  });
+
+  QUnit.skip("Compare Logical CLC", function(assert) {
+  });
+
+  QUnit.skip("OR OC", function(assert) {
+  });
+
+  QUnit.skip("Exclusive OR XC", function(assert) {
+  });
+
+  QUnit.skip("Translate TR", function(assert) {
+  });
+
+  QUnit.skip("Translate and Test TRT", function(assert) {
+  });
+
+  QUnit.skip("Edit ED", function(assert) {
+  });
+
+  QUnit.skip("Edit and Mark EDMK", function(assert) {
+  });
+
+  QUnit.skip("Move with Offset MVO", function(assert) {
+  });
+
+  QUnit.skip("Pack PACK", function(assert) {
+  });
+
+  QUnit.skip("Unpack UNPK", function(assert) {
+  });
+
+  QUnit.skip( "Zero and Add ZAP", function(assert) {
+    state['MS'][0x100] = 0x2a000000; // 2+
+    state['MS'][0x200] = 0x3a000000; // 3+
+    execute([0xf8110100, 0x02000000], assert, 'ZAP 100(1, 0), 200(1, 0)');
+    assert.equal(state['MS'][0x100],  0x3a000000); // 3+
+  });
+
+  QUnit.skip( "Zero and Add ZAP offset", function(assert) {
+    state['MS'][0x100] = 0x02a00000; // 2+
+    state['MS'][0x200] = 0x0003a000; // 3+
+    execute([0xf8110100, 0x02000000], assert, 'ZAP 100(1, 0), 200(1, 0)');
+    assert.equal(state['MS'][0x101],  0x3a000000); // 3+
+  });
+
+  QUnit.skip("Compare CP", function(assert) {
+  });
+
+  QUnit.skip("Add AP", function(assert) {
+  });
+
+  QUnit.skip("Subtract SP", function(assert) {
+  });
+
+  QUnit.skip("Multiply MP", function(assert) {
+  });
+
+  QUnit.skip("Divide DP", function(assert) {
+  });
+
+  QUnit.test( "Load Multiple LM", function(assert) {
+    reg(3, 0x10);
+    state['MS'][0x110] = 0x12345678;
+    state['MS'][0x114] = 0x11223344;
+    state['MS'][0x118] = 0x55667788;
+    state['MS'][0x11c] = 0x99aabbcc;
+    execute([0x98253100], assert, 'LM 2,5,100(3)');
+    // Load registers 2 through 5 starting at 0x110
+    assert.equal(reg(2), 0x12345678);
+    assert.equal(reg(3), 0x11223344);
+    assert.equal(reg(4), 0x55667788);
+    assert.equal(reg(5), 0x99aabbcc);
+  });
+
+  QUnit.test( "Move MVI", function(assert) {
+    state['MS'][0x100] = 0x11223344;
+    reg(1, 1);
+    execute([0x92551100], assert, 'MVI 100(1),55'); // Move byte 55 to location 101
+    assert.equal(state['MS'][0x100], 0x11553344);
   });
 
   QUnit.test( "Compare Logical CLR", function(assert) {
@@ -1374,20 +1516,6 @@ QUnit.module("Instructions", function(hooks) {
         assert.equal(reg(1), 0, 'Shift by ' + i);
       }
     }
-  });
-
-  QUnit.test( "Shift Left Single SLL", function(assert) {
-    reg(1, 0x82345678);
-    reg(2, 0x12340003); // Shift 3 bits
-    execute([0x891f2100], assert, 'SLL 1,100(2)');
-    assert.equal(reg(1), 0x11a2b3c0);
-  });
-
-  QUnit.test( "Shift Right Single SRL", function(assert) {
-    reg(1, 0x82345678);
-    reg(2, 0x12340003); // Shift 3 bits
-    execute([0x881f2100], assert, 'SRL 1,100(2)');
-    assert.equal(reg(1), 0x82345678 >>> 3);
   });
 
   QUnit.test( "Branch on condition BCR", function(assert) {
@@ -1536,11 +1664,6 @@ QUnit.module("Instructions", function(hooks) {
     execute([0x93002100], assert, 'TS 100(2)');
     assert.equal(state['CR'], 1); // Set
     assert.equal(state['MS'][0x100], 0x8385ff89);
-  });
-
-  QUnit.skip( "Diagnose", function(assert) {
-    reg(2, 3); // Counter
-    execute([0x83123456], assert, 'diagnose');
   });
 });
 </script>
