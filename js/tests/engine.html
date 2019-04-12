@@ -1929,11 +1929,15 @@ QUnit.test("bb 13 WR=0", function(assert) {
 
 // 14 unused
 
+// Inexplicably, T13=0 seems to mean T bits 8 to 31 are 0 (i.e. fraction in a float)
 QUnit.test( "bb 15 (T13=0)", function(assert) {
-  var state = {'ROAR': 0x49c, 'T': 0x00040000};
+  var state = {'ROAR': 0x49c, 'T': 0x00800000};
   roarBB(state, {'BB': 15});
   assert.equal(state['ROAR'], 0x49c | 0);
-  state = {'ROAR': 0x49c, 'T': 0x00030000};
+  state = {'ROAR': 0x49c, 'T': 0x00000001};
+  roarBB(state, {'BB': 15});
+  assert.equal(state['ROAR'], 0x49c | 0);
+  state = {'ROAR': 0x49c, 'T': 0xff000000};
   roarBB(state, {'BB': 15});
   assert.equal(state['ROAR'], 0x49c | 1);
 });

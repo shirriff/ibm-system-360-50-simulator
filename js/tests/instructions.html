@@ -854,13 +854,79 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.skip( "Subtract U (FP) SWR", function(assert) {
   });
 
-  QUnit.skip( "Load Positive (FP short) LPER", function(assert) {
+  QUnit.test( "Load Positive (FP short) LPER", function(assert) {
+    fpreg(0, 0x82345678);
+    fpreg(1, 0x33333333);
+    fpreg(4, 0x22334455); // Destination
+    fpreg(5, 0x55555555);
+    execute([0x30400000], assert, 'LPER 4,0');
+    assert.equal(fpreg(0), 0x82345678);
+    assert.equal(fpreg(1), 0x33333333);
+    assert.equal(fpreg(4), 0x02345678);
+    assert.equal(fpreg(5), 0x55555555);
   });
 
-  QUnit.skip( "Load Negative (FP short) LNER", function(assert) {
+  QUnit.test( "Load Negative (FP short) LNER -neg", function(assert) {
+    fpreg(0, 0x82345678);
+    fpreg(1, 0x33333333);
+    fpreg(4, 0x22334455); // Destination
+    fpreg(5, 0x55555555);
+    execute([0x31400000], assert, 'LNER 4,0');
+    assert.equal(fpreg(0), 0x82345678);
+    assert.equal(fpreg(1), 0x33333333);
+    assert.equal(fpreg(4), 0x82345678);
+    assert.equal(fpreg(5), 0x55555555);
   });
 
-  QUnit.skip( "Load and Test (FP short) LTER", function(assert) {
+  QUnit.test( "Load Negative (FP short) LNER -pos", function(assert) {
+    fpreg(0, 0x12345678);
+    fpreg(1, 0x33333333);
+    fpreg(4, 0x22334455); // Destination
+    fpreg(5, 0x55555555);
+    execute([0x31400000], assert, 'LNER 4,0');
+    assert.equal(fpreg(0), 0x12345678);
+    assert.equal(fpreg(1), 0x33333333);
+    assert.equal(fpreg(4), 0x92345678);
+    assert.equal(fpreg(5), 0x55555555);
+  });
+
+  QUnit.test( "Load and Test (FP short) LTER - zero", function(assert) {
+    fpreg(0, 0x12000000);
+    fpreg(1, 0x33333333);
+    fpreg(4, 0x22334455); // Destination
+    fpreg(5, 0x55555555);
+    execute([0x32400000], assert, 'LTER 4,0');
+    assert.equal(fpreg(0), 0x12000000);
+    assert.equal(fpreg(1), 0x33333333);
+    assert.equal(fpreg(4), 0x12000000);
+    assert.equal(fpreg(5), 0x55555555);
+    assert.equal(state['CR'], 0); // Zero
+  });
+
+  QUnit.test( "Load and Test (FP short) LTER - negative", function(assert) {
+    fpreg(0, 0xc2345678);
+    fpreg(1, 0x33333333);
+    fpreg(4, 0x22334455); // Destination
+    fpreg(5, 0x55555555);
+    execute([0x32400000], assert, 'LTER 4,0');
+    assert.equal(fpreg(0), 0xc2345678);
+    assert.equal(fpreg(1), 0x33333333);
+    assert.equal(fpreg(4), 0xc2345678);
+    assert.equal(fpreg(5), 0x55555555);
+    assert.equal(state['CR'], 1); // Negative
+  });
+
+  QUnit.test( "Load and Test (FP short) LTER - positive", function(assert) {
+    fpreg(0, 0x00000001);
+    fpreg(1, 0x33333333);
+    fpreg(4, 0x22334455); // Destination
+    fpreg(5, 0x55555555);
+    execute([0x32400000], assert, 'LTER 4,0');
+    assert.equal(fpreg(0), 0x00000001);
+    assert.equal(fpreg(1), 0x33333333);
+    assert.equal(fpreg(4), 0x00000001);
+    assert.equal(fpreg(5), 0x55555555);
+    assert.equal(state['CR'], 2); // Positive
   });
 
   QUnit.test( "Load Complement (FP short) LCER", function(assert) {

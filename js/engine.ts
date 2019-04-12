@@ -1790,7 +1790,9 @@ function roarBB(state, entry) {
       alert('Unexpected BB ' + entry['BB'] + " " + labels['AB'][entry['AB']]);
       break;
     case 15: // T13=0
-      if ((state['T'] & (1<<31-13)) == 0) {
+      // Inexplicably, T13=0 seems to mean T bits 8 to 31 are 0 (i.e. fraction in a float)
+      // See CROS manual Figure 27 and floating point code.
+      if ((state['T'] & 0x00ffffff) == 0) {
         roar |= 1;
       }
       break;
