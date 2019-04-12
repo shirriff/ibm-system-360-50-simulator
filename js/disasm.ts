@@ -65,14 +65,14 @@ function disasm(hw) {
     }
   } else if (type == 3) {
     // SS
-    var l1 = (hw[0] >> 4) & 0xf;
-    var l2 = hw[0] & 0xf;
+    var l1 = ((hw[0] >> 4) & 0xf) + 1;
+    var l2 = (hw[0] & 0xf) + 1;
     var b1 = (hw[1] >> 12) & 0xf;
     var d1 = (hw[1] & 0x0fff).toString(16);
     var b2 = (hw[2] >> 12) & 0xf;
     var d2 = (hw[2] & 0x0fff).toString(16);
     if ([0xd1, 0xd2, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7, 0xdc, 0xdd, 0xde, 0xdf].includes(op)) { // MVC, etc with single 16-bit L field
-      var l = (hw[0] & 0xff).toString(16);
+      var l = ((hw[0] & 0xff) + 1).toString(16);
       return instructions[op][0].padEnd(6, ' ') + d1 + '(' + l + ',' + b1 + '),' + d2 + '(' + b2 + ')';
     }
     return instructions[op][0].padEnd(6, ' ') + d1 + '(' + l1 + ',' + b1 + '),' + d2 + '(' + l2 + ',' + b2 + ')';

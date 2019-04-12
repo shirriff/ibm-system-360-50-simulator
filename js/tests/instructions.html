@@ -1406,7 +1406,7 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.test( "Move MVC", function(assert) {
     state['MS'][0x100] = 0x12345678;
     state['MS'][0x200] = 0x11223344;
-    execute([0xd2030100, 0x02000000], assert, 'MVC 100(3,0),200(0)'); // Move 4 bytes from 200 to 100
+    execute([0xd2030100, 0x02000000], assert, 'MVC 100(4,0),200(0)'); // Move 4 bytes from 200 to 100
     assert.equal(state['MS'][0x100], 0x11223344);
     assert.equal(state['MS'][0x200], 0x11223344); // Unchanged
   });
@@ -1416,7 +1416,7 @@ QUnit.module("Instructions", function(hooks) {
     state['MS'][0x104] = 0xabcdef01;
     reg(1, 2);
     reg(2, 0);
-    execute([0xd2011100, 0x01050000], assert, 'MVC 100(1,1),105(0)'); // Move 2 bytes from 105 to 102
+    execute([0xd2011100, 0x01050000], assert, 'MVC 100(2,1),105(0)'); // Move 2 bytes from 105 to 102
     assert.equal(state['MS'][0x100], 0x1234cdef);
     assert.equal(state['MS'][0x104], 0xabcdef01); // Unchanged
   });
@@ -1427,9 +1427,24 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.skip("AND NC", function(assert) {
   });
 
-  QUnit.skip("Compare Logical CLC", function(assert) {
+  QUnit.test( "Compare Logical CLC - equal", function(assert) {
+    reg(1, 0x100);
+    reg(2, 0x100);
+    state['MS'][0x200] = 0x12345633;
+    state['MS'][0x300] = 0x12345644;
+    execute([0xd5021100, 0x22000000], assert, 'CLC 100(3,1),200(2)');
+    assert.equal(state['CR'], 0); // equal
   });
 
+  QUnit.test( "Compare Logical CLC", function(assert) {
+    reg(1, 0x100);
+    reg(2, 0x100);
+    state['MS'][0x200] = 0x12345678;
+    state['MS'][0x300] = 0x12345678;
+    // 123456 vs 345678 because of offset
+    execute([0xd5021100, 0x22010000], assert, 'CLC 100(3,1),201(2)');
+    assert.equal(state['CR'], 1); // first operand is low
+  });
   QUnit.skip("OR OC", function(assert) {
   });
 
@@ -1538,24 +1553,6 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(state['CR'], 0); // equal
   });
 
-  QUnit.test( "Compare Logical CLC - equal", function(assert) {
-    reg(1, 0x100);
-    reg(2, 0x100);
-    state['MS'][0x200] = 0x12345633;
-    state['MS'][0x300] = 0x12345644;
-    execute([0xd5021100, 0x22000000], assert, 'CLC 100(2,1),200(2)');
-    assert.equal(state['CR'], 0); // equal
-  });
-
-  QUnit.test( "Compare Logical CLC", function(assert) {
-    reg(1, 0x100);
-    reg(2, 0x100);
-    state['MS'][0x200] = 0x12345678;
-    state['MS'][0x300] = 0x12345678;
-    // 123456 vs 345678 because of offset
-    execute([0xd5021100, 0x22010000], assert, 'CLC 100(2,1),201(2)');
-    assert.equal(state['CR'], 1); // first operand is low
-  });
 
   QUnit.test( "And NR", function(assert) {
     reg(1, 0xff00ff00);
