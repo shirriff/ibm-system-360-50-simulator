@@ -708,7 +708,7 @@ function adderLatch(state, entry) {
       break;
     case 28: // M,SP // QT200/0193
       state['M'] = t;
-      state['SP'] = t & 0xf;
+      state['KEY'] = (t & 0x00f00000) >>> 20; // Set bits 8-11 (SP) QJ200:0735
       break;
     case 29: // D*BS     // SDR bytes stats. Store bytes to D (i.e. main memory) where BS bit is high QK801:09b7
       read(state);
@@ -767,7 +767,7 @@ function moverU(state, entry) {
       alert('Unexpected LU ' + entry['LU'] + " " + labels['LU'][entry['LU']]);
       break;
   }
-  state['U'] = u >>> 0;
+  state['U'] = u & 0xff;
 }
 
   // Mover input right side → V
@@ -788,7 +788,7 @@ function moverV(state, entry) {
       alert('Unexpected MV ' + entry['MV'] + " " + labels['MV'][entry['MV']]);
       break;
   }
-  state['V'] = v >>> 0;
+  state['V'] = v & 0xff;
 }
 
 // Apply mover operation to both halves to generate an 8-bit value.
@@ -1140,7 +1140,6 @@ function stat(state, entry) {
       break;
     case 4: // E→SCANCTL // Performs scan operation controlled by E. See 50Maint p32. 0101 clears SCPS,SCFS QU100. 0011 ignore IO error. 0000 test for all ones, step bin trigger. 0001 sets SCPS,SCFS.
       // 1000 moves SDR(0-2) to CTR (clock advance counter) STR(5) to PSS (progressive scan stat), SDR(6) to SST (supervisory stat) QY110
-      alert('Unimplemented SCANTRL ' + entry['CE'] + " " + labels['SS'][entry['SS']]);
       switch (entry['CE']) {
         case 1:
           state['SCPS'] = 1;
@@ -1153,6 +1152,11 @@ function stat(state, entry) {
           state['SCPS'] = 0;
           state['SCFS'] = 0;
           break;
+        case 8: // QY110:F8B, CLF213
+          // SDR(0-2) to clock advance counters
+          // SDR 5 to the progressive scan stat (PSS)
+          // SDR 6 to the supervisory stat (SS)
+          alert('Unimplemented SCANTRL ' + entry['CE'] + " " + labels['SS'][entry['SS']]);
         case 12:
           // Turn off log trig (for machine check traps)
           // QT310:010e
@@ -1885,7 +1889,14 @@ function roarZN(state, entry) {
     case 0:
       // Use ZF function
       switch (entry['ZF']) {
-        case 2: // D→ROAR,SCAN // 50Maint p39 QY110. SDR(19-30) to ROAR, SDR(1-3) to scan counter, STR(4) to enable storage stat, SDR(5) to PSS, SDR(6) to supervis stat, SDR(7) to mode (IOMODE). (Unclear if IOMODE set by this or separately).
+        case 2: // D→ROAR,SCAN // 50Maint p39
+          // CLF 213, QY110:F49
+          // SDR(1-3) to scan counter
+          // SDR(4) to enable storage stat
+          // SDR(5) to PSS
+          // SDR(6) to supervis stat
+          // SDR(7) to IOMODE (I/O mode stat)
+          // SDR (19-30) to ROAR
           alert('Unimplemented ZF ' + entry['ZF'] + " " + labels['ZF'][entry['ZF']]);
           break;
         case 6: // M(03)→ROAR

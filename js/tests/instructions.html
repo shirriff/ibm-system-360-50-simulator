@@ -141,8 +141,7 @@ function executeInstr(instr) {
       throw('TRAP');
       return;
     }
-    if ([0x218, 0x195, 0x19c, 0x1b0, 0x1b4, 0x1b8, 0x1b1, 0x1b3, 0x1b5, 0x1b7, 0x10e, 0x10f, 
-        0x751, 0x731, 0x733, 0x735].includes(state['ROAR'])) {
+    if ([0x218, 0x195, 0x19c, 0x1b0, 0x1b4, 0x1b8, 0x1b1, 0x1b3, 0x1b5, 0x1b7, 0x10e, 0x10f].includes(state['ROAR'])) {
       console.log('********** Exception ' + state['ROAR'].toString(16) + ' **********');
       console.log('IAR: ' + state['IAR']);
       throw('Exception');
@@ -1241,7 +1240,17 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.skip("Set System Mask SSM", function(assert) {
   });
 
-  QUnit.skip("Load PSW LPSW", function(assert) {
+  QUnit.test("Load PSW LPSW", function(assert) {
+    state['AMWP'] = 0; // Privileged
+    reg(3, 0x10);
+    state['MS'][0x110] = 0x12345678;
+    state['MS'][0x114] = 0x9a000000; // Branch to 000000
+    execute([0x82003100], assert, 'LPSW 100(3)');
+    assert.equal(state['SYSMASK'], 0x12);
+    assert.equal(state['KEY'], 0x3);
+    assert.equal(state['AMWP'], 0x4);
+    assert.equal(state['CR'], 0x1);
+    assert.equal(state['PROGMASK'], 0xa);
   });
 
   QUnit.skip( "Diagnose", function(assert) {
@@ -1258,7 +1267,7 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.skip("Branch/High BXH", function(assert) {
   });
 
-  QUnit.skip("Brach/Low-Equal BXLE", function(assert) {
+  QUnit.skip("Branch/Low-Equal BXLE", function(assert) {
   });
 
   QUnit.test( "Shift Left Single SLL", function(assert) {

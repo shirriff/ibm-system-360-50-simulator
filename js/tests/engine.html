@@ -797,7 +797,7 @@ QUnit.test( "latch tr 28 M,SP", function(assert) {
   var state = {'T': 0x12345678};
   adderLatch(state, {'TR': 28});
   assert.equal(state['M'], 0x12345678);
-  assert.equal(state['SP'], 0x8);
+  assert.equal(state['KEY'], 0x3);
 });
 
 QUnit.test( "latch29 D*BS", function(assert) {
