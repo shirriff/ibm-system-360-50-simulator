@@ -124,6 +124,7 @@ function executeInstr(instr) {
       ', MD: ' + state['MD'].toString(16) +
       ', G1: ' + state['G1'].toString(16) +
       ', G2: ' + state['G2'].toString(16) +
+      ', IAR: ' + state['IAR'].toString(16) +
       ', LSAR: ' + state['LSAR'].toString(16) +
       ', SGNS: ' + state['LSGNS'] + ' ' + state['RSGNS'] +
       ', S: ' + state['S'] +
@@ -1244,13 +1245,14 @@ QUnit.module("Instructions", function(hooks) {
     state['AMWP'] = 0; // Privileged
     reg(3, 0x10);
     state['MS'][0x110] = 0x12345678;
-    state['MS'][0x114] = 0x9a000000; // Branch to 000000
+    state['MS'][0x114] = 0x9a123450; // Branch to 123450
     execute([0x82003100], assert, 'LPSW 100(3)');
     assert.equal(state['SYSMASK'], 0x12);
     assert.equal(state['KEY'], 0x3);
     assert.equal(state['AMWP'], 0x4);
     assert.equal(state['CR'], 0x1);
     assert.equal(state['PROGMASK'], 0xa);
+    assert.equal(state['IAR'], 0x123450);
   });
 
   QUnit.skip( "Diagnose", function(assert) {
@@ -1596,14 +1598,14 @@ QUnit.module("Instructions", function(hooks) {
     reg(1, 0x12345678); // Branch destination
     state['CR'] = 0;
     execute([0x07810000], assert, 'BCR 8,1');
-    assert.equal(state['IAR'], 0x12345678);
+    assert.equal(state['IAR'], 0x00345678);
   });
 
   QUnit.test( "Branch on condition BCR, always taken", function(assert) {
     reg(1, 0x12345678); // Branch destination
     state['CR'] = 0;
     execute([0x07f10000], assert, 'BCR 15,1'); // always
-    assert.equal(state['IAR'], 0x12345678);
+    assert.equal(state['IAR'], 0x00345678);
   });
 
   QUnit.test( "Branch on condition BCR, not taken", function(assert) {
@@ -1620,7 +1622,7 @@ QUnit.module("Instructions", function(hooks) {
     reg(2, 0x12345678); // Branch destination
     execute([0x05120000], assert, 'BALR 1,2');
     assert.equal(reg(1), 0x7a000402); // low-order PSW: ILC, CR, PROGMASK, return IAR
-    assert.equal(state['IAR'], 0x12345678);
+    assert.equal(state['IAR'], 0x00345678);
   });
 
   QUnit.test( "Branch and link BALR -not taken", function(assert) {
@@ -1637,7 +1639,7 @@ QUnit.module("Instructions", function(hooks) {
     reg(2, 0x12345678); // Branch destination
     execute([0x06120000], assert, 'BCTR 1,2');
     assert.equal(reg(1), 2);
-    assert.equal(state['IAR'], 0x12345678);
+    assert.equal(state['IAR'], 0x00345678);
   });
 
   QUnit.test( "Branch on Count BCTR - taken, negative", function(assert) {
@@ -1645,7 +1647,7 @@ QUnit.module("Instructions", function(hooks) {
     reg(2, 0x12345678); // Branch destination
     execute([0x06120000], assert, 'BCTR 1,2');
     assert.equal(reg(1), 0xffffffff);
-    assert.equal(state['IAR'], 0x12345678);
+    assert.equal(state['IAR'], 0x00345678);
   });
 
   QUnit.test( "Branch on Count BCTR - not taken", function(assert) {

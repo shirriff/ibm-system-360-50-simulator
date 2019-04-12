@@ -663,7 +663,7 @@ function adderLatch(state, entry) {
       state['H'] = t;
       break;
     case 21: // IA
-      state['IAR'] = t;
+      state['IAR'] = t & 0x00ffffff; // 24-bit IAR
       break;
     case 22: // FOLD→D // under D // 50Maint p32. FLT reg bit 0 specifies fold; maps 36 bit registers (i.e. with 4 parity) onto two 32 bit storage. Accesses folded part of SCAN QY410
       alert('Unimplemented TR ' + entry['TR'] + " " + labels['TR'][entry['TR']]);

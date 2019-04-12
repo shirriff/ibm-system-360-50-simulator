@@ -701,7 +701,7 @@ QUnit.test( "latch tr 20 H", function(assert) {
 QUnit.test( "latch tr 21 IA", function(assert) {
   var state = {'T': 0x12345678};
   adderLatch(state, {'TR': 21});
-  assert.equal(state['IAR'], 0x12345678);
+  assert.equal(state['IAR'], 0x00345678);
 });
 
 QUnit.skip( "latch tr 22 FOLD→D", function(assert) {
