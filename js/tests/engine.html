@@ -336,28 +336,28 @@ QUnit.test( "adderT ad 7 BC8", function(assert) {
 QUnit.test( "adderT ad 8 DHL", function(assert) {
   var state = {'XG': 0xdddddddd, 'AUX': 0, 'Y': 0, 'CIN': 0};
   adderT(state, {'AD': 8});
-  assert.equal(state['L'], 0, 'No correction');
+  assert.equal(state['pending']['L'], 0, 'No correction');
 
   state = {'XG': 0xdddddd2d, 'AUX': 0, 'Y': 0, 'CIN': 0};
   adderT(state, {'AD': 8});
-  assert.equal(state['L'], 0x6, 'Low-order');
+  assert.equal(state['pending']['L'], 0x6, 'Low-order');
 
   state = {'XG': 0x22222222, 'AUX': 0, 'Y': 0, 'CIN': 0};
   adderT(state, {'AD': 8});
-  assert.equal(state['L'], 0x06666666, 'All correction');
+  assert.equal(state['pending']['L'], 0x06666666, 'All correction');
 
   var state = {'XG': 0xdddddddd, 'AUX': 1, 'Y': 0, 'CIN': 0};
   adderT(state, {'AD': 8});
-  assert.equal(state['L'], 0x60000000, 'Aux correction');
+  assert.equal(state['pending']['L'], 0x60000000, 'Aux correction');
   assert.equal(state['AUX'], 0);
 
   state = {'XG': 0xdddddd22, 'AUX': 1, 'Y': 0, 'CIN': 0};
   adderT(state, {'AD': 8});
-  assert.equal(state['L'], 0x60000006, 'Low-order, aux');
+  assert.equal(state['pending']['L'], 0x60000006, 'Low-order, aux');
 
   state = {'XG': 0x22222220, 'AUX': 1, 'Y': 0, 'CIN': 0};
   adderT(state, {'AD': 8});
-  assert.equal(state['L'], 0x66666666, 'All correction, AUX');
+  assert.equal(state['pending']['L'], 0x66666666, 'All correction, AUX');
 });
 
 QUnit.test( "adder ad 9 DC0", function(assert) {
@@ -372,27 +372,27 @@ QUnit.skip( "adder ad 10 DDC0", function(assert) {
 QUnit.test( "adderT ad 11 DHH", function(assert) {
   var state = {'XG': 0xdddddddd, 'AUX': 0, 'Y': 0, 'CIN': 0};
   adderT(state, {'AD': 11});
-  assert.equal(state['L'], 0, 'No correction');
+  assert.equal(state['pending']['L'], 0, 'No correction');
   assert.equal(state['AUX'], 0);
 
   state = {'XG': 0xddddddd2, 'AUX': 0, 'Y': 0, 'CIN': 0};
   adderT(state, {'AD': 11});
-  assert.equal(state['L'], 0, 'No correction, aux');
+  assert.equal(state['pending']['L'], 0, 'No correction, aux');
   assert.equal(state['AUX'], 1);
 
   state = {'XG': 0x22222220, 'AUX': 0, 'Y': 0, 'CIN': 0};
   adderT(state, {'AD': 11});
-  assert.equal(state['L'], 0x06666666, 'All correction');
+  assert.equal(state['pending']['L'], 0x06666666, 'All correction');
   assert.equal(state['AUX'], 0);
 
   state = {'XG': 0xffffffff, 'AUX': 0, 'Y': 0, 'CIN': 0};
   adderT(state, {'AD': 11});
-  assert.equal(state['L'], 0x06666666, 'All correction, AUX');
+  assert.equal(state['pending']['L'], 0x06666666, 'All correction, AUX');
   assert.equal(state['AUX'], 1);
 
   state = {'XG': 0x22002002, 'AUX': 0, 'Y': 0, 'CIN': 0};
   adderT(state, {'AD': 11});
-  assert.equal(state['L'], 0x06600600, 'Some correction, AUX');
+  assert.equal(state['pending']['L'], 0x06600600, 'Some correction, AUX');
   assert.equal(state['AUX'], 1);
 });
 
@@ -2216,7 +2216,7 @@ QUnit.test( "stat SS 5 L,RSGNS", function(assert) {
     } else if (i == 0xb || i == 0xd) {
       stat(state, {'SS': 5});
       assert.equal(state['LSGNS'], 1, 'LSGNS ' + i, i); // Negative
-      assert.equal(state['RSGNS'], 0, 'RSGNS ' + i, i); // Cleared
+      assert.equal(state['RSGNS'], 1, 'RSGNS ' + i, i); // Flipped
     } else {
       stat(state, {'SS': 5});
       assert.equal(state['LSGNS'], 0, 'LSGNS ' + i, i); // Positive
@@ -2266,7 +2266,7 @@ QUnit.test( "stat11 S03ΩE,0→BS", function(assert) {
   var state = {'S': [1, 0, 0, 1, 0, 0, 0, 1], 'BS': []};
   stat(state, {'CE': 3, 'SS': 11});
   assert.deepEqual(state['S'], [1, 0, 1, 1, 0, 0, 0, 1]);
-  assert.deepEqual(state['BS'], [0, 0, 0, 0]);
+  assert.deepEqual(state['pending']['BS'], [0, 0, 0, 0]);
 });
 
 // Unclear exactly which half of the word X0 and B0 come from
@@ -2366,29 +2366,29 @@ QUnit.skip( "stat SS 17: (T=0)→S3", function(assert) {
 QUnit.test( "stat18: E→BS,T30→S3", function(assert) {
   var state = {'S': [0, 0, 1, 1, 0, 0, 0, 1], 'T': 0, 'BS': [0, 0, 0, 0]};
   stat(state, {'CE': 6, 'SS': 18});
-  assert.deepEqual(state['BS'], [0, 1, 1, 0]);
+  assert.deepEqual(state['pending']['BS'], [0, 1, 1, 0]);
   assert.deepEqual(state['S'], [0, 0, 1, 0, 0, 0, 0, 1]);
 
   state = {'S': [0, 0, 1, 1, 0, 0, 0, 1], 'T': 2, 'BS': [0, 0, 0, 0]};
   stat(state, {'CE': 15, 'SS': 18});
-  assert.deepEqual(state['BS'], [1, 1, 1, 1]);
+  assert.deepEqual(state['pending']['BS'], [1, 1, 1, 1]);
   assert.deepEqual(state['S'], [0, 0, 1, 1, 0, 0, 0, 1]);
 });
 
 QUnit.test( "stat SS 19: E→BS", function(assert) {
   var state = {'BS': [0, 0, 0, 0]};
   stat(state, {'CE': 15, 'SS': 19});
-  assert.deepEqual(state['BS'], [1, 1, 1, 1]);
+  assert.deepEqual(state['pending']['BS'], [1, 1, 1, 1]);
 
   var state = {'BS': [0, 0, 0, 0]};
   stat(state, {'CE': 3, 'SS': 19});
-  assert.deepEqual(state['BS'], [0, 0, 1, 1]);
+  assert.deepEqual(state['pending']['BS'], [0, 0, 1, 1]);
 });
 
 QUnit.test( "stat20: 1→BS*MB", function(assert) {
   var state = {'BS': [0, 0, 0, 0,], 'MB': 2};
   stat(state, {'SS': 20});
-  assert.equal(state['BS'][2], 1);
+  assert.equal(state['pending']['BS'][2], 1);
 });
 
 // SS 21: unused

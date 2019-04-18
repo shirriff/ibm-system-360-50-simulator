@@ -213,6 +213,7 @@ function adderDG(state, entry) {
 // Adder AD functions, mostly setting carry flag
 function adderT(state, entry) {
   var t;
+  state['pending'] = state['pending'] || []; // Initialize if not present
 
   var xg = state['XG'];
   if (entry['SS'] == 42) {
@@ -605,15 +606,6 @@ function syl1(state) {
 
 function adderLatch(state, entry) {
 
-// Store any pending entries
-  var pending = state['pending'];
-  if (pending) {
-    var keys = Object.keys(pending);
-    for (var i = 0; i < keys.length; i++) {
-      state[keys[i]] = state['pending'][keys[i]];
-    }
-    delete state['pending'];
-  }
   // Store carry CAR to CSTAT
   state['CSTAT'] = state['CAR']
 
@@ -767,6 +759,16 @@ function adderLatch(state, entry) {
       alert('Unexpected TR ' + entry['TR'] + " " + labels['TR'][entry['TR']]);
       break;
   } // TR
+
+  // Store any pending entries
+  var pending = state['pending'];
+  if (pending) {
+    var keys = Object.keys(pending);
+    for (var i = 0; i < keys.length; i++) {
+      state[keys[i]] = state['pending'][keys[i]];
+    }
+    delete state['pending'];
+  }
   return msg;
 }
 
@@ -1178,6 +1180,7 @@ function iar(state, entry) {
 }
 
 function stat(state, entry) {
+  state['pending'] = state['pending'] || []; // Initialize if needed
   // C: Stat setting and misc control
   switch (entry['SS']) {
     case 0: // default;
@@ -1235,7 +1238,7 @@ function stat(state, entry) {
         state['LSGNS'] = 0;
       } else if ([0xb, 0xd].includes(state['U'] & 0xf)) { // Negative
         state['LSGNS'] = 1;
-        state['RSGNS'] = 0;
+        state['RSGNS'] = state['RSGNS'] ^ 1;
       } else {
         trapInvalidDecimal(state);
       }
@@ -1277,7 +1280,7 @@ function stat(state, entry) {
       state['S'][3] |= (e >> 0) & 1;
       break;
     case 11: // S03ΩE,0→BS
-      state['BS'] = [0, 0, 0, 0];
+      state['pending']['BS'] = [0, 0, 0, 0];
       var e = entry['CE'];
       state['S'][0] |= (e >> 3) & 1;
       state['S'][1] |= (e >> 2) & 1;
@@ -1309,18 +1312,21 @@ function stat(state, entry) {
       break;
     case 18: // E→BS,T30→S3
       // 01C6
+      state['pending']['BS'] = [];
       for (var i = 0; i < 4; i++) {
-        state['BS'][i] = (entry['CE'] & (1<<(3-i))) ? 1 : 0;
+        state['pending']['BS'][i] = (entry['CE'] & (1<<(3-i))) ? 1 : 0;
       }
       state['S'][3] = (state['T'] >> 1) & 1; // T(30)→S3, branch address halfword indicator
       break;
     case 19: // E→BS             // Store E to byte stats (i.e. byte mask)
+      state['pending']['BS'] = [];
       for (var i = 0; i < 4; i++) {
-        state['BS'][i] = (entry['CE'] & (1<<(3-i))) ? 1 : 0;
+        state['pending']['BS'][i] = (entry['CE'] & (1<<(3-i))) ? 1 : 0;
       }
       break;
     case 20: // 1→BS*MB
-      state['BS'][state['MB']] = 1;
+      state['pending']['BS'] = state['BS'].slice(); // Copy
+      state['pending']['BS'][state['MB']] = 1;
       break;
     case 21:
       alert('Unexpected SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
