@@ -201,8 +201,9 @@ function adderDG(state, entry) {
       break;
   }
 
-  if (entry['AD'] == 9) { // DC0
-    carry = state['S'][1]; // See QE900, 0848
+  if (entry['AD'] == 9 || entry['AD'] == 12) { // DC0 or DCBS
+    // OR because carry can also be set by HOT1
+    carry |= state['S'][1]; // See QE900, 0848
   }
 
   state['CIN'] = carry;
@@ -264,18 +265,32 @@ function adderT(state, entry) {
           corr |= 6 << ((i - 1) * 4);
         }
       }
-      state['L'] = corr;
+      state['pending']['L'] = corr;
       state['AUX'] = 0; // Clearing AUX seems like a sensible thing to do, but unclear if this is correct.
       break;
     case 9: // DC0
       state['S'][1] = c0;
-      state['L'] = 0x66666666; // Decimal correction to L. Needs to be based on something, to catch bad digits.
+      // Correction digit is 6 unless there was a carry out of the position.
+      // The idea is to add numbers excess-6. A carry out indicates the decimal sum was 10 (i.e. 16 with excess-6), so we
+      // want to keep that carry for BCD. Otherwise, subtract 6 to get back to the right value.
+      // e.g. 8 + 5 + excess 6 = 0x13 which is BCD for 8 + 5 = 13
+      // But 3 + 5 + excess 6 = 0x0e. No carry, so subtract 6 to get back to 0x08, the right BCD value for 3+5.
+      // As a special case, if there are no carries, the value is 0x66666666.
+      state['pending']['L'] =
+        ((carries & 0x00000010) ? 0 : 0x00000006) |
+        ((carries & 0x00000100) ? 0 : 0x00000060) |
+        ((carries & 0x00001000) ? 0 : 0x00000600) |
+        ((carries & 0x00010000) ? 0 : 0x00006000) |
+        ((carries & 0x00100000) ? 0 : 0x00060000) |
+        ((carries & 0x01000000) ? 0 : 0x00600000) |
+        ((carries & 0x10000000) ? 0 : 0x06000000) |
+        (c0 ? 0 : 0x60000000);
       break;
     case 10: // DDC0
       alert('Unimplemented AD ' + entry['AD'] + " " + labels['AD'][entry['AD']]);
       break;
     case 11: // DHH Decimal half correction high: QE900:83d
-      // The idea is if a BCD number is divided by 2, need to subtract 6 from 0x10 before dividing, to get 0x5.
+      // The idea is if a BCD number is divided by 2, subtract 6 first if you have from 0x10, so it will represent 10 not 0x10.
       // Specifically, if the 1's bit is set in a BCD digit, subtract 6 from the lower digit.
       // However, this test is done one shift earlier, so the 2's bit is tested.
       // This correction value is put into L.
@@ -286,11 +301,33 @@ function adderT(state, entry) {
           corr |= 6 << ((i - 1) * 4);
         }
       }
-      state['L'] = corr;
+      state['pending']['L'] = corr;
       state['AUX'] = (t & 2) ? 1 : 0;
       break;
     case 12: // DCBS
-      alert('Unimplemented AD ' + entry['AD'] + " " + labels['AD'][entry['AD']]);
+      // QS114:C8A: S1→adder, carry*BS→S1, dec add corr→L
+      var c16 = (carries & 0x00010000) ? 1 : 0;
+      var c24 = (carries & 0x00000100) ? 1 : 0;
+      if (state['BS'][0]) {
+        state['S'][1] = c0;
+      } else if (state['BS'][1]) {
+        state['S'][1] = c8;
+      } else if (state['BS'][2]) {
+        state['S'][1] = c16;
+      } else if (state['BS'][3]) {
+        state['S'][1] = c24;
+      } else {
+        state['S'][1] = 0;
+      }
+      state['pending']['L'] =
+        ((carries & 0x00000010) ? 0 : 0x00000006) |
+        ((carries & 0x00000100) ? 0 : 0x00000060) |
+        ((carries & 0x00001000) ? 0 : 0x00000600) |
+        ((carries & 0x00010000) ? 0 : 0x00006000) |
+        ((carries & 0x00100000) ? 0 : 0x00060000) |
+        ((carries & 0x01000000) ? 0 : 0x00600000) |
+        ((carries & 0x10000000) ? 0 : 0x06000000) |
+        (c0 ? 0 : 0x60000000);
       break;
     case 13:
     case 14:
@@ -594,6 +631,10 @@ function adderLatch(state, entry) {
       break;
     case 3: // M
       state['M'] = t;
+      if (entry['WM'] == 1 || entry['WM'] == 12) {
+        // Inconveniently, W→MMB can merge together T and W on the bus, so this hack here.  QS010:C22: W→MMB must override 0→M
+        storeMover(state, entry);
+      }
       break;
     case 4: // D
       state['SDR'] = t;
@@ -792,6 +833,7 @@ function moverV(state, entry) {
 }
 
 // Apply mover operation to both halves to generate an 8-bit value.
+// That way this code can be shared for WL and WR.
 // The appropriate half will need to be used.
 // Returns value
 function moverOp(state, entry, op) {
@@ -800,7 +842,26 @@ function moverOp(state, entry, op) {
   var w = 0; // 8-bit value
   switch (op) {
     case 0: // E // E→WL in d29
-      w = (entry['CE'] << 4) | entry['CE'];
+      var emit = entry['CE'];
+      if (entry['WM'] == 12) { // W→MMB(E?)
+        // Inconvenient operation to do here: W→MMB(E?) modifies the emit value if the ASCII bit is on.
+        // Emit is 1100 (BCD +), 1101 (BCD -), 1111 (zone) for EBCDIC.
+        // ASCII mods: 1010 (+), 1011 (-), 0101 (zone).
+        // It's unclear why these values are used.
+        // See PrincOps page 36
+        if (state['AMWP'] & 8) {
+          if (emit == 0xc) {
+            emit = 0xa;
+          } else if (emit == 0xd) {
+            emit = 0xb;
+          } else if (emit == 0xf) {
+            emit = 0x5;
+          } else {
+            alert('Unexpected emit for W→MMB(E?): ' + emit);
+          }
+        }
+      }
+      w = (emit << 4) | emit;
       break;
     case 1: // U   default: pass undefined through
       w = u;
@@ -862,6 +923,7 @@ function storeMover(state, entry) {
     case 0: // no action
       break;
     case 1: // W→MMB     // W to M indexed by MB
+    case 12: // W→MMB(E?) // d29
       state['M'] = ((state['M'] & ~bytemask[state['MB']]) | (state['W'] << byteshift[state['MB']])) >>> 0;
       break;
     case 2: // W67→MB    // W bits 6-7 to MB
@@ -897,9 +959,6 @@ function storeMover(state, entry) {
     case 11: // W→G
       state['G1'] = state['WL'];
       state['G2'] = state['WR'];
-      break;
-    case 12: // W→MMB(E?) // d29
-      alert('Unimplemented WM ' + entry['WM'] + " " + labels['WM'][entry['WM']]);
       break;
     case 13: // WL→MD
       state['MD'] = state['WL'];
@@ -1182,8 +1241,15 @@ function stat(state, entry) {
       }
       break;
     case 6: // IVD/RSGNS
-    // QS200:E26: if -, clear RSGN. If not sign, trap.
-      alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
+      // QS200:E26: if -, clear RSGN. If not sign, trap.
+      // QS110:C2E Invert R sign stat if sign is minus.
+      if ([0xa, 0xc, 0xe, 0xf].includes(state['U'] & 0xf)) { // Positive
+        // No action
+      } else if ([0xb, 0xd].includes(state['U'] & 0xf)) { // Negative
+        state['RSGNS'] ^= 1; // Invert
+      } else {
+        trapInvalidDecimal(state);
+      }
       break;
     case 7: // EDITSGN
       alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);

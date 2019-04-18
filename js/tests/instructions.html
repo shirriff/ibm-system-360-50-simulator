@@ -721,19 +721,54 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(state['CR'], 1); // Negative
   });
 
-  QUnit.skip( "Add Decimal AD", function(assert) {
-    // add 12+ and 34+
-    // Stored as 12a 34f (plus is a, c, e, f; minus is b, d)
-    state['MS'][0x100] = 0x0012a000;
-    state['MS'][0x104] = 0x034f0000;
-    // 
-    reg(1, 2);
-    reg(2, 5);
-    // First operand at 0x102, length 2. Second operand at 105, length 2.
-    execute([0xfa221100, 0x21000000], assert, 'AD 100(2,1),100(2,2)');
-    assert.equal(reg(4), 0x12344455);
-    assert.equal(state['MS'][0x100],  0x046f0000); // result is 46
-    assert.equal(state['MS'][0x104],  0x034f0000); // Unchanged
+  QUnit.test( "Add Decimal AP - small", function(assert) {
+    state['MS'][0x100] = 0x0000002c; // 2+
+    state['MS'][0x200] = 0x00003c00; // 3+
+    execute([0xfa000103, 0x02020000], assert, 'AP 103(1,0),202(1,0)');
+    assert.equal(state['MS'][0x100],  0x0000005c); // 5+
+    assert.equal(state['CR'], 2); // Positive
+  });
+
+  QUnit.test( "Add Decimal AP - 1 byte", function(assert) {
+    state['MS'][0x100] = 0x2888011c; // 2888011+
+    state['MS'][0x200] = 0x1112292c; // 1112292+
+    execute([0xfa330100, 0x02000000], assert, 'AP 100(4,0),200(4,0)');
+    assert.equal(state['MS'][0x100],  0x4000303c); // 4000303+
+    assert.equal(state['CR'], 2); // Positive
+  });
+
+  QUnit.test( "Add Decimal AP - 1 byte - small", function(assert) {
+    state['MS'][0x100] = 0x0000002c; // 2+
+    state['MS'][0x200] = 0x0000003c; // 3+
+    execute([0xfa330100, 0x02000000], assert, 'AP 100(4,0),200(4,0)');
+    assert.equal(state['MS'][0x100],  0x0000005c); // 5+
+    assert.equal(state['CR'], 2); // Positive
+  });
+
+  QUnit.test( "Add Decimal AP - offset", function(assert) {
+    state['MS'][0x100] = 0x0043212c; // 2+
+    state['MS'][0x200] = 0x0023413c; // 3+
+    execute([0xfa220101, 0x02010000], assert, 'AP 101(3,0),201(3,0)');
+    assert.equal(state['MS'][0x100],  0x0066625c); // 5+
+    assert.equal(state['CR'], 2); // Positive
+  });
+
+  QUnit.test( "Add Decimal AP - no offset", function(assert) {
+    state['MS'][0x100] = 0x0043212c; // 2+
+    state['MS'][0x200] = 0x0023413c; // 3+
+    execute([0xfa330100, 0x02000000], assert, 'AP 100(4,0),200(4,0)');
+    assert.equal(state['MS'][0x100],  0x0066625c); // 5+
+    assert.equal(state['CR'], 2); // Positive
+  });
+
+  QUnit.test( "Add Decimal AP", function(assert) {
+    // Example from Princ Ops p136.2
+    reg(12, 0x00002000);
+    reg(13, 0x000004fd);
+    state['MS'][0x2000] = 0x38460d00; // 38460-
+    state['MS'][0x500] = 0x0112345c; // 112345+
+    execute([0xfa23c000, 0xd0030000], assert, 'AP 0(3,12),3(4,13)');
+    assert.equal(state['MS'][0x2000],  0x73885c00); // 73885+
     assert.equal(state['CR'], 2); // Positive
   });
 
@@ -1153,22 +1188,50 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.skip( "Store ST", function(assert) {
   });
 
-  QUnit.skip( "AND N", function(assert) {
+  QUnit.test( "AND N", function(assert) {
+    reg(1, 0x11223344);
+    reg(2, 0x200);
+    reg(3, 0x300);
+    state['MS'][0x954] = 0x12345678;
+    execute([0x54123454], assert, 'N 1,454(2,3)');
+    assert.equal(reg(1), (0x11223344 & 0x12345678) >>> 0);
+    assert.equal(state['CR'], 1); // Not zero
   });
 
   QUnit.skip( "Compare Logical CL", function(assert) {
   });
 
-  QUnit.skip( "OR O", function(assert) {
+  QUnit.test( "OR O", function(assert) {
+    reg(1, 0x11223344);
+    reg(2, 0x200);
+    reg(3, 0x300);
+    state['MS'][0x954] = 0x12345678;
+    execute([0x56123454], assert, 'O 1,454(2,3)');
+    assert.equal(reg(1), (0x11223344 | 0x12345678) >>> 0);
+    assert.equal(state['CR'], 1); // Not zero
   });
 
-  QUnit.skip( "Exclusive OR X", function(assert) {
+  QUnit.test( "Exclusive OR X", function(assert) {
+    reg(1, 0x11223344);
+    reg(2, 0x200);
+    reg(3, 0x300);
+    state['MS'][0x954] = 0x12345678;
+    execute([0x57123454], assert, 'X 1,454(2,3)');
+    assert.equal(reg(1), (0x11223344 ^ 0x12345678) >>> 0);
+    assert.equal(state['CR'], 1); // Not zero
+  });
+
+  QUnit.test( "Exclusive OR X - zero", function(assert) {
+    reg(1, 0x11223344);
+    reg(2, 0x200);
+    reg(3, 0x300);
+    state['MS'][0x954] = 0x11223344;
+    execute([0x57123454], assert, 'X 1,454(2,3)');
+    assert.equal(reg(1), 0);
+    assert.equal(state['CR'], 0); // Zero
   });
 
   QUnit.skip( "Load L", function(assert) {
-  });
-
-  QUnit.skip( "Compare C", function(assert) {
   });
 
   QUnit.skip( "Compare C", function(assert) {

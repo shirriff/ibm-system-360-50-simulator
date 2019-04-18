@@ -2225,7 +2225,19 @@ QUnit.test( "stat SS 5 L,RSGNS", function(assert) {
   }
 });
 
-QUnit.skip( "stat SS 6 IVD/RSGNS", function(assert) {
+QUnit.test( "stat SS 6 IVD/RSGNS", function(assert) {
+  for (var i = 0; i < 16; i++) {
+    var state = {'RSGNS': 1, 'U': 0x40 | i}; // 4 is arbitrary
+    if (i < 10) {
+      assert.throws(function() { stat(state, {'SS': 6})});
+    } else if (i == 0xb || i == 0xd) {
+      stat(state, {'SS': 6});
+      assert.equal(state['RSGNS'], 0, i); // Cleared
+    } else {
+      stat(state, {'SS': 6});
+      assert.equal(state['RSGNS'], 1, i); // Unchanged
+    }
+  }
 });
 
 QUnit.skip( "stat SS 7 EDITSGN", function(assert) {
