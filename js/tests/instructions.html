@@ -1912,6 +1912,33 @@ QUnit.module("Instructions", function(hooks) {
   });
 
   QUnit.skip("Edit ED", function(assert) {
+    // Princ Ops page 149
+    state['MS'][0x1200] = 0x0257426c;
+    state['MS'][0x1000] = 0x4020206b;
+    state['MS'][0x1004] = 0x2020214b;
+    state['MS'][0x1008] = 0x202040c3;
+    state['MS'][0x100c] = 0xd9ffffff;
+    execute([0xde0cc000, 0xc200aaaa], assert, 'ED 0(13,12),200(12)');
+    assert,equal(state['MS'][0x1000], 0x4040f26b);
+    assert,equal(state['MS'][0x1004], 0xf5f7f44b);
+    assert,equal(state['MS'][0x1008], 0xf2f64040);
+    assert,equal(state['MS'][0x1008], 0x40ffffff);
+    assert.equal(state['CR'], 2); // Result greater than zero
+  });
+
+  QUnit.skip("Edit ED 2", function(assert) {
+    // Princ Ops page 149
+    state['MS'][0x1200] = 0x0000026d;
+    state['MS'][0x1000] = 0x4020206b;
+    state['MS'][0x1004] = 0x2020214b;
+    state['MS'][0x1008] = 0x202040c3;
+    state['MS'][0x100c] = 0xd9ffffff;
+    execute([0xde0cc000, 0xc200aaaa], assert, 'ED 0(13,12),200(12)');
+    assert,equal(state['MS'][0x1000], 0x40404040);
+    assert,equal(state['MS'][0x1004], 0x4040404b);
+    assert,equal(state['MS'][0x1008], 0xf2f640c3);
+    assert,equal(state['MS'][0x1008], 0xd9ffffff);
+    assert.equal(state['CR'], 1); // Result less than zero
   });
 
   QUnit.skip("Edit and Mark EDMK", function(assert) {
@@ -1926,18 +1953,32 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.skip("Unpack UNPK", function(assert) {
   });
 
-  QUnit.skip( "Zero and Add ZAP", function(assert) {
+  QUnit.test( "Zero and Add ZAP", function(assert) {
+    // Princ Ops p150
+    reg(9, 0x00004000);
+    state['MS'][0x4000] = 0x12345678;
+    state['MS'][0x4004] = 0x90aaaaaa;
+    state['MS'][0x4500] = 0x38460dff;
+    execute([0xf8429000, 0x95000000], assert, 'ZAP 0(5, 9), 500(3, 9)');
+    assert.equal(state['MS'][0x4000],  0x00003846);
+    assert.equal(state['MS'][0x4004],  0x0daaaaaa);
+    assert.equal(state['CR'], 1); // Result less than zero
+  });
+
+  QUnit.test( "Zero and Add ZAP -short ", function(assert) {
+    state['AMWP'] = 8; // ASCII
     state['MS'][0x100] = 0x2a000000; // 2+
     state['MS'][0x200] = 0x3a000000; // 3+
-    execute([0xf8110100, 0x02000000], assert, 'ZAP 100(1, 0), 200(1, 0)');
+    execute([0xf8000100, 0x02000000], assert, 'ZAP 100(1, 0), 200(1, 0)');
     assert.equal(state['MS'][0x100],  0x3a000000); // 3+
   });
 
-  QUnit.skip( "Zero and Add ZAP offset", function(assert) {
-    state['MS'][0x100] = 0x02a00000; // 2+
-    state['MS'][0x200] = 0x0003a000; // 3+
-    execute([0xf8110100, 0x02000000], assert, 'ZAP 100(1, 0), 200(1, 0)');
-    assert.equal(state['MS'][0x101],  0x3a000000); // 3+
+  QUnit.test( "Zero and Add ZAP offset", function(assert) {
+    state['AMWP'] = 8; // ASCII
+    state['MS'][0x100] = 0x002a0000; // 2+
+    state['MS'][0x200] = 0x00003a00; // 3+
+    execute([0xf8000101, 0x02020000], assert, 'ZAP 101(1, 0), 202(1, 0)');
+    assert.equal(state['MS'][0x100],  0x003a0000); // 3+
   });
 
   QUnit.skip("Compare CP", function(assert) {
