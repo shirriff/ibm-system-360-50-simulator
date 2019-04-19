@@ -72,7 +72,7 @@ function disasm(hw) {
     var b2 = (hw[2] >> 12) & 0xf;
     var d2 = (hw[2] & 0x0fff).toString(16);
     if ([0xd1, 0xd2, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7, 0xdc, 0xdd, 0xde, 0xdf].includes(op)) { // MVC, etc with single 16-bit L field
-      var l = ((hw[0] & 0xff) + 1).toString(16);
+      var l = (hw[0] & 0xff) + 1;
       return instructions[op][0].padEnd(6, ' ') + d1 + '(' + l + ',' + b1 + '),' + d2 + '(' + b2 + ')';
     }
     return instructions[op][0].padEnd(6, ' ') + d1 + '(' + l1 + ',' + b1 + '),' + d2 + '(' + l2 + ',' + b2 + ')';
