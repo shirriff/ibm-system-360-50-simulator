@@ -1135,27 +1135,27 @@ QUnit.test( "localStorage", function(assert) {
   var state = {'LS': ls};
   var entry = {'WS': 1 /* WS1 -> LSA */, 'SF': 2 /* LS->R->LS */};
   localStorageLSAR(state, {'WS': 1 /* WS1 -> LSA */});
-  assert.equal(state['LSAR'], 49); // LSFN = 0b110001
+  assert.equal(state['LSAR'], 17); // LSFN = 0b110001
   localStore(state, {'SF': 2 /* LS->R->LS */});
-  assert.equal(state['R'], 49);
+  assert.equal(state['R'], 17);
 });
 
 QUnit.test("localStorage LSAR 1 WS1→LSA", function(assert) {
   var state = {};
   localStorageLSAR(state, {'WS': 1});
-  assert.equal(state['LSAR'], 0x31);
+  assert.equal(state['LSAR'], 0x11);
 });
 
 QUnit.test("localStorage LSAR 2 WS2→LSA", function(assert) {
   var state = {};
   localStorageLSAR(state, {'WS': 2});
-  assert.equal(state['LSAR'], 0x32);
+  assert.equal(state['LSAR'], 0x12);
 });
 
 QUnit.test("localStorage LSAR 3 WS,E→LSA", function(assert) {
   var state = {};
   localStorageLSAR(state, {'WS': 3, 'CE': 5});
-  assert.equal(state['LSAR'], 0x35);
+  assert.equal(state['LSAR'], 0x15);
 });
 
 QUnit.test("localStorage LSAR 4 FN,J→LSA", function(assert) {
@@ -1201,9 +1201,9 @@ QUnit.test( "localStorage SF=1 LS→L,R→LS", function(assert) {
 });
 
 QUnit.test( "localStorage WS=2 WS2→LSA, SF=2 LS→R→LS", function(assert) {
-  var state = {'LS':{0x32: 0x12345678}, 'R': 0x11223344};
+  var state = {'LS':{0x12: 0x12345678}, 'R': 0x11223344};
   localStorageLSAR(state, {'WS': 2}); // WS2→LSA
-  assert.equal(state['LSAR'], 0x32);
+  assert.equal(state['LSAR'], 0x12);
   localStore(state, {'SF': 2});
   assert.equal(state['R'], 0x12345678);
 });
@@ -1236,15 +1236,15 @@ QUnit.test( "ls sf 0 R→LS", function(assert) {
   localStorageLSAR(state, {'CE': 4, 'WS': 3 /* WS,E→LSA */});
   // Update LS
   localStore(state, {'SF': 0 /* R→LS */});
-  assert.equal(state['LS'][0x34], 0x12345678);
+  assert.equal(state['LS'][0x14], 0x12345678);
 });
 
 QUnit.test( "ls3  WS,E→LSA", function(assert) {
   var state = {'LS': [], 'R': 0x12345678};
   localStorageLSAR(state, {'CE': 5, 'WS': 3 /* WS,E→LSA */});
-  assert.equal(state['LSAR'], 0x35); // LSFN = 0b110101
+  assert.equal(state['LSAR'], 0x15); // LSFN = 0b110101
   localStore(state, {'SF': 0 /* R→LS */});
-  assert.equal(state['LS'][0x35], 0x12345678);
+  assert.equal(state['LS'][0x15], 0x12345678);
 });
 
 QUnit.test( "roar1", function(assert) {

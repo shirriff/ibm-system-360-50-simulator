@@ -1112,7 +1112,17 @@ QUnit.module("Instructions", function(hooks) {
     });
   });
 
-  QUnit.skip("Load Address LA ", function(assert) {
+  QUnit.test("Load Address LA", function(assert) {
+    // From Princ Ops p147
+    execute([0x41100800], assert, 'LA 1,800(0,0)');
+    assert.equal(reg(1), 2048);
+  });
+
+  QUnit.test("Load Address LA b", function(assert) {
+    // From Princ Ops p147
+    reg(5, 0x00123456);
+    execute([0x4150500a], assert, 'LA 5,a(0,5)');
+    assert.equal(reg(5), 0x00123460);
   });
 
   QUnit.skip("Store Character STC", function(assert) {
@@ -1625,6 +1635,10 @@ QUnit.module("Instructions", function(hooks) {
   });
 
   QUnit.skip("Shift Left S SLA", function(assert) {
+    // From Princ Ops p143
+    reg(2, 0x007f0a72);
+    execute([0x8b2f0008], assert, 'SLA 2,8(0)'); // Shift left 8
+    assert.equal(reg(2), 0x7f0a7200);
   });
 
   QUnit.skip("Shift Right Double SRDL", function(assert) {
@@ -1657,12 +1671,42 @@ QUnit.module("Instructions", function(hooks) {
   });
 
   QUnit.skip("Shift Left D SLDA", function(assert) {
+    // From Princ Ops p143
+    reg(2, 0x007f0a72);
+    reg(3, 0xfedcba98);
+    execute([0x8f2f001f], assert, 'SLDA 2,1f(0)');
+    assert.equal(reg(2), 0x7f6e5d4c);
+    assert.equal(reg(3), 0x00000000);
   });
 
-  QUnit.skip("Store Multiple STM", function(assert) {
+  QUnit.test("Store Multiple STM", function(assert) {
+    // From Princ Ops p143
+    reg(14, 0x00002563);
+    reg(15, 0x00012736);
+    reg(0, 0x12430062);
+    reg(1, 0x73261257);
+    reg(6, 0x00004000);
+    execute([0x90e16050], assert, 'STM 14,1,50(6)');
+    assert.equal(state['MS'][0x4050], 0x00002563);
+    assert.equal(state['MS'][0x4054], 0x00012736);
+    assert.equal(state['MS'][0x4058], 0x12430062);
+    assert.equal(state['MS'][0x405c], 0x73261257);
   });
 
-  QUnit.skip("Test Under Mask TM", function(assert) {
+  QUnit.test("Test Under Mask TM", function(assert) {
+    // From Princ Ops p147
+    state['MS'][0x9998] = 0xaafbaaaa;
+    reg(9, 0x00009990);
+    execute([0x91c39009], assert, 'TM 9(9),c3');
+    assert.equal(state['CR'], 3);
+  });
+
+  QUnit.test("Test Under Mask TM b", function(assert) {
+    // From Princ Ops p147
+    state['MS'][0x9998] = 0xaa3caaaa;
+    reg(9, 0x00009990);
+    execute([0x91c39009], assert, 'TM 9(9),c3');
+    assert.equal(state['CR'], 0);
   });
 
   QUnit.test("Move immediate MVI", function(assert) {
@@ -1747,7 +1791,20 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.skip("Test Channel TCH", function(assert) {
   });
 
-  QUnit.skip("Move Numeric MVN", function(assert) {
+  QUnit.test("Move Numeric MVN", function(assert) {
+    // From Princ Ops p144
+    state['MS'][0x7090] = 0xc1c2c3c4;
+    state['MS'][0x7094] = 0xc5c6c7c8;
+    state['MS'][0x7040] = 0xaaf0f1f2;
+    state['MS'][0x7044] = 0xf3f4f5f6;
+    state['MS'][0x7048] = 0xf7f8aaaa;
+    reg(14, 0x00007090);
+    reg(15, 0x00007040);
+    execute([0xd103f001, 0xe000aaaa], assert, 'MVN 1(4,15),0(14)');
+    assert.equal(state['MS'][0x7090], 0xc1c2c3c4);
+    assert.equal(state['MS'][0x7040], 0xaaf1f2f3);
+    assert.equal(state['MS'][0x7044], 0xf4f4f5f6);
+    assert.equal(state['MS'][0x7048], 0xf7f8aaaa);
   });
 
   QUnit.test( "Move MVC", function(assert) {
@@ -1799,16 +1856,59 @@ QUnit.module("Instructions", function(hooks) {
     execute([0xd5021100, 0x22010000], assert, 'CLC 100(3,1),201(2)');
     assert.equal(state['CR'], 1); // first operand is low
   });
+
   QUnit.skip("OR OC", function(assert) {
   });
 
-  QUnit.skip("Exclusive OR XC", function(assert) {
+  QUnit.test("Exclusive OR XC", function(assert) {
+    // From Princ Ops p146
+    state['MS'][0x358] = 0x00001790;
+    state['MS'][0x360] = 0x00001401;
+    reg(7, 0x00000358);
+    execute([0xd7037000, 0x7008aaaa], assert, 'XC 0(4,7),8(7)');
+    assert.equal(state['MS'][0x358], 0x00000391);
+    execute([0xd7037008, 0x7000aaaa], assert, 'XC 8(4,7),0(7)');
+    assert.equal(state['MS'][0x360], 0x00001790);
+    execute([0xd7037000, 0x7008aaaa], assert, 'XC 0(4,7),8(7)');
+    assert.equal(state['MS'][0x358], 0x00001401);
   });
 
   QUnit.skip("Translate TR", function(assert) {
+    // Based on Princ Ops p147
+    for (var i = 0; i < 256; i += 4) {
+      // Table increments each char by 3. Don't worry about wrapping.
+      state['MS'][0x1000 + i] = (((i + 3) << 24) | ((i + 4) << 16) | ((i + 5) << 8) | (i + 6)) >>> 0;
+    }
+    state['MS'][0x2100] = 0x12345678;
+    state['MS'][0x2104] = 0xabcdef01;
+    state['MS'][0x2108] = 0x11223344;
+    state['MS'][0x210c] = 0x55667788;
+    state['MS'][0x2110] = 0x99aabbcc;
+    reg(12, 0x00002100);
+    reg(15, 0x00001000);
+    execute([0xdc13c000, 0xf000aaaa], assert, 'TR 0(14,12),0(15)');
+    assert,equal(state['MS'][0x2100], 0x1537597b);
+    assert,equal(state['MS'][0x2104], 0xaed0f204);
+    assert,equal(state['MS'][0x2108], 0x14253647);
+    assert,equal(state['MS'][0x210c], 0x58697a8b);
+    assert,equal(state['MS'][0x2110], 0x9cadbecf);
   });
 
   QUnit.skip("Translate and Test TRT", function(assert) {
+    // Based on Princ Ops p147
+    for (var i = 0; i < 256; i += 4) {
+      state['MS'][0x1000 + i] = 0;
+    }
+    state['MS'][0x2020] = 0x10203040;
+
+    state['MS'][0x3000] = 0x12345621; // 21 will match table entry 20
+    state['MS'][0x3004] = 0x11223344;
+    state['MS'][0x3008] = 0x55667788;
+    state['MS'][0x300c] = 0x99aabbcc;
+    execute([0xdd0f1000, 0xf000aaaa], assert, 'TRT 0(16,1),0(15)');
+    reg(1, 0x00003003); // Match at 3003
+    reg(2, 0x00000020); // Function value from table
+    assert.equal(state['CR'], 1); // not completed
   });
 
   QUnit.skip("Edit ED", function(assert) {

@@ -1064,13 +1064,13 @@ function localStorageLSAR(state, entry) {
       alert('Instruction with WS=0 should never be accessed.')
       break;
     case 1: // WS1→LSA // Select WS1 address from local storage. WS7 is PSW0 backup
-      state['LSAR'] = 0x31;
+      state['LSAR'] = 0x11; // From dataflow diagram: LS is 00 I/O, 01: working, 02: FP reg, 03: fixed reg
       break;
     case 2: // WS2→LSA // Select WS2 address from local storage
-      state['LSAR'] = 0x32;
+      state['LSAR'] = 0x12;
       break;
     case 3: // WS,E→LSA // QP206/D94
-      state['LSAR'] = 0x30 | entry['CE'];
+      state['LSAR'] = 0x10 | entry['CE'];
       break;
     case 4: // FN,J→LSA
       // SF=7 is only used with WS=4, and disables it
