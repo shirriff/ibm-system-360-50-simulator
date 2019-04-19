@@ -832,7 +832,52 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(fpreg(5), 0x9abcdef0);
   });
 
-  QUnit.skip( "Halve (FP) HDR", function(assert) {
+  QUnit.test( "Halve (FP) HDR", function(assert) {
+    fpreg(2, 0x12123456);
+    fpreg(3, 0xabcdef00);
+    execute([0x24020000], assert, 'HDR 0,2');
+    assert.equal(fpreg(0), 0x1191a2b5);
+    assert.equal(fpreg(1), 0x5e6f7800);
+  });
+
+  QUnit.test( "Halve (FP) HDR - guard bit used after normalizing", function(assert) {
+    fpreg(2, 0x12123456);
+    fpreg(3, 0xabcdef01);
+    execute([0x24020000], assert, 'HDR 0,2');
+    assert.equal(fpreg(0), 0x1191a2b5);
+    assert.equal(fpreg(1), 0x5e6f7808);
+  });
+
+  QUnit.test( "Halve (FP) HDR - simple", function(assert) {
+    fpreg(2, 0x12aa8844);
+    fpreg(3, 0x22884422);
+    execute([0x24020000], assert, 'HDR 0,2');
+    assert.equal(fpreg(0), 0x12554422);
+    assert.equal(fpreg(1), 0x11442211);
+  });
+
+  QUnit.test( "Halve (FP) HDR - shift across word", function(assert) {
+    fpreg(2, 0x12aa8845);
+    fpreg(3, 0x22884422);
+    execute([0x24020000], assert, 'HDR 0,2');
+    assert.equal(fpreg(0), 0x12554422);
+    assert.equal(fpreg(1), 0x91442211);
+  });
+
+  QUnit.skip( "Halve (FP) HDR underflow", function(assert) {
+    fpreg(2, 0x00000000);
+    fpreg(3, 0x00000001);
+    execute([0x24020000], assert, 'HDR 0,2');
+    assert.equal(fpreg(0), 0x1191a2b5);
+    assert.equal(fpreg(1), 0x5e6f7800);
+  });
+
+  QUnit.test( "Halve (FP) HDR zero", function(assert) {
+    fpreg(2, 0x12000000);
+    fpreg(3, 0x00000000);
+    execute([0x24020000], assert, 'HDR 0,2');
+    assert.equal(fpreg(0), 0x00000000);
+    assert.equal(fpreg(1), 0x00000000);
   });
 
   QUnit.test( "Load (FP long) LDR - bad register", function(assert) {
@@ -956,6 +1001,42 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(fpreg(3), 0x33333333);
     assert.equal(fpreg(4), 0x92345678);
     assert.equal(fpreg(5), 0x55555555);
+  });
+
+  QUnit.test( "Halve (FP short) HER", function(assert) {
+    fpreg(2, 0x12345678); // Source
+    execute([0x34420000], assert, 'HER 4,2');
+    assert.equal(fpreg(4), 0x121a2b3c);
+  });
+
+  QUnit.test( "Halve (FP short) HER - unnormalized", function(assert) {
+    fpreg(2, 0x18000008); // Source: 8 is unnormalized
+    execute([0x34420000], assert, 'HER 4,2');
+    assert.equal(fpreg(4), 0x13400000);
+  });
+
+  QUnit.test( "Halve (FP short) HER - result needs normalizing", function(assert) {
+    fpreg(2, 0x18100000); // Result will be 18080000, normalized to 17800000
+    execute([0x34420000], assert, 'HER 4,2');
+    assert.equal(fpreg(4), 0x17800000);
+  });
+
+  QUnit.test( "Halve (FP short) HER - zero", function(assert) {
+    fpreg(2, 0x00000000); // standard zero
+    execute([0x34420000], assert, 'HER 4,2');
+    assert.equal(fpreg(4), 0x00000000);
+  });
+
+  QUnit.test( "Halve (FP short) HER - nonstandard zero", function(assert) {
+    fpreg(2, 0x95000000); // nonstandard zero
+    execute([0x34420000], assert, 'HER 4,2');
+    assert.equal(fpreg(4), 0x00000000);
+  });
+
+  QUnit.skip( "Halve (FP short) HER - underflow", function(assert) {
+    fpreg(2, 0x00000001);
+    execute([0x34420000], assert, 'HER 4,2');
+    assert.equal(fpreg(4), 0x00000000);
   });
 
   QUnit.test( "Load (FP short) LER", function(assert) {

@@ -254,7 +254,10 @@ function adderT(state, entry) {
       state['CAR'] = (c0 != c1) ? 1 : 0;
       break;
     case 6: // BC1B // Block carry from 8, save carry from 1  QG700:503  i.e. MIER+MCND-64 CLF116
-      alert('Unimplemented AD ' + entry['AD'] + " " + labels['AD'][entry['AD']]);
+      state['CAR'] = c1;
+      if (c8) {
+        t = (t - 0x01000000) >>> 0;
+      }
       break;
     case 7: // BC8 - carry from position 8
       state['CAR'] = c8;
@@ -469,13 +472,13 @@ function adderAL(state, entry) {
       state['T'] = s[0];
       state['F'] = s[1];
       break;
-    case 18: // FPSL4
-      // What's the difference between SL4 and FPSL4?
-      state['T'] = state['T'] << 4;
+    case 18: // FPSL4 Floating point shift left 4, preserving top byte (sign, exponent)
+      var s = sl4(0, state['T']);
+      state['T'] = ((state['T'] & 0xff000000) | (s[0] & 0x00ffffff)) >>> 0;
       break;
     case 19: // F→FPSL4
       var s = sl4(state['F'], state['T']);
-      state['T'] = s[0];
+      state['T'] = ((state['T'] & 0xff000000) | (s[0] & 0x00ffffff)) >>> 0;
       break;
     case 20: // SR4→F
       var s = sr4(0, state['T']);
@@ -487,14 +490,13 @@ function adderAL(state, entry) {
       state['T'] = s[0];
       state['F'] = s[1];
       break;
-    case 22: // FPSR4→F
-      alert('Unimplemented AL ' + entry['AL'] + " " + labels['AL'][entry['AL']]);
+    case 22: // FPSR4→F  Floating point shift right 4, preserving top byte (sign, exponent)
+      state['F'] = state['T'] & 0xf;
+      state['T'] = ((state['T'] & 0xff000000) | ((state['T'] & 0x00fffff0) >>> 4)) >>> 0;
       break;
-    case 23: // 1→FPSR4→F
-      // Hypothesis
-      var f1 = state['T'] & 0xf;
-      state['T'] = (state['T'] >>> 4) | (1 << 28);
-      state['F'] = f1;
+    case 23: // 1→FPSR4→F  Floating point shift right 4, shifting 1 in at top
+      state['F'] = state['T'] & 0xf;
+      state['T'] = ((state['T'] & 0xff000000) | 0x00100000 | ((state['T'] & 0x00fffff0) >>> 4)) >>> 0;
       break;
     case 24: // SR4→H
       alert('Unimplemented AL ' + entry['AL'] + " " + labels['AL'][entry['AL']]);
@@ -503,9 +505,9 @@ function adderAL(state, entry) {
       var s = sr4(state['F'], state['T']);
       state['T'] = s[0];
       break;
-    case 26: // E→FPSL4
-      // Just a guess based on QK800:09b2
-      state['T'] = (((state['T'] << 4) | entry['CE']) & 0xffffffff) >>> 0;
+    case 26: // E→FPSL4  Floating point shift left 4, preserving top byte
+      var s = sl4(entry['CE'], state['T']);
+      state['T'] = ((state['T'] & 0xff000000) | (s[0] & 0x00ffffff)) >>> 0;
       break;
     case 27: // F→SR1→Q
       var s = sr1(state['F'], state['T'], 0);
@@ -672,7 +674,7 @@ function adderLatch(state, entry) {
       alert('Unimplemented TR ' + entry['TR'] + " " + labels['TR'][entry['TR']]);
       break;
     case 14: // R13
-      alert('Unimplemented TR ' + entry['TR'] + " " + labels['TR'][entry['TR']]);
+      state['R'] = ((state['R'] & 0xff000000) | (state['T'] & 0x00ffffff)) >>> 0;
       break;
     case 15: // A // QP100/614
       state['SAR'] = t;
@@ -750,7 +752,7 @@ function adderLatch(state, entry) {
       msg = store(state);
       break;
     case 30: // L13 // QP206/0D95
-      alert('Unimplemented TR ' + entry['TR'] + " " + labels['TR'][entry['TR']]);
+      state['L'] = ((state['L'] & 0xff000000) | (state['T'] & 0x00ffffff)) >>> 0;
       break;
     case 31: // J
       state['J'] = t & 0xf;
@@ -1292,8 +1294,10 @@ function stat(state, entry) {
       b0(state);
       syl1(state);
       break;
-    case 13: // FPZERO
-      alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
+    case 13: // FPZERO  Set S0 if value is floating point 0, i.e. bytes 1-3 are zero (ignore sign, exponent)
+      if ((state['T'] & 0x00ffffff) == 0) {
+        state['S'][0] = 1;
+      }
       break;
     case 14: // FPZERO,E→FN
       alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
@@ -1670,7 +1674,7 @@ function roarAB(state, entry) {
         roar |= 2;
       }
       break;
-    case 33: // UNORM   T8-11 zero and not stat 0
+    case 33: // UNORM   T8-11 zero and not stat 0.
       if (((state['T'] & 0x00f00000) == 0) && state['S'][0] == 0) {
         roar |= 2;
       }
