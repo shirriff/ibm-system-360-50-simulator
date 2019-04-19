@@ -2340,7 +2340,31 @@ QUnit.test( "stat12: X0,B0,1SYL", function(assert) {
   }
 });
 
-QUnit.skip( "stat SS 13: FPZERO", function(assert) {
+// Tests if value is floating point zero (ignoring sign, exponent)
+QUnit.test( "stat SS 13: FPZERO", function(assert) {
+  var state = {'T': 0x12000000, 'S': [0, 0, 0, 0, 0, 0, 0, 0]};
+  stat(state, {'SS': 13});
+  assert.equal(state['S'][0], 1);
+
+  var state = {'T': 0x82000000, 'S': [0, 0, 0, 0, 0, 0, 0, 0]};
+  stat(state, {'SS': 13});
+  assert.equal(state['S'][0], 1);
+
+  var state = {'T': 0x00000000, 'S': [0, 0, 0, 0, 0, 0, 0, 0]};
+  stat(state, {'SS': 13});
+  assert.equal(state['S'][0], 1);
+
+  var state = {'T': 0x00000001, 'S': [0, 0, 0, 0, 0, 0, 0, 0]};
+  stat(state, {'SS': 13});
+  assert.equal(state['S'][0], 0);
+
+  var state = {'T': 0x00800000, 'S': [0, 0, 0, 0, 0, 0, 0, 0]};
+  stat(state, {'SS': 13});
+  assert.equal(state['S'][0], 0);
+
+  var state = {'T': 0xff000001, 'S': [0, 0, 0, 0, 0, 0, 0, 0]};
+  stat(state, {'SS': 13});
+  assert.equal(state['S'][0], 0);
 });
 
 QUnit.skip( "stat SS 14: FPZERO,E→FN", function(assert) {
@@ -2686,12 +2710,11 @@ QUnit.test("sl4", function(assert) {
   assert.deepEqual(sl4(0, 0xff345678), [0xf3456780, 0xf]);
 });
 
-QUnit.skip( "al1 Q→SR1→F", function(assert) {
-  var state = {'T': 0x12345678, 'Q': 1, 'F': 5};
-  adderDG(state, {'AL': 1, 'DG': 0});
-  assert.equal(state['T0'], 0x80000000 | (0x12345678 >> 1));
+QUnit.test( "al1 Q→SR1→F", function(assert) {
+  var state = {'T0': 0x12345679, 'Q': 1, 'F': 5};
+  adderAL(state, {'AL': 1, 'DG': 0});
+  assert.equal(state['T'], (0x80000000 | (0x12345678 >> 1)) >>> 0);
   assert.equal(state['F'], 0xa);
-  assert.equal(state['Q'], 0);
 });
 
 QUnit.skip( "al 2 L0,¬S4→", function(assert) {
