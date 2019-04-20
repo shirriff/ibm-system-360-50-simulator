@@ -1315,7 +1315,7 @@ function stat(state, entry) {
       }
       break;
     case 17: // (T=0)→S3
-      alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
+      state['S']['3'] = (state['T'] == 0) ? 1 : 0;
       break;
     case 18: // E→BS,T30→S3
       // 01C6
@@ -1362,12 +1362,17 @@ function stat(state, entry) {
       state['S'][6] &= ~((entry['CE'] >>> 1) & 1);
       state['S'][7] &= ~((entry['CE'] >>> 0) & 1);
       break;
-    case 27: // S47,ED*FP  QG700:0503
+    case 27: // S47,ED*FP  QG700:0503, QG401:0440
       // Norm sign → S4
-      // Compl add → S4
+      // Compl add → S5
       // (ED<16) → S6
       // (ED=0) → S7
       // Set exp dif reg 
+      state['ED'] = (state['T'] >>> 24) & 0x7f;
+      state['S'][4] = (state['T'] & 0x80000000) ? 1 : 0;
+      state['S'][5] = (state['T'] & 0x80000000) ? 1 : 0;
+      state['S'][6] = (state['ED'] < 16) ? 1 : 0;
+      state['S'][7] = (state['ED'] == 0) ? 1 : 0;
       alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
       break;
     case 28: // OPPANEL→S47      // Write operator panel to S bits 4-7

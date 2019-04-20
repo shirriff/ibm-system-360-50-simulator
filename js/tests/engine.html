@@ -2431,7 +2431,10 @@ QUnit.test( "stat16: S03.¬E", function(assert) {
   assert.deepEqual(state['S'], [0, 0, 0, 0, 1, 1, 1, 1]);
 });
 
-QUnit.skip( "stat SS 17: (T=0)→S3", function(assert) {
+QUnit.test( "stat SS 17: (T=0)→S3", function(assert) {
+  var state = {'S': [0, 0, 0, 0, 0, 0, 0, 0], 'T': 0};
+  stat(state, {'SS': 17});
+  assert.equal(state['S'][3], 1);
 });
 
 QUnit.test( "stat18: E→BS,T30→S3", function(assert) {
