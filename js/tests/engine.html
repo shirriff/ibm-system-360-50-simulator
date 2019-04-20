@@ -88,7 +88,12 @@ QUnit.test( "adder lx 4 LRL", function(assert) {
   assert.equal(state['XG'], 0x56780000);
 });
 
-QUnit.skip( "adder lx 5 LWA", function(assert) {
+QUnit.test( "adder lx 5 LWA", function(assert) {
+  var state = {'L': 0x12345678}
+  adderLX(state, {'LX': 5});
+  assert.equal(state['XG'], 0x1234567b);
+  adderRY(state, {'LX': 5, 'RY': 0});
+  assert.equal(state['Y'], 3);
 });
 
 QUnit.test( "adder lx 6 4", function(assert) {

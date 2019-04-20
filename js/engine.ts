@@ -68,8 +68,8 @@ function adderLX(state, entry) {
       // and L(16-13) to M(16-31) via BUS (0-15) LRL→MHL QE580/070b
       xg = ((state['L'] & 0xffff) << 16) >>> 0;
       break;
-    case 5: // LWA
-      alert('Unimplemented LX ' + entry['LX'] + " " + labels['LX'][entry['LX']]);
+    case 5: // LWA  For address subtraction
+      xg = (state['L'] | 3) >>> 0;
       break;
     case 6: // 4
       xg = 4;
@@ -118,6 +118,9 @@ function adderRY(state, entry) {
     case 7: // unused
       alert('Unexpected RY ' + entry['RY'] + " " + labels['RY'][entry['RY']]);
       break;
+  }
+  if (entry['LX'] == 5) { // LWA  For address subtraction
+    y = (y | 3) >>> 0;
   }
   state['Y'] = y;
 }
