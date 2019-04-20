@@ -242,8 +242,9 @@ function adderT(state, entry) {
     case 1:
       // 1 is default
       break;
-    case 2: // BCFO
-      alert('Unimplemented AD ' + entry['AD'] + " " + labels['AD'][entry['AD']]);
+    case 2: // BCF0
+      // QA406: (F=0)→ADDER
+      state['CAR'] = (state['F'] == 0) ? 1 : 0;
       break;
     case 3:
       alert('Unexpected AD ' + entry['AD'] + " " + labels['AD'][entry['AD']]);
@@ -406,7 +407,9 @@ function adderAL(state, entry) {
       state['F'] = s[1];
       break;
     case 2: // L0,¬S4→
-      alert('Unimplemented AL ' + entry['AL'] + " " + labels['AL'][entry['AL']]);
+      // QG406: insert inv sign
+      var sign = state['S'][4] == 0 ? 0x80000000 : 0;
+      state['T'] = (sign | (state['L'] & 0xff000000) | (state['T'] & 0x00ffffff)) >>> 0;
       break;
     case 3: // +SGN→
       state['T'] = state['T'] & 0x7fffffff;
@@ -415,7 +418,8 @@ function adderAL(state, entry) {
       state['T'] = (state['T'] | 0x80000000) >>> 0;
       break;
     case 5: // L0,S4→
-      alert('Unimplemented AL ' + entry['AL'] + " " + labels['AL'][entry['AL']]);
+      var sign = state['S'][4] == 1 ? 0x80000000 : 0;
+      state['T'] = (sign | (state['L'] & 0xff000000) | (state['T'] & 0x00ffffff)) >>> 0;
       break;
     case 6: // IA→H // Handled by D
       if (state['IAR'] == undefined) {alert('undefined iar');}
@@ -1298,7 +1302,8 @@ function stat(state, entry) {
       syl1(state);
       break;
     case 13: // FPZERO  Set S0 if value is floating point 0, i.e. bytes 1-3 are zero (ignore sign, exponent)
-      if ((state['T'] & 0x00ffffff) == 0) {
+    // But QG406 says (T(8-31)=0).(F=0).S3→S0 -- what is F? Does S3 really matter here?
+      if ((state['T'] & 0x00ffffff) == 0 && state['F'] == 0 && state['S'][3]) {
         state['S'][0] = 1;
       }
       break;
