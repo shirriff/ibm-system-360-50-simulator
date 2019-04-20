@@ -1281,6 +1281,14 @@ QUnit.test( "roar-zf", function(assert) {
   roarZN(state, {'ZP': 0x12, 'ZF': 10 /* F->ROAR */, 'ZN': 0});
   assert.equal(state['ROAR'], (0x12 << 6) | (0x3 << 2));
 
+  var state = {'ROAR': 0x4ff, 'ED': 0xf};
+  roarZN(state, {'ZP': 0x12, 'ZF': 12 /* ED->ROAR */, 'ZN': 0});
+  assert.equal(state['ROAR'], 0x4ff);
+
+  var state = {'ROAR': 0x4ff, 'ED': 0};
+  roarZN(state, {'ZP': 0x12, 'ZF': 12 /* ED->ROAR */, 'ZN': 0});
+  assert.equal(state['ROAR'], 0x4c3);
+
   state = {'ROAR': 0x480, 'M': 0x24ffffff};
   roarZN(state, {'ZP': 0x12, 'ZF': 6 /* M(03)->ROAR */, 'ZN': 0});
   assert.equal(state['ROAR'], (0x12 << 6) | (0x2 << 2));

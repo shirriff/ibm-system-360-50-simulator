@@ -1367,13 +1367,12 @@ function stat(state, entry) {
       // Compl add → S5
       // (ED<16) → S6
       // (ED=0) → S7
-      // Set exp dif reg 
-      state['ED'] = (state['T'] >>> 24) & 0x7f;
+      // Set exp dif reg. It is a 4-bit register, but value could overflow.
+      state['ED'] = (state['T'] >>> 24) & 0xf;
       state['S'][4] = (state['T'] & 0x80000000) ? 1 : 0;
-      state['S'][5] = (state['T'] & 0x80000000) ? 1 : 0;
-      state['S'][6] = (state['ED'] < 16) ? 1 : 0;
-      state['S'][7] = (state['ED'] == 0) ? 1 : 0;
-      alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
+      state['S'][5] = (state['T'] & 0x80000000) ? 1 : 0; // What is this?
+      state['S'][6] = ((state['TD'] & 0xf0000000) == 0) ? 1 : 0;
+      state['S'][7] = ((state['TD'] & 0xff000000) == 0) ? 1 : 0;
       break;
     case 28: // OPPANEL→S47      // Write operator panel to S bits 4-7
       // See QT200 for mapping from console switches to S47
@@ -1992,11 +1991,10 @@ function roarZN(state, entry) {
           roar |= ((state['M'] >> 24) & 0xf) << 2;
           break;
         case 10: // F→ROAR
-          roar |= state['F']  << 2;
+          roar = (roar & 0xffffc3) | (state['F']  << 2);
           break;
         case 12: // ED→ROAR exp diff
-          // bits 1-4 minus bits 5-7?
-          alert('Unimplemented ZF ' + entry['ZF'] + " " + labels['ZF'][entry['ZF']]);
+          roar = (roar & 0xffffc3) | (state['ED']  << 2);
           break;
         // case 14: Add Bfr ROS Add Cntl
         default:
