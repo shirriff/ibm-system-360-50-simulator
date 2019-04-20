@@ -481,7 +481,7 @@ function decode(addr, entry) {
     if (entry['RY'] || entry['LX'] || entry['TR']) {
       var lx = get('LX');
       if (entry['TC'] == 0 && entry['LX'] == 0) {
-        lx = '1'; // -0 turns into -1 for some reason
+        lx = '1'; // -0 turns into -1 for some reason, 1's complement?
       }
       padbox(result, 'A', (get('RY') + get('TC') + lx + '→' + get('TR')).replace('0+', '').replace('+0', '').replace('0-', '-'));
     }

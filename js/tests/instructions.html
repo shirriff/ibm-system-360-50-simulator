@@ -61,6 +61,78 @@ function fpreg(num, data) {
   }
 }
 
+// Convert a floating point value to a 64-bit FP register.
+function floatToFpreg(num, val) {
+  if (val == 0) {
+    fpreg(num, 0);
+    fpreg(num + 1, 0);
+    return;
+  }
+  var s = 0;
+  if (val < 0) {
+    s = 0x80000000;
+    val = -val;
+  }
+  var charac = 64;
+  while (val >= 1 && charac < 128) {
+    charac += 1;
+    val /= 16;
+  }
+  while (val < 1/16. && charac >= 0) {
+    charac -= 1;
+    val *= 16;
+  }
+  if (charac < 0 || charac >= 128) {
+    alert('Float over/underflow');
+  }
+  val *= 2**24;
+  var f0 = Math.trunc(val);
+  var w0 = (s | (charac << 24) | f0) >>> 0;
+  var w1 = Math.trunc((val - f0) * 2**32);
+  fpreg(num, w0);
+  fpreg(num + 1, w1);
+}
+
+// Convert a float from a 32-bit FP register
+function fpreg32ToFloat(num) {
+  var w0 = fpreg(num);
+  if ((w0 & 0x00ffffff) == 0) {
+    return 0;
+  }
+  var charac = (((w0 & 0x7f000000) >>> 24) - 64) * 4; // power of 2
+  var frac = w0 & 0x00ffffff;
+  var val = frac * 2 ** (charac - 24);
+  if (w0 & 0x80000000) {
+    val = -val;
+  }
+  return val;
+}
+
+// Convert a float from a 64-bit FP register
+function fpreg64ToFloat(num) {
+  var w0 = fpreg(num);
+  var w1 = fpreg(num + 1);
+  if ((w0 & 0x00ffffff) == 0 && w1 == 0) {
+    return 0;
+  }
+  var charac = (((w0 & 0x7f000000) >>> 24) - 64) * 4; // power of 2
+  var frac = (w0 & 0x00ffffff) + (w1 / 2**32);
+  var val = frac * 2 ** (charac - 24);
+  if (w0 & 0x80000000) {
+    val = -val;
+  }
+  return val;
+}
+
+// Returns 32-bit as a signed value
+function signed32(n) {
+  if (n & 0x80000000) {
+    return -(0x100000000 - n);
+  } else {
+    return n;
+  }
+}
+
 // Convert words to halfwords
 function hw(words) {
   var result = [];
@@ -71,12 +143,49 @@ function hw(words) {
   return result;
 }
 
+// Pseudo-random number generator from https://stackoverflow.com/questions/521295/seeding-the-random-number-generator-in-javascript
+// Call this with a seed to get a random number generator.
+// Generates number between 0 and 1.
+
+function mulberry32(a) {
+  return function() {
+    var t = a += 0x6D2B79F5;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  }
+}
+
+// Return random 32-bit number generator function
+function rand32(a) {
+  return function() {
+    var t = a += 0x6D2B79F5;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return (t ^ t >>> 14) >>> 0;
+  }
+}
+
+// Return a random floating point number scaled roughly to 2**-powRange to 2**powRange
+function randfloat(rand, powRange) {
+  if (powRange == undefined) {
+    powRange = 200;
+  }
+  var f = rand() + rand() / 2**32;
+  var pow = Math.floor((rand() * powRange * 2) - powRange);
+  var f = f * 2**pow * 4;
+  if (rand() < .5) {
+    f = -f;
+  }
+  return f;
+}
+
 var running;
 // Load instruction(s) into memory at 0x400 and execute.
 function execute(instr, assert, desired) {
   command = disasm(hw(instr));
   console.log(command);
-  assert.equal(command.replace(/ /g, ''), desired.replace(/ /g, '', desired));
+  assert.equal(command.replace(/ /g, ''), desired.replace(/ /g, '', desired), desired);
   // Load instruction into memory
   for (var i = 0; i < instr.length; i++) {
     state['MS'][0x400 + i * 4] = instr[i];
@@ -151,6 +260,163 @@ function executeInstr(instr) {
   }
   throw('Count exceeded');
 }
+
+QUnit.module("Utilities", function(hooks) {
+  hooks.beforeEach(function(assert) {
+    state = createState();
+  });
+
+  QUnit.test( "fp conversion", function(assert) {
+    floatToFpreg(0, 0.0);
+    assert.equal(fpreg(0), 0);
+    assert.equal(fpreg(1), 0);
+
+    // From Princ Ops page 157
+    floatToFpreg(0, 1.0);
+    assert.equal(fpreg(0), 0x41100000);
+    assert.equal(fpreg(1), 0);
+
+    floatToFpreg(0, 0.5);
+    assert.equal(fpreg(0), 0x40800000);
+    assert.equal(fpreg(1), 0);
+
+    floatToFpreg(0, 1/64);
+    assert.equal(fpreg(0), 0x3f400000);
+    assert.equal(fpreg(1), 0);
+
+    floatToFpreg(0, -15);
+    assert.equal(fpreg(0), 0xc1f00000);
+    assert.equal(fpreg(1), 0);
+  });
+
+  QUnit.test( "fp 32 conversion", function(assert) {
+    fpreg(0, 0);
+    assert.equal(fpreg32ToFloat(0), 0);
+
+    fpreg(0, 0xff000000);
+    assert.equal(fpreg32ToFloat(0), 0);
+
+    fpreg(0, 0x41100000);
+    assert.equal(fpreg32ToFloat(0), 1.0);
+
+    fpreg(0, 0x40800000);
+    assert.equal(fpreg32ToFloat(0), .5);
+
+    fpreg(0, 0x3f400000);
+    assert.equal(fpreg32ToFloat(0), 1/64);
+
+    fpreg(0, 0xc1f00000);
+    assert.equal(fpreg32ToFloat(0), -15);
+
+    var rand = mulberry32(1);
+    for (var i = 0; i < 20; i++) {
+      var f = rand();
+      var pow = Math.floor((rand() * 400) - 200);
+      var f = f * 2**pow;
+      if (rand() > .5) {
+        f = -f;
+      }
+      floatToFpreg(0, f);
+      console.log(f);
+      var fp = fpreg32ToFloat(0);
+      // Compare within tolerance
+      var ratio = Math.abs((fp - f) / f);
+      assert.ok(ratio < .000001, fp + ' ' + f);
+    }
+  });
+
+  QUnit.test( "fp 64 conversion", function(assert) {
+    fpreg(0, 0);
+    fpreg(1, 0);
+    assert.equal(fpreg64ToFloat(0), 0);
+
+    fpreg(0, 0xff000000);
+    fpreg(1, 0);
+    assert.equal(fpreg64ToFloat(0), 0);
+
+    fpreg(0, 0x41100000);
+    fpreg(1, 0);
+    assert.equal(fpreg64ToFloat(0), 1.0);
+
+    fpreg(0, 0x40800000);
+    fpreg(1, 0);
+    assert.equal(fpreg64ToFloat(0), .5);
+
+    fpreg(0, 0x3f400000);
+    fpreg(1, 0);
+    assert.equal(fpreg64ToFloat(0), 1/64);
+
+    fpreg(0, 0xc1f00000);
+    fpreg(1, 0);
+    assert.equal(fpreg64ToFloat(0), -15);
+
+    floatToFpreg(0, Math.PI);
+    assert.equal(fpreg64ToFloat(0), Math.PI);
+
+    var rand = mulberry32(1);
+    for (var i = 0; i < 20; i++) {
+      var f = rand();
+      var pow = Math.floor((rand() * 400) - 200);
+      var f = f * 2**pow;
+      if (rand() > .5) {
+        f = -f;
+      }
+      floatToFpreg(0, f);
+      console.log(f);
+      assert.equal(fpreg64ToFloat(0), f, f);
+    }
+  });
+
+  // Roughly test characteristics of random number generator
+  QUnit.test( "randfloat", function(assert) {
+    var rand = mulberry32(5);
+    var pos = 0, neg = 0;
+    var big = 0, small = 0;
+    for (var i = 0; i < 100; i++) {
+      var f = randfloat(rand);
+      if (f < 0) {
+        neg ++;
+      } else {
+        pos ++;
+      }
+      if (Math.abs(f) > 2**100) {
+        big++;
+      } else if (Math.abs(f) < 2**-100) {
+        small++;
+      } 
+    }
+    assert.ok(pos > 30, pos + " > 30");
+    assert.ok(neg > 30, neg + " > 30");
+    assert.ok(big > 15, big + " > 15");
+    assert.ok(small > 15, small + " > 15");
+
+    // Test scaling
+    big = 0;
+    small = 0;
+    for (var i = 0; i < 100; i++) {
+      var f = randfloat(rand, 10);
+      if (f < 0) {
+        neg ++;
+      } else {
+        pos ++;
+      }
+      if (Math.abs(f) > 2**10) {
+        big++;
+      } else if (Math.abs(f) < 2**-10) {
+        small++;
+      } 
+    }
+    assert.ok(big < 8, big + " < 8");
+    assert.ok(small < 8, small + " < 8");
+  });
+
+  QUnit.test( "signed32", function(assert) {
+    assert.equal(signed32(0x12345678), 0x12345678);
+    assert.equal(signed32(0xffffffff), -1);
+    assert.equal(signed32(0xfffffff0), -16);
+  });
+
+});
 
 QUnit.module("Instructions", function(hooks) {
   hooks.beforeEach(function(assert) {
@@ -480,20 +746,8 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(reg(3), 28 * 19);
   });
 
-  // Pseudo-random number generator from https://stackoverflow.com/questions/521295/seeding-the-random-number-generator-in-javascript
-
-  function mulberry32(a) {
-    return function() {
-      var t = a += 0x6D2B79F5;
-      t = Math.imul(t ^ t >>> 15, t | 1);
-      t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-      return ((t ^ t >>> 14) >>> 0) / 4294967296;
-    }
-  }
-
-  var rand = mulberry32(1);
-
   QUnit.test( "multiply MR: random", function(assert) {
+    var rand = mulberry32(1);
     for (var i = 0; i < 100; i++) {
       var n1 = Math.trunc(rand() * 1000);
       var n2 = Math.trunc(rand() * 1000);
@@ -864,7 +1118,7 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(fpreg(1), 0x91442211);
   });
 
-  QUnit.skip( "Halve (FP) HDR underflow", function(assert) {
+  QUnit.test( "Halve (FP) HDR underflow", function(assert) {
     fpreg(2, 0x00000000);
     fpreg(3, 0x00000001);
     execute([0x24020000], assert, 'HDR 0,2');
@@ -880,6 +1134,17 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(fpreg(1), 0x00000000);
   });
 
+  QUnit.test( "Halve (FP) HDR random", function(assert) {
+    var rand = mulberry32(100);
+    for (var i = 0; i < 100; i++) {
+      var f = randfloat(rand);
+      floatToFpreg(2, f);
+      execute([0x24020000], assert, 'HDR 0,2');
+      var f1 = fpreg64ToFloat(0);
+      assert.equal(f / 2, f1);
+    }
+  });
+
   QUnit.test( "Load (FP long) LDR - bad register", function(assert) {
     assert.throws(function() {
       execute([0x28410000], assert, 'LDR 4,1');
@@ -892,28 +1157,91 @@ QUnit.module("Instructions", function(hooks) {
     });
   });
 
-  QUnit.skip( "Compare (FP) CDR", function(assert) {
+  QUnit.test( "Compare (FP) CDR", function(assert) {
+    fpreg(4, 0x43000000);
+    fpreg(5, 0x00000000);
+    fpreg(6, 0x34123456);
+    fpreg(7, 0x789abcde);
+    execute([0x2946ffff], assert, 'CDR 4,6');
+    assert.equal(state['CR'], 0); // Equal
   });
 
-  QUnit.skip( "Add N (FP) ADR", function(assert) {
+  QUnit.test( "Add N (FP) ADR", function(assert) {
+    var rand = mulberry32(100);
+    for (var i = 0; i < 100; i++) {
+      var f1 = randfloat(rand, 64);
+      var f2 = randfloat(rand, 64);
+      floatToFpreg(0, f1);
+      floatToFpreg(2, f2);
+      execute([0x2a020000], assert, 'ADR 0,2');
+      var fres = fpreg64ToFloat(0);
+      assert.equal(fres, f1 + f2);
+    }
   });
 
-  QUnit.skip( "Subtract N (FP) SDR", function(assert) {
+  QUnit.test( "Subtract N (FP) SDR", function(assert) {
+    var rand = mulberry32(100);
+    for (var i = 0; i < 100; i++) {
+      var f1 = randfloat(rand, 64);
+      var f2 = randfloat(rand, 64);
+      floatToFpreg(0, f1);
+      floatToFpreg(2, f2);
+      execute([0x2b020000], assert, 'SDR 0,2');
+      var fres = fpreg64ToFloat(0);
+      assert.equal(fres, f1 - f2);
+    }
   });
 
-  QUnit.skip( "Multiply (FP) MDR", function(assert) {
+  QUnit.test( "Multiply (FP) MDR", function(assert) {
+    var rand = mulberry32(100);
+    for (var i = 0; i < 100; i++) {
+      var f1 = randfloat(rand);
+      var f2 = randfloat(rand);
+      floatToFpreg(0, f1);
+      floatToFpreg(2, f2);
+      execute([0x2c020000], assert, 'MDR 0,2');
+      var fres = fpreg64ToFloat(0);
+      assert.equal(fres, f1 * f2);
+    }
   });
 
-  QUnit.skip( "Divide (FP) DDR", function(assert) {
+  QUnit.test( "Divide (FP) DDR", function(assert) {
+    var rand = mulberry32(100);
+    for (var i = 0; i < 100; i++) {
+      var f1 = randfloat(rand, 64);
+      var f2 = randfloat(rand, 64);
+      floatToFpreg(0, f1);
+      floatToFpreg(2, f2);
+      execute([0x2d020000], assert, 'DDR 0,2');
+      var fres = fpreg64ToFloat(0);
+      assert.equal(fres, f1 / f2);
+    }
   });
 
-  QUnit.skip( "Add U (FP) AWR", function(assert) {
+  QUnit.test( "Add U (FP) AWR", function(assert) {
+    var rand = mulberry32(100);
+    for (var i = 0; i < 100; i++) {
+      var f1 = randfloat(rand, 64);
+      var f2 = randfloat(rand, 64);
+      floatToFpreg(0, f1);
+      floatToFpreg(2, f2);
+      execute([0x2e020000], assert, 'AWR 0,2');
+      var fres = fpreg64ToFloat(0);
+      assert.equal(fres, f1 + f2);
+    }
   });
 
-  QUnit.skip( "Subtract U (FP) SWR", function(assert) {
-  });
-
-  QUnit.skip( "Subtract U (FP) SWR", function(assert) {
+  QUnit.test( "Subtract U (FP) SWR", function(assert) {
+    var rand = mulberry32(100);
+    for (var i = 0; i < 100; i++) {
+      var f1 = randfloat(rand, 64);
+      var f2 = randfloat(rand, 64);
+      floatToFpreg(0, f1);
+      floatToFpreg(2, f2);
+      execute([0x2f020000], assert, 'SWR 0,2');
+      var fres = fpreg64ToFloat(0);
+      assert.equal(fres, f1 - f2);
+    }
   });
 
   QUnit.test( "Load Positive (FP short) LPER", function(assert) {
@@ -1408,25 +1736,172 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.skip( "Compare C", function(assert) {
   });
 
-  QUnit.skip("Add A", function(assert) {
+  QUnit.test("Add A random", function(assert) {
+    var rand = rand32(42);
+    for (var i = 0; i < 100; i++) {
+      var n1 = rand();
+      var n2 = rand();
+      reg(1, n1);
+      state['MS'][0x100] = n2;
+      execute([0x5a100100], assert, 'A 1,100(0,0)');
+      var sum = signed32(n1) + signed32(n2);
+      if (sum >= 0x80000000 || sum < -0x80000000) {
+        assert.equal(state['CR'], 3); // Overflow
+        continue;
+      } else if (sum == 0) {
+        assert.equal(state['CR'], 0); // Zero
+      } else if (sum > 0) {
+        assert.equal(state['CR'], 2); // Positive
+      } else {
+        assert.equal(state['CR'], 1); // Negative
+      }
+      assert.equal(signed32(reg(1)), sum);
+    }
   });
 
-  QUnit.skip("Subtract C", function(assert) {
+  QUnit.test("Subtract C random", function(assert) {
+    var rand = rand32(43);
+    for (var i = 0; i < 100; i++) {
+      var n1 = rand();
+      var n2 = rand();
+      reg(1, n1);
+      state['MS'][0x100] = n2;
+      execute([0x5b100100], assert, 'S 1,100(0,0)');
+      var result = signed32(n1) - signed32(n2);
+      if (result >= 0x80000000 || result < -0x80000000) {
+        assert.equal(state['CR'], 3); // Overflow
+        continue;
+      } else if (result == 0) {
+        assert.equal(state['CR'], 0); // Zero
+      } else if (result > 0) {
+        assert.equal(state['CR'], 2); // Positive
+      } else {
+        assert.equal(state['CR'], 1); // Negative
+      }
+      assert.equal(signed32(reg(1)), result);
+    }
   });
 
-  QUnit.skip("Multiply M", function(assert) {
+  QUnit.test("Multiply M random", function(assert) {
+    var rand = rand32(43);
+    for (var i = 0; i < 100; i++) {
+      var n1 = rand();
+      var n2 = rand();
+      reg(3, n1); // Note: multiplicand in reg 3 but reg 2 specified.
+      state['MS'][0x100] = n2;
+      execute([0x5c200100], assert, 'M 2,100(0,0)');
+      var desired = signed32(n1) * signed32(n2);
+      var result = reg(2) * 2**32 + reg(3);
+      if (reg(2) & 0x80000000) {
+        // Convert 64-bit 2's complement
+        result = -((~reg(2)) * 2**32 + ((~reg(3)) >>> 0) + 1);
+      }
+      var info = signed32(n1) + '*' + signed32(n2) + '=' + desired + ' vs ' + result;
+      info += '  ' + reg(2).toString(16) + ' ' + reg(3).toString(16);
+      assert.equal(result, desired, info);
+      if (result != desired) break;
+      // No condition code
+    }
   });
 
-  QUnit.skip("Divide D", function(assert) {
+  QUnit.skip("Divide D random", function(assert) {
+    var rand = rand32(43);
+    for (var i = 0; i < 100; i++) {
+      var quotiend = rand();
+      var remainder = rand();
+      var divisor = rand();
+      if (quotient * divisor * remainder < 0) {
+        remainder = -remainder;
+      }
+      var dividend = quotient * divisor + remainder;
+      reg(2, n1);
+      state['MS'][0x100] = n2;
+      execute([0x5d200100], assert, 'D 2,100(0,0)');
+      var result = signed32(n1) * signed32(n2);
+      if (result == 0) {
+        assert.equal(state['CR'], 0); // Zero
+      } else if (result > 0) {
+        assert.equal(state['CR'], 2); // Positive
+      } else {
+        assert.equal(state['CR'], 1); // Negative
+      }
+      var result0 = Math.trunc(result / 2**32);
+      assert.equal(reg(2), result0);
+      var result1 = result - result0 * 2**32;
+      assert.equal(reg(3), result1);
+    }
   });
 
-  QUnit.skip("Add Logical AL", function(assert) {
+  QUnit.test("Add Logical AL random", function(assert) {
+    var rand = rand32(44);
+    for (var i = 0; i < 100; i++) {
+      var n1 = rand();
+      var n2 = rand();
+      reg(2, n1);
+      state['MS'][0x100] = n2;
+      execute([0x5e200100], assert, 'AL 2,100(0,0)');
+      var result = n1 + n2;
+      var carry = 0;
+      if (result >= 0x100000000) {
+        carry = 1;
+        result -= 0x100000000;
+      }
+      if (carry == 0) {
+        if (result == 0) {
+          assert.equal(state['CR'], 0); // Zero, no carry
+        } else {
+          assert.equal(state['CR'], 1); // Nonzero, no carry
+        }
+      } else {
+        if (result == 0) {
+          assert.equal(state['CR'], 2); // Zero, carry
+        } else {
+          assert.equal(state['CR'], 3); // Nonzero, carry
+        }
+      }
+      assert.equal(reg(2), result);
+    }
   });
 
-  QUnit.skip("Subtracdt Logical SL", function(assert) {
+  QUnit.test("Subtract Logical SL random", function(assert) {
+    var rand = rand32(44);
+    for (var i = 0; i < 100; i++) {
+      var n1 = rand();
+      var n2 = rand();
+      reg(2, n1);
+      state['MS'][0x100] = n2;
+      execute([0x5f200100], assert, 'SL 2,100(0,0)');
+      var result = n1 + ((n2 ^ 0xffffffff) >>> 0) + 1;
+      var carry = 0;
+      if (result >= 0x100000000) {
+        carry = 1;
+        result -= 0x100000000;
+      }
+      if (carry == 0) {
+        if (result == 0) {
+          assert.equal(state['CR'], 0); // Zero, no carry
+        } else {
+          assert.equal(state['CR'], 1); // Nonzero, no carry
+        }
+      } else {
+        if (result == 0) {
+          assert.equal(state['CR'], 2); // Zero, carry
+        } else {
+          assert.equal(state['CR'], 3); // Nonzero, carry
+        }
+      }
+      assert.equal(reg(2), result);
+    }
   });
 
-  QUnit.skip("Store (FP long) STD", function(assert) {
+  QUnit.test("Store (FP long) STD", function(assert) {
+    fpreg(0, 0x12345678);
+    fpreg(1, 0xaabbccdd);
+    reg(1, 0x100);
+    reg(2, 0x200);
+    execute([0x60012100], assert, 'STD 0,100(1,2)');
+    assert.equal(state['MS'][0x400], 0x12345678);
+    assert.equal(state['MS'][0x404], 0xaabbccdd);
   });
 
   QUnit.skip("Load (FP long) LD", function(assert) {
@@ -1435,7 +1910,16 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.skip("Compare (FP long) CD", function(assert) {
   });
 
-  QUnit.skip("Add N (FP long )AD", function(assert) {
+  QUnit.test("Add N (FP long) AD", function(assert) {
+    // Princ Ops 153
+    fpreg(6, 0x43082100);
+    fpreg(7, 0x00000000);
+    state['MS'][0x2000] = 0x41123456;
+    state['MS'][0x2004] = 0x00000000;
+    reg(13, 0x00002000);
+    execute([0x6a60d000], assert, 'AD 6,0(0, 13)');
+    assert.equal(fpreg(6), 0x42833345);
+    assert.equal(fpreg(7), 0x60000000);
   });
 
   QUnit.skip("Subtract N (FP long) SD", function(assert) {
@@ -1453,16 +1937,32 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.skip("Subtract U (FP long) SW", function(assert) {
   });
 
-  QUnit.skip("Store (FP short) STE", function(assert) {
+  QUnit.test("Store (FP short) STE", function(assert) {
+    fpreg(0, 0x12345678);
+    fpreg(1, 0xaabbccdd);
+    reg(1, 0x100);
+    reg(2, 0x200);
+    state['MS'][0x404] = 0x11223344;
+    execute([0x70012100], assert, 'STE 0,100(1,2)');
+    assert.equal(state['MS'][0x400], 0x12345678);
+    assert.equal(state['MS'][0x404], 0x11223344);
   });
 
-  QUnit.skip("Load (FP short) LE", function(assert) {
+  QUnit.test("Load (FP short) LE", function(assert) {
+    fpreg(0, 0x12345678);
+    fpreg(1, 0xaabbccdd);
+    reg(1, 0x100);
+    reg(2, 0x200);
+    state['MS'][0x400] = 0x11223344;
+    execute([0x78012100], assert, 'LE 0,100(1,2)');
+    assert.equal(fpreg(0), 0x11223344);
+    assert.equal(fpreg(1), 0xaabbccdd);
   });
 
   QUnit.skip("Compare (FP short) CE", function(assert) {
   });
 
-  QUnit.skip("Add N (FP short )AE", function(assert) {
+  QUnit.skip("Add N (FP short) AE", function(assert) {
   });
 
   QUnit.skip("Subtract N (FP short) SE", function(assert) {
@@ -1474,7 +1974,15 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.skip("Divide (FP short) DE", function(assert) {
   });
 
-  QUnit.skip("Add U (FP short) AU", function(assert) {
+  QUnit.test("Add U (FP short) AU", function(assert) {
+    // Princ Ops 153
+    fpreg(6, 0x43082100);
+    fpreg(7, 0x00000000);
+    state['MS'][0x2000] = 0x41123456;
+    state['MS'][0x2004] = 0x00000000;
+    reg(13, 0x00002000);
+    execute([0x7e60d000], assert, 'AU 6,0(0, 13)');
+    assert.equal(fpreg(6), 0x43083334);
   });
 
   QUnit.skip("Subtract U (FP short) SU", function(assert) {
@@ -1631,17 +2139,25 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(reg(1), 0x82345678 >>> 3);
   });
 
-  QUnit.skip("Shift Right S SRA", function(assert) {
+  QUnit.test("Shift Right Single SRA", function(assert) {
+    reg(2, 0x11223344);
+    execute([0x882f0105], assert, 'SRA 2,105(0)'); // Shift right 5
+    assert.equal(reg(2), 0x0089119a);
   });
 
-  QUnit.skip("Shift Left S SLA", function(assert) {
+  QUnit.test("Shift Left S SLA", function(assert) {
     // From Princ Ops p143
     reg(2, 0x007f0a72);
     execute([0x8b2f0008], assert, 'SLA 2,8(0)'); // Shift left 8
     assert.equal(reg(2), 0x7f0a7200);
   });
 
-  QUnit.skip("Shift Right Double SRDL", function(assert) {
+  QUnit.test("Shift Right Double SRDL", function(assert) {
+    reg(4, 0x12345678);
+    reg(5, 0xaabbccdd);
+    execute([0x8d4f6118], assert, 'SRDL 4,118(6)'); // Shift right 24
+    assert.equal(reg(4), 0x00000012);
+    assert.equal(reg(5), 0x345678aa);
   });
 
   QUnit.test("Shift Left Double SLDL", function(assert) {
@@ -1835,7 +2351,12 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(state['MS'][0x804], 0xf5f6aabb);
   });
 
-  QUnit.skip("AND NC", function(assert) {
+  QUnit.test("AND NC", function(assert) {
+    state['MS'][0x358] = 0x00001790;
+    state['MS'][0x360] = 0x00001401;
+    reg(7, 0x00000358);
+    execute([0xd4037000, 0x7008aaaa], assert, 'NC 0(4,7),8(7)');
+    assert.equal(state['MS'][0x358], 0x00001400);
   });
 
   QUnit.test( "Compare Logical CLC - equal", function(assert) {
@@ -1857,7 +2378,12 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(state['CR'], 1); // first operand is low
   });
 
-  QUnit.skip("OR OC", function(assert) {
+  QUnit.test("OR OC", function(assert) {
+    state['MS'][0x358] = 0x00001790;
+    state['MS'][0x360] = 0x00001401;
+    reg(7, 0x00000358);
+    execute([0xd6037000, 0x7008aaaa], assert, 'OC 0(4,7),8(7)');
+    assert.equal(state['MS'][0x358], 0x00001791);
   });
 
   QUnit.test("Exclusive OR XC", function(assert) {
@@ -1873,7 +2399,7 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(state['MS'][0x358], 0x00001401);
   });
 
-  QUnit.skip("Translate TR", function(assert) {
+  QUnit.test("Translate TR", function(assert) {
     // Based on Princ Ops p147
     for (var i = 0; i < 256; i += 4) {
       // Table increments each char by 3. Don't worry about wrapping.
@@ -1894,7 +2420,7 @@ QUnit.module("Instructions", function(hooks) {
     assert,equal(state['MS'][0x2110], 0x9cadbecf);
   });
 
-  QUnit.skip("Translate and Test TRT", function(assert) {
+  QUnit.test("Translate and Test TRT", function(assert) {
     // Based on Princ Ops p147
     for (var i = 0; i < 256; i += 4) {
       state['MS'][0x1000 + i] = 0;
@@ -1911,7 +2437,7 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(state['CR'], 1); // not completed
   });
 
-  QUnit.skip("Edit ED", function(assert) {
+  QUnit.test("Edit ED", function(assert) {
     // Princ Ops page 149
     state['MS'][0x1200] = 0x0257426c;
     state['MS'][0x1000] = 0x4020206b;
@@ -1926,7 +2452,7 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(state['CR'], 2); // Result greater than zero
   });
 
-  QUnit.skip("Edit ED 2", function(assert) {
+  QUnit.test("Edit ED 2", function(assert) {
     // Princ Ops page 149
     state['MS'][0x1200] = 0x0000026d;
     state['MS'][0x1000] = 0x4020206b;
@@ -1944,13 +2470,34 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.skip("Edit and Mark EDMK", function(assert) {
   });
 
-  QUnit.skip("Move with Offset MVO", function(assert) {
+  QUnit.test("Move with Offset MVO", function(assert) {
+    // Princ Ops 152
+    reg(12, 0x00005600);
+    reg(15, 0x00004500);
+    state['MS'][0x5600] = 0xc7788990c;
+    state['MS'][0x4500] = 0x123456ff;
+    execute([0xf132c000, 0xf0000000], assert, 'MVO 0(4, 12), 0(3, 15)');
+    assert.equal(state['MS'][0x5600],  0x0123456c);
   });
 
-  QUnit.skip("Pack PACK", function(assert) {
+  QUnit.test("Pack PACK", function(assert) {
+    // Princ Ops p151
+    reg(12, 0x00001000);
+    state['MS'][0x1000] = 0xf1f2f3f4;
+    state['MS'][0x1004] = 0xc5000000;
+    execute([0xf244c000, 0xc0000000], assert, 'PACK 0(5, 12), 0(5, 12)');
+    assert.equal(state['MS'][0x1000],  0x00001234);
+    assert.equal(state['MS'][0x1004],  0x5c000000);
   });
 
-  QUnit.skip("Unpack UNPK", function(assert) {
+  QUnit.test("Unpack UNPK", function(assert) {
+    // Princ Ops p151
+    reg(12, 0x00001000);
+    reg(13, 0x00002500);
+    state['MS'][0x2500] = 0xaa12345d;
+    execute([0xf342c000, 0xd0010000], assert, 'UNPK 0(5, 12), 1(3, 13)');
+    assert.equal(state['MS'][0x1000],  0xf1f2f3f4);
+    assert.equal(state['MS'][0x1004],  0xdf000000);
   });
 
   QUnit.test( "Zero and Add ZAP", function(assert) {
@@ -1981,19 +2528,80 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(state['MS'][0x100],  0x003a0000); // 3+
   });
 
-  QUnit.skip("Compare CP", function(assert) {
+  QUnit.test("Compare decimal CP", function(assert) {
+    // Princ Op page 150
+    reg(12, 0x00000600);
+    reg(13, 0x00000400);
+    state['MS'][0x700] = 0x1725356d;
+    state['MS'][0x500] = 0x0672142d;;
+    execute([0xf933c100, 0xd1000000], assert, 'CP 100(4, 12), 100(4, 13)');
+    assert.equal(state['CR'], 1); // First lower
   });
 
-  QUnit.skip("Add AP", function(assert) {
+  QUnit.test("Compare decimal CP 0", function(assert) {
+    reg(12, 0x00000600);
+    reg(13, 0x00000400);
+    state['MS'][0x700] = 0x1725356d;
+    state['MS'][0x500] = 0x00172535;
+    state['MS'][0x504] = 0x6d000000;
+    execute([0xf933c100, 0xd1010000], assert, 'CP 100(4, 12), 101(4, 13)');
+    assert.equal(state['CR'], 0); // Equal
   });
 
-  QUnit.skip("Subtract SP", function(assert) {
+  QUnit.test("Compare decimal CP 3", function(assert) {
+    reg(12, 0x00000600);
+    reg(13, 0x00000400);
+    state['MS'][0x700] = 0x1725346d;
+    state['MS'][0x500] = 0x00172535;
+    state['MS'][0x504] = 0x6d000000;
+    execute([0xf933c100, 0xd1010000], assert, 'CP 100(4, 12), 101(4, 13)');
+    assert.equal(state['CR'], 2); // First higher
   });
 
-  QUnit.skip("Multiply MP", function(assert) {
+  QUnit.test("Add AP", function(assert) {
+    // PrincOps p 150
+    reg(12, 0x00002000);
+    reg(13, 0x000004fd);
+    state['MS'][0x2000] = 0x38460d00;
+    state['MS'][0x500] = 0x0112345c;
+    execute([0xfa23c000, 0xd0030000], assert, 'AP 0(3, 12), 3(4, 13)');
+    assert.equal(state['MS'][0x2000],  0x73885c00);
+    assert.equal(state['CR'], 2); // Positive
   });
 
-  QUnit.skip("Divide DP", function(assert) {
+  QUnit.test("Subtract decimal SP", function(assert) {
+    reg(12, 0x00002000);
+    reg(13, 0x000004fd);
+    state['MS'][0x2000] = 0x38460c00;
+    state['MS'][0x500] = 0x0112345c;
+    execute([0xfb23c000, 0xd0030000], assert, 'SP 0(3, 12), 3(4, 13)');
+    assert.equal(state['MS'][0x2000],  0);
+    assert.equal(state['CR'], 2); // Positive
+  });
+
+  QUnit.test("Multiply MP", function(assert) {
+    // PrincOps p 151
+    reg(4, 0x00001200);
+    reg(6, 0x00000500);
+    state['MS'][0x1200] = 0xffff3846;
+    state['MS'][0x1204] = 0x0dffffff;
+    state['MS'][0x500] = 0x321dffff;
+    execute([0xfc414100, 0x60000000], assert, 'MP 100(5, 4), 0(2, 6)');
+    assert.equal(state['MS'][0x1300],  0x01234566);
+    assert.equal(state['MS'][0x1304],  0x0c000000);
+    assert.equal(state['CR'], 2); // Positive
+  });
+
+  QUnit.test("Divide DP", function(assert) {
+    // PrincOps p 151
+    reg(12, 0x00002000);
+    reg(13, 0x00003000);
+    state['MS'][0x2000] = 0x01234567;
+    state['MS'][0x2004] = 0x8cffffff;
+    state['MS'][0x3000] = 0x321dffff;
+    execute([0xfd41c000, 0xd0000000], assert, 'DP 0(5, 12), 0(2, 13)');
+    assert.equal(state['MS'][0x2000],  0x38460d01);
+    assert.equal(state['MS'][0x2004],  0x8cffffff);
   });
 
   QUnit.test( "Load Multiple LM", function(assert) {
@@ -2047,7 +2655,6 @@ QUnit.module("Instructions", function(hooks) {
     execute([0x55123100], assert, 'CL 1,100(2,3)');
     assert.equal(state['CR'], 0); // equal
   });
-
 
   QUnit.test( "And NR", function(assert) {
     reg(1, 0xff00ff00);
