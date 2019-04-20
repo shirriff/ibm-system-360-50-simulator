@@ -1487,7 +1487,16 @@ QUnit.test( "roar ab 19 WR=0", function(assert) {
   assert.equal(state['ROAR'], 0x49c | 2);
 });
 
-QUnit.skip( "roar ab 20 MD=FP", function(assert) {
+QUnit.test( "roar ab 20 MD=FP", function(assert) {
+  for (var i = 0; i < 16; i++) {
+    var state = {'ROAR': 0x49c, 'MD': i};
+    roarAB(state, {'AB': 20});
+    if (i == 0 || i == 2 || i == 4 || i == 6) {
+      assert.equal(state['ROAR'], 0x49c | 2);
+    } else {
+      assert.equal(state['ROAR'], 0x49c | 0);
+    }
+  }
 });
 
 QUnit.test( "roar ab 21 MB=3", function(assert) {

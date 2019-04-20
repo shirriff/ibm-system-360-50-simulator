@@ -1617,8 +1617,10 @@ function roarAB(state, entry) {
         roar |= 2;
       }
       break;
-    case 20: // MD=FP  i.e. MD = 0xx0
-      alert('Unimplemented AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
+    case 20: // MD=FP  i.e. MD = 0xx0, floating point register 0, 2, 4, 6
+      if (state['MD'] == 0 || state['MD'] == 2 || state['MD'] == 4 || state['MD'] == 6) {
+        roar |= 2;
+      }
       break;
     case 21: // MB=3   BAM bit 0 and 1
       if (state['MB'] == 3) {
