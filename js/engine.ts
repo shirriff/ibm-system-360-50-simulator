@@ -653,6 +653,16 @@ function adderLatch(state, entry) {
       state['L'] = t;
       break;
     case 8: // HA→A   Complicated hardware address implementation.
+      // See Figure 16, 50Maint
+      // Emit:
+      // xx00: turn on byte stats (write select)
+      // xxx0: Block SDR Reset (OR select)
+      // xxx1: Read Select
+      // x0xx or seq ctr mode,ctr=0,log tgr: HA1
+      // x1xx or seq ctr mod,log tgr,ctr=4: HA2
+      // HA1 or HA2: block SAR address, SAR 80
+      // HA2: SAR 84
+      // HA2: IAR 84
       alert('Unimplemented TR ' + entry['TR'] + " " + labels['TR'][entry['TR']]);
       break;
     case 9: // R,AN // QT220/20d
@@ -761,8 +771,8 @@ function adderLatch(state, entry) {
     case 30: // L13 // QP206/0D95
       state['L'] = ((state['L'] & 0xff000000) | (state['T'] & 0x00ffffff)) >>> 0;
       break;
-    case 31: // J
-      state['J'] = t & 0xf;
+    case 31: // J   Use bits 12-15
+      state['J'] = (state['T'] >>> 16) & 0xf;
       break;
     default:
       alert('Unexpected TR ' + entry['TR'] + " " + labels['TR'][entry['TR']]);
@@ -955,6 +965,10 @@ function storeMover(state, entry) {
       state['J'] = state['WL'];
       break;
     case 7: // W→CHCTL           // Channel control: 0001 is start I/O, 0100 is test I/O. Updates R, M, DA, L (see QK800). M0 = unit status. L1 is channel end status
+      // 0010 is halt: QK70093a
+      // 1000 is test chan: QK700:93e
+      // 1101 is test I/O: QK700:936
+      // 00010000 is foul on start; QK700:9Be
       chctl(state, entry); // in io.js
       break;
     case 8: // W,E→A(BUMP) // W,E(23) selects bump sector address. Bits shuffled, see 5- Maint p81.
@@ -1308,7 +1322,10 @@ function stat(state, entry) {
       }
       break;
     case 14: // FPZERO,E→FN
-      alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
+      if ((state['T'] & 0x00ffffff) == 0 && state['F'] == 0 && state['S'][3]) {
+        state['S'][0] = 1;
+      }
+      state['FN'] = entry['CE'] & 3; // A guess as to which bits
       break;
     case 15: // B0,1SYL // (B=0)→S1, set 1SYL QT115/0189
       b0(state);
@@ -1722,6 +1739,7 @@ function roarAB(state, entry) {
       alert('Unexpected AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
     case 41: // LOG      // Branch on log scan stat. QY430 0 for FLT log, 1 for error log QY410
+      // Log trigger discussed in 50Maint
       alert('Unimplemented AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
     case 42: // STC=0    // Check Scan Test Counter
@@ -1766,12 +1784,16 @@ function roarAB(state, entry) {
     case 53: // CROS IB full
       alert('Unimplemented I/O AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
-    case 54: // CANG
+    case 54: // CANG: (29-31) != 0  CA not good?
+      // QK700: No IV AR trap. Z(29-31) != 0 or IV AD to A.
       // CROS: IO mode & (T29-31 not zero or Inv Add)   or  CPU mode & (T29-31 not zero or Inv Add) -- seems redundant
-      alert('Unimplemented AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
+      if ((state['T'] & 0x00000007) || (state['SAR'] & 1)) {
+        roar |= 2;
+      }
       break;
-    case 55: // CHLOG   CROS: AC log
-      alert('Unimplemented AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
+    case 55: // CHLOG   Channel log
+      // Don't log for now. Unclear what triggers this? A channel fault? Or a switch?
+      // Log trigger discussed in 50Maint. Is this a separate log?
       break;
     case 56:
       // I-FETCH does a 4-way branch:

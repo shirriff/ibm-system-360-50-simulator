@@ -854,7 +854,7 @@ QUnit.test( "latch tr 30 L13", function(assert) {
 QUnit.test( "latch tr 31 J", function(assert) {
   var state = {'T': 0x12345678};
   adderLatch(state, {'TR': 31 /* J */});
-  assert.equal(state['J'], 0x8);
+  assert.equal(state['J'], 0x4); // Note bits 12-15
 });
 
 QUnit.test( "mover", function(assert) {
@@ -1795,7 +1795,18 @@ QUnit.test("ab 49 W(67)→AB", function(assert) {
 
 // 50-53 unused?
 
-QUnit.skip("ab 54 CANG", function(assert) {
+QUnit.test("ab 54 CANG", function(assert) {
+  state = {'ROAR': 0x49c, 'SAR': 0x100, 'T': 0xfffffff8};
+  roarAB(state, {'AB': 54, 'BB': 0});
+  assert.equal(state['ROAR'], 0x49c | 0);
+
+  state = {'ROAR': 0x49c, 'SAR': 0x101, 'T': 0xfffffff8}; // IVA
+  roarAB(state, {'AB': 54, 'BB': 0});
+  assert.equal(state['ROAR'], 0x49c | 2);
+
+  state = {'ROAR': 0x49c, 'SAR': 0x100, 'T': 0xfffffffc}; // 29-31 bit set (CA)A
+  roarAB(state, {'AB': 54, 'BB': 0});
+  assert.equal(state['ROAR'], 0x49c | 2);
 });
 
 QUnit.skip("ab 55 CHLOG", function(assert) {
@@ -2364,40 +2375,49 @@ QUnit.test( "stat12: X0,B0,1SYL", function(assert) {
 
 // Tests if value is floating point zero (ignoring sign, exponent)
 QUnit.test( "stat SS 13: FPZERO", function(assert) {
+  testFpzero(13, assert);
+});
+
+function testFpzero(ss, assert) {
   var state = {'T': 0x12000000, 'S': [0, 0, 0, 1, 0, 0, 0, 0], 'F': 0};
-  stat(state, {'SS': 13});
+  stat(state, {'SS': ss});
   assert.equal(state['S'][0], 1);
 
   var state = {'T': 0x82000000, 'S': [0, 0, 0, 1, 0, 0, 0, 0], 'F': 0};
-  stat(state, {'SS': 13});
+  stat(state, {'SS': ss});
   assert.equal(state['S'][0], 1);
 
   var state = {'T': 0x00000000, 'S': [0, 0, 0, 1, 0, 0, 0, 0], 'F': 0};
-  stat(state, {'SS': 13});
+  stat(state, {'SS': ss});
   assert.equal(state['S'][0], 1);
 
   var state = {'T': 0x00000001, 'S': [0, 0, 0, 1, 0, 0, 0, 0], 'F': 0};
-  stat(state, {'SS': 13});
+  stat(state, {'SS': ss});
   assert.equal(state['S'][0], 0);
 
   var state = {'T': 0x00800000, 'S': [0, 0, 0, 1, 0, 0, 0, 0], 'F': 0};
-  stat(state, {'SS': 13});
+  stat(state, {'SS': ss});
   assert.equal(state['S'][0], 0);
 
   var state = {'T': 0xff000001, 'S': [0, 0, 0, 1, 0, 0, 0, 0], 'F': 0};
-  stat(state, {'SS': 13});
+  stat(state, {'SS': ss});
   assert.equal(state['S'][0], 0);
 
   var state = {'T': 0x00000001, 'S': [0, 0, 0, 1, 0, 0, 0, 0], 'F': 1}; // Need F=0
-  stat(state, {'SS': 13});
+  stat(state, {'SS': ss});
   assert.equal(state['S'][0], 0);
 
   var state = {'T': 0x00000001, 'S': [0, 0, 0, 0, 0, 0, 0, 0], 'F': 0}; // Need S3
-  stat(state, {'SS': 13});
+  stat(state, {'SS': ss});
   assert.equal(state['S'][0], 0);
-});
+};
 
-QUnit.skip( "stat SS 14: FPZERO,E→FN", function(assert) {
+QUnit.test( "stat SS 14: FPZERO,E→FN", function(assert) {
+  testFpzero(14, assert);
+
+  var state = {'T': 0x00000001, 'S': [0, 0, 0, 0, 0, 0, 0, 0], 'F': 0};
+  stat(state, {'SS': 14, 'CE': 7});
+  assert.equal(state['FN'], 3);
 });
 
 QUnit.test( "stat15: B0,1SYL", function(assert) {
