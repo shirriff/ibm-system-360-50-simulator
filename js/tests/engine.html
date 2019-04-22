@@ -322,32 +322,29 @@ QUnit.test( "adder-subtract-overflow ad 5 BC⩝C", function(assert) {
 
 // Block carry from 8, save carry from 1. Used for floating point exponent math.
 QUnit.test( "adder ad 6 BC1B", function(assert) {
-  var state = {'XG': 0x12ffffff, 'AUX': 0, 'Y': 0x00000000, 'CIN': 1};
-  adderT(state, {'AD': 6});
-  assert.equal(state['T0'], 0x12000000); // Carry blocked
-  assert.equal(state['CAR'], 0); // No carry
-
-  var state = {'XG': 0x12ffffff, 'AUX': 0, 'Y': 0x34001234, 'CIN': 0};
-  adderT(state, {'AD': 6});
-  assert.equal(state['T0'], 0x46001233);
-  assert.equal(state['CAR'], 0); // No carry
-
-  var state = {'XG': 0x72aabbcc, 'AUX': 0, 'Y': 0x40000000, 'CIN': 0};
-  adderT(state, {'AD': 6});
-  assert.equal(state['T0'], 0xb2aabbcc); // Sign bit modified too
-  assert.equal(state['CAR'], 1); // Carry from 1 into 0.
-
-  // Test just carry 8
-  var state = {'XG': 0x00800000, 'AUX': 0, 'Y': 0x00800000, 'CIN': 0};
+  // Exponents equal
+  var state = {'XG': 0x12345678, 'AUX': 0, 'Y': (~(0x12345678)) >>> 0, 'CIN': 1};
   adderT(state, {'AD': 6});
   assert.equal(state['T0'], 0x00000000);
-  assert.equal(state['CAR'], 0);
+  assert.equal(state['CAR'], 1); // Carry
 
-  // Test just carry 1
-  var state = {'XG': 0x40000000, 'AUX': 0, 'Y': 0x40000000, 'CIN': 0};
+  // Exponents equal, sign different
+  var state = {'XG': 0x12345678, 'AUX': 0, 'Y': (~(0x92345678)) >>> 0, 'CIN': 1};
   adderT(state, {'AD': 6});
   assert.equal(state['T0'], 0x80000000);
-  assert.equal(state['CAR'], 1); // Carry from 1 into 0.
+  assert.equal(state['CAR'], 1); // Carry
+
+  // First exponent smaller
+  var state = {'XG': 0x11345678, 'AUX': 0, 'Y': (~(0x12345678)) >>> 0, 'CIN': 1};
+  adderT(state, {'AD': 6});
+  assert.equal(state['T0'], 0x7f000000);
+  assert.equal(state['CAR'], 0); // No carry
+
+  // First exponent larger
+  var state = {'XG': 0x13345678, 'AUX': 0, 'Y': (~(0x92345678)) >>> 0, 'CIN': 1};
+  adderT(state, {'AD': 6});
+  assert.equal(state['T0'], 0x81000000);
+  assert.equal(state['CAR'], 1); // Carry
 });
 
 // Carry out of pos 8
@@ -2946,10 +2943,19 @@ QUnit.test( "al17 F→SL4→F", function(assert) {
 });
 
 QUnit.test( "al18 FPSL4", function(assert) {
-  var state = {'T0': 0x12345678, 'F': 0x3};
+  var state = {'T0': 0x12345678, 'F': 0xf};
   adderAL(state, {'AL': 18});
   assert.equal(state['T'], 0x12456780); // Preserve sign, exponent top byte
-  assert.equal(state['F'], 0x3);
+  assert.equal(state['F'], 0xf);
+  assert.equal(state['LB'], 1);
+});
+
+QUnit.test( "al18 FPSL4 0", function(assert) {
+  var state = {'T0': 0x12045678, 'F': 0xf};
+  adderAL(state, {'AL': 18});
+  assert.equal(state['T'], 0x12456780); // Preserve sign, exponent top byte
+  assert.equal(state['F'], 0xf);
+  assert.equal(state['LB'], 0);
 });
 
 QUnit.test( "al19 F→FPSL4", function(assert) {
@@ -2957,6 +2963,15 @@ QUnit.test( "al19 F→FPSL4", function(assert) {
   adderAL(state, {'AL': 19});
   assert.equal(state['T'], 0x12456783);
   assert.equal(state['F'], 0x3);
+  assert.equal(state['LB'], 1);
+});
+
+QUnit.test( "al19 F→FPSL4 0", function(assert) {
+  var state = {'T0': 0x12045678, 'F': 0x3};
+  adderAL(state, {'AL': 19});
+  assert.equal(state['T'], 0x12456783);
+  assert.equal(state['F'], 0x3);
+  assert.equal(state['LB'], 0);
 });
 
 QUnit.test( "al20 SR4→F", function(assert) {
@@ -3003,6 +3018,15 @@ QUnit.test( "al26 E→FPSL4", function(assert) {
   adderAL(state, {'AL': 26, 'CE': 0x4});
   assert.equal(state['T'], 0x12456784);
   assert.equal(state['F'], 0x3);
+  assert.equal(state['LB'], 1);
+});
+
+QUnit.test( "al26 E→FPSL4 0", function(assert) {
+  var state = {'T0': 0x12045678, 'F': 0x3};
+  adderAL(state, {'AL': 26, 'CE': 0x4});
+  assert.equal(state['T'], 0x12456784);
+  assert.equal(state['F'], 0x3);
+  assert.equal(state['LB'], 0);
 });
 
 QUnit.test( "al27 F→SR1→Q", function(assert) {
