@@ -258,10 +258,13 @@ function adderT(state, entry) {
       state['CAR'] = (c0 != c1) ? 1 : 0;
       break;
     case 6: // BC1B // Block carry from 8, save carry from 1  QG700:503  i.e. MIER+MCND-64 CLF116
-      state['CAR'] = c1;
-      if (c8) {
-        t = (t - 0x01000000) >>> 0;
-      }
+      // Seems like it needs to introduce carry into position 7
+      t = xg + y + carry;
+      var sign = (xg & 0x80000000) + (y & 0x80000000) + 0x80000000; // Give it a carry-in so subtract works nicely
+      var charac = (xg & 0x7f000000) + (y & 0x7f000000) + (1-entry['TC']) * 0x01000000; // Give it a carry-in
+      var frac = (xg & 0x00ffffff) + (y & 0xffffff) + carry;
+      t = ((sign & 0x80000000) | (charac & 0x7f000000) | (frac & 0x00ffffff)) >>> 0;
+      state['CAR'] = (charac & 0x80000000) ? 1 : 0;
       break;
     case 7: // BC8 - carry from position 8
       state['CAR'] = c8;
@@ -480,10 +483,12 @@ function adderAL(state, entry) {
       state['F'] = s[1];
       break;
     case 18: // FPSL4 Floating point shift left 4, preserving top byte (sign, exponent)
+      state['LB'] = (state['T'] & 0x00f00000) ? 1 : 0; // LB indicates if data shifted out
       var s = sl4(0, state['T']);
       state['T'] = ((state['T'] & 0xff000000) | (s[0] & 0x00ffffff)) >>> 0;
       break;
     case 19: // F→FPSL4
+      state['LB'] = (state['T'] & 0x00f00000) ? 1 : 0; // LB indicates if data shifted out
       var s = sl4(state['F'], state['T']);
       state['T'] = ((state['T'] & 0xff000000) | (s[0] & 0x00ffffff)) >>> 0;
       break;
@@ -513,6 +518,7 @@ function adderAL(state, entry) {
       state['T'] = s[0];
       break;
     case 26: // E→FPSL4  Floating point shift left 4, preserving top byte
+      state['LB'] = (state['T'] & 0x00f00000) ? 1 : 0; // LB indicates if data shifted out
       var s = sl4(entry['CE'], state['T']);
       state['T'] = ((state['T'] & 0xff000000) | (s[0] & 0x00ffffff)) >>> 0;
       break;
@@ -1391,10 +1397,10 @@ function stat(state, entry) {
       // (ED=0) → S7
       // Set exp dif reg. It is a 4-bit register, but value could overflow.
       state['ED'] = (state['T'] >>> 24) & 0xf;
-      state['S'][4] = (state['T'] & 0x80000000) ? 1 : 0;
-      state['S'][5] = (state['T'] & 0x80000000) ? 1 : 0; // What is this?
-      state['S'][6] = ((state['TD'] & 0xf0000000) == 0) ? 1 : 0;
-      state['S'][7] = ((state['TD'] & 0xff000000) == 0) ? 1 : 0;
+      state['S'][4] = (state['R'] & 0x80000000) ? 1 : 0; // Normal sign. Sign of R???
+      state['S'][5] = (state['T'] & 0x80000000) ? 0 : 1; // If signs are same, true add (i.e. not subtract)
+      state['S'][6] = ((state['ED'] & 0xf0000000) == 0) ? 1 : 0;
+      state['S'][7] = ((state['ED'] & 0xff000000) == 0) ? 1 : 0;
       break;
     case 28: // OPPANEL→S47      // Write operator panel to S bits 4-7
       // See QT200 for mapping from console switches to S47
@@ -1717,6 +1723,7 @@ function roarAB(state, entry) {
       break;
     case 35: // EDITPAT
       // CROS manual page 31: sets A with edit stat 1, B with edit stat 2.
+      // d1c:
       alert('Unimplemented AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
     case 36: // PROB     // Check problelm state (i.e. user vs supervisor)? QY110, QA800  Monitor stat
