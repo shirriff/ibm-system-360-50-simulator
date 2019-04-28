@@ -53,9 +53,9 @@ QUnit.test( "adder2", function(assert) {
 
 QUnit.test( "adder3", function(assert) {
   var state = {'M': 0x12345678};
-  var entry = {'CE': 0x1234, 'LX': 3 /* E */, 'RY': 3 /* M23 */, 'TC': 1 /* add */, 'AD': 1 /* default op */, 'AL': 0 /* shift */, 'DG': 0 /* default */};
+  var entry = {'CE': 4, 'LX': 3 /* E */, 'RY': 3 /* M23 */, 'TC': 1 /* add */, 'AD': 1 /* default op */, 'AL': 0 /* shift */, 'DG': 0 /* default */};
   adder(state, entry);
-  assert.equal(state['T0'], (0x1234 << 1) + 0x5678);
+  assert.equal(state['T0'], (4 << 1) + 0x5678);
 });
 
 QUnit.test( "adder lx 0 0", function(assert) {
@@ -106,12 +106,6 @@ QUnit.skip( "adder lx 7 64C", function(assert) {
   var state = {};
   adderLX(state, {'LX': 7});
   assert.equal(state['XG'], (~64) >>> 0); // Complement of 64
-});
-
-QUnit.test( "adder RY 0 0", function(assert) {
-  var state = {};
-  adderRY(state, {'RY': 0});
-  assert.equal(state['Y'], 0);
 });
 
 QUnit.test( "adder RY 0 0", function(assert) {
@@ -2781,12 +2775,6 @@ QUnit.test( "al3 +SGN→", function(assert) {
   var state = {'T0': 0x12345678};
   adderAL(state, {'AL': 3});
   assert.equal(state['T'], 0x12345678);
-});
-
-QUnit.test( "al4 -SGN→", function(assert) {
-  var state = {'T0': 0x12345678};
-  adderAL(state, {'AL': 4});
-  assert.equal(state['T'], 0x92345678);
 });
 
 QUnit.test( "al4 -SGN→", function(assert) {
