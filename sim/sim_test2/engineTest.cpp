@@ -19,6 +19,12 @@ void setBS(state_t &state, bool bs0, bool bs1, bool bs2, bool bs3) {
   state.BS[3] = bs3;
 }
 
+void setS(state_t &state, std::vector<bool>v) {
+  for (int i = 0; i < 8; i++) {
+    state.S[i] = v[i];
+  }
+}
+
 TEST_CASE( "adder") {
   state.L = 0x12345678;
   state.R = 0x23456789;
@@ -110,7 +116,7 @@ TEST_CASE( "adder lx 6 4") {
   REQUIRE( state.XG == 4);
 }
 
-TEST_CASE( "adder lx 7 64C", "[hide]") {
+TEST_CASE( "adder lx 7 64C", "[!hide]") {
   entry.LX = 7;
   adderLX(state, entry);
   REQUIRE( state.XG == ~64); // Complement of 64
@@ -150,7 +156,7 @@ TEST_CASE( "adder RY 4 H") {
   REQUIRE( state.Y == 0x12345678);
 }
 
-TEST_CASE( "adder RY 5 SEMT", "[hide]") {
+TEST_CASE( "adder RY 5 SEMT", "[!hide]") {
 }
 
   // Based on 02D3
@@ -180,7 +186,7 @@ TEST_CASE( "adder-default") {
   REQUIRE( state.T0 == 0);
 }
 
-TEST_CASE( "adder ad 2 BCF0", "[hide]") {
+TEST_CASE( "adder ad 2 BCF0", "[!hide]") {
 }
 
 TEST_CASE( "adder-carry0 ad 4 BC0") {
@@ -575,14 +581,14 @@ TEST_CASE( "adderT ad 8 DHL") {
 }
 
 TEST_CASE( "adder ad 9 DC0") {
-  state.S[1] = 1;
+  setS(state, {0, 1, 0, 0, 0, 0, 0, 0});
   entry.AD = 9;
   entry.DG = 0;
   adderDG(state, entry); // Note AD 9 implemented in adderDG
   REQUIRE( state.CIN == 1);
 }
 
-TEST_CASE( "adder ad 10 DDC0", "[hide]") {
+TEST_CASE( "adder ad 10 DDC0", "[!hide]") {
 }
 
 TEST_CASE( "adderT ad 11 DHH") {
@@ -632,7 +638,7 @@ TEST_CASE( "adderT ad 11 DHH") {
   REQUIRE( state.AUX == 1);
 }
 
-TEST_CASE( "adder ad 12 DCBS", "[hide]") {
+TEST_CASE( "adder ad 12 DCBS", "[!hide]") {
 }
 
 TEST_CASE( "adder dg 1 CSTAT→ADDER") {
@@ -706,14 +712,16 @@ TEST_CASE( "adder dg 5 G2-1") {
 
 TEST_CASE( "adder dg 6 G-1") {
   state.G1 = 2;
+  state.pending.G1 = 2;
   state.G2 = 1;
   entry.DG = 6;
   adderDG(state, entry);
-  REQUIRE( state.pending.G1 == 0); // No change
+  REQUIRE( state.pending.G1 == 2); // No change
   REQUIRE( state.pending.G2 == 0);
 
   state.G1 = 2;
-  state.G2 = 1;
+  state.pending.G1 = 2;
+  state.G2 = 0;
   entry.DG = 6;
   adderDG(state, entry);
   REQUIRE( state.pending.G1 == 1);
@@ -723,11 +731,12 @@ TEST_CASE( "adder dg 6 G-1") {
 TEST_CASE( "adder dg 7 G1,2-1") {
   state.G1 = 0;
   state.G2 = 1;
+    state.pending.G1 = 7;
   entry.DG = 7;
   adderDG(state, entry);
   REQUIRE( state.G1NEG == 1);
   REQUIRE( state.G2NEG == 0);
-  REQUIRE( state.pending.G1 == 0); // No change
+  REQUIRE( state.pending.G1 == 7); // No change
   REQUIRE( state.pending.G2 == 0);
 
   state.G1 = 0xf;
@@ -954,7 +963,7 @@ TEST_CASE( "latch tr 7 L") {
   REQUIRE( state.L == 0x12345678);
 }
 
-TEST_CASE( "latch tr 8 HA→A", "[hide]") {
+TEST_CASE( "latch tr 8 HA→A", "[!hide]") {
 }
 
 TEST_CASE( "latch tr 9 R,AN") {
@@ -994,7 +1003,7 @@ TEST_CASE( "latch tr 12 D→IAR") {
   REQUIRE( state.IAR == 0x0006789a);
 }
 
-TEST_CASE( "latch tr 13 SCAN→D", "[hide]") {
+TEST_CASE( "latch tr 13 SCAN→D", "[!hide]") {
 }
 
 TEST_CASE( "latch tr 14 R13") {
@@ -1040,7 +1049,7 @@ TEST_CASE( "latch tr 21 IA") {
   REQUIRE( state.IAR == 0x00345678);
 }
 
-TEST_CASE( "latch tr 22 FOLD→D", "[hide]") {
+TEST_CASE( "latch tr 22 FOLD→D", "[!hide]") {
 }
 
 // 23: unused
@@ -1433,7 +1442,7 @@ TEST_CASE("storeMover WM 6 WL→J") {
   REQUIRE( state.J == 8);
 }
 
-TEST_CASE("storeMover WM 7 W→CHCTL", "[hide]") {
+TEST_CASE("storeMover WM 7 W→CHCTL", "[!hide]") {
   state.W = 0x89;
   state.WL = 8;
   state.WR = 9;
@@ -1455,7 +1464,7 @@ TEST_CASE("storeMover WM 9 WL→G1") {
   state.WR = 9;
   entry.WM = 9;
   storeMover(state, entry);
-  REQUIRE( state.G1 == 8);
+  REQUIRE( state.pending.G1 == 8);
 }
 
 TEST_CASE("storeMover WM 10 WR→G2") {
@@ -1464,7 +1473,7 @@ TEST_CASE("storeMover WM 10 WR→G2") {
   state.WR = 9;
   entry.WM = 10;
   storeMover(state, entry);
-  REQUIRE( state.G2 == 9);
+  REQUIRE( state.pending.G2 == 9);
 }
 
 TEST_CASE("storeMover WM 11 W→G") {
@@ -1473,11 +1482,11 @@ TEST_CASE("storeMover WM 11 W→G") {
   state.WR = 9;
   entry.WM = 11;
   storeMover(state, entry);
-  REQUIRE( state.G1 == 8);
-  REQUIRE( state.G2 == 9);
+  REQUIRE( state.pending.G1 == 8);
+  REQUIRE( state.pending.G2 == 9);
 }
 
-TEST_CASE("storeMover WM 12 W→MMB(E?)", "[hide]") {
+TEST_CASE("storeMover WM 12 W→MMB(E?)", "[!hide]") {
 }
 
 TEST_CASE("storeMover WM 13 WL→MD") {
@@ -1584,6 +1593,7 @@ TEST_CASE("localStorage LSAR 4 FN,J→LSA") {
   state.J = 3;
   entry.WS = 4;
   entry.SF = 7;
+  state.LSAR = 0;
   localStorageLSAR(state, entry);
   REQUIRE( state.LSAR == 0); // Blocked by SF=7
   state.FN = 2;
@@ -1800,11 +1810,12 @@ TEST_CASE( "ab 1 (1)") {
 
 TEST_CASE( "ab 2 (S0)") {
   state.ROAR = 0x49c;
+  setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
   entry.AB = 2;
   roarAB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 0));
   state.ROAR = 0x49c;
-  state.S[0] = 1;
+  setS(state, {1, 0, 0, 0, 0, 0, 0, 0});
   entry.AB = 2;
   roarAB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 2));
@@ -1812,11 +1823,12 @@ TEST_CASE( "ab 2 (S0)") {
 
 TEST_CASE( "ab 3 (S1)") {
   state.ROAR = 0x49c;
+  setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
   entry.AB = 3;
   roarAB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 0));
   state.ROAR = 0x49c;
-  state.S[1] = 1;
+  setS(state, {0, 1, 0, 0, 0, 0, 0, 0});
   entry.AB = 3;
   roarAB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 2));
@@ -1824,11 +1836,12 @@ TEST_CASE( "ab 3 (S1)") {
 
 TEST_CASE( "ab 4 (S2)") {
   state.ROAR = 0x49c;
+  setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
   entry.AB = 4;
   roarAB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 0));
   state.ROAR = 0x49c;
-  state.S[2] = 1;
+  setS(state, {0, 0, 1, 0, 0, 0, 0, 0});
   entry.AB = 4;
   roarAB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 2));
@@ -1836,11 +1849,12 @@ TEST_CASE( "ab 4 (S2)") {
 
 TEST_CASE( "ab 5 (S3)") {
   state.ROAR = 0x49c;
+  setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
   entry.AB = 5;
   roarAB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 0));
   state.ROAR = 0x49c;
-  state.S[3] = 1;
+  setS(state, {0, 0, 0, 1, 0, 0, 0, 0});
   entry.AB = 5;
   roarAB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 2));
@@ -1849,11 +1863,12 @@ TEST_CASE( "ab 5 (S3)") {
 
 TEST_CASE( "ab 6 (S4)") {
   state.ROAR = 0x49c;
+  setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
   entry.AB = 6;
   roarAB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 0));
   state.ROAR = 0x49c;
-  state.S[4] = 1;
+  setS(state, {0, 0, 0, 0, 1, 0, 0, 0});
   entry.AB = 6;
   roarAB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 2));
@@ -1861,11 +1876,12 @@ TEST_CASE( "ab 6 (S4)") {
 
 TEST_CASE( "ab 7 (S5)") {
   state.ROAR = 0x49c;
+  setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
   entry.AB = 7;
   roarAB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 0));
   state.ROAR = 0x49c;
-  state.S[5] = 1;
+  setS(state, {0, 0, 0, 0, 0, 1, 0, 0});
   entry.AB = 7;
   roarAB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 2));
@@ -1873,11 +1889,12 @@ TEST_CASE( "ab 7 (S5)") {
 
 TEST_CASE( "ab 8 (S6)") {
   state.ROAR = 0x49c;
+  setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
   entry.AB = 8;
   roarAB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 0));
   state.ROAR = 0x49c;
-  state.S[6] = 1;
+  setS(state, {0, 0, 0, 0, 0, 0, 1, 0});
   entry.AB = 8;
   roarAB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 2));
@@ -1885,11 +1902,12 @@ TEST_CASE( "ab 8 (S6)") {
 
 TEST_CASE( "ab 9 (S7)") {
   state.ROAR = 0x49c;
+  setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
   entry.AB = 9;
   roarAB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 0));
   state.ROAR = 0x49c;
-  state.S[7] = 1;
+  setS(state, {0, 0, 0, 0, 0, 0, 0, 1});
   entry.AB = 9;
   roarAB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 2));
@@ -1897,12 +1915,13 @@ TEST_CASE( "ab 9 (S7)") {
 
 TEST_CASE( "ab 10 (CSTAT)") {
   state.ROAR = 0x49c;
-  entry.AB = 9;
+  entry.AB = 10;
+  state.CSTAT = 0;
   roarAB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 0));
   state.ROAR = 0x49c;
-  state.S[7] = 1;
-  entry.AB = 9;
+  state.CSTAT = 1;
+  entry.AB = 10;
   roarAB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 2));
 }
@@ -2245,13 +2264,13 @@ TEST_CASE( "ab 33 (UNORM)") {
   roarAB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 2)); // T8-11 == 0, not stat 0
   state.ROAR = 0x49c;
-  state.S[0] = 1;
+  setS(state, {1, 0, 0, 0, 0, 0, 0, 0});
   entry.AB = 33;
   roarAB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 0));
   state.ROAR = 0x49c;
   state.T = 0xff1fffff;
-  state.S[0] = 0;
+  setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
   entry.AB = 33;
   roarAB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 0));
@@ -2324,7 +2343,7 @@ TEST_CASE("ab 34 TZ*BS") {
   REQUIRE( state.ROAR == (0x49c | 2));
 }
 
-TEST_CASE( "ab 35 EDITPAT", "[hide]") {
+TEST_CASE( "ab 35 EDITPAT", "[!hide]") {
 }
 
 TEST_CASE( "ab 36 PROB") {
@@ -2341,7 +2360,7 @@ TEST_CASE( "ab 36 PROB") {
   REQUIRE( state.ROAR == (0x49c | 2));
 }
 
-TEST_CASE( "ab 37 TIMUP", "[hide]") {
+TEST_CASE( "ab 37 TIMUP", "[!hide]") {
 }
 
 // 38 unused
@@ -2380,10 +2399,10 @@ TEST_CASE( "ab 39 (GZ/MB3)") {
 
 // 40 Unused
 
-TEST_CASE("ab 41 LOG", "[hide]") {
+TEST_CASE("ab 41 LOG", "[!hide]") {
 }
 
-TEST_CASE("ab 42 STC=0", "[hide]") {
+TEST_CASE("ab 42 STC=0", "[!hide]") {
 }
 
 TEST_CASE("ab 43 G2<=LB") {
@@ -2541,7 +2560,7 @@ TEST_CASE("ab 54 CANG") {
   REQUIRE( state.ROAR == (0x49c | 2));
 }
 
-TEST_CASE("ab 55 CHLOG", "[hide]") {
+TEST_CASE("ab 55 CHLOG", "[!hide]") {
 }
 
 // Sets A and B
@@ -2596,12 +2615,12 @@ TEST_CASE( "ab 57 IA(30)") {
   REQUIRE( state.ROAR == (0x49c | 2));
 }
 
-TEST_CASE("ab 58 EXT,CHIRPT", "[hide]") {
+TEST_CASE("ab 58 EXT,CHIRPT", "[!hide]") {
 }
 
 // 59 not used?
 
-TEST_CASE("ab 60 PSS") {
+TEST_CASE("ab 60 PSS", "[!hide]") {
   state.ROAR = 0x49c;
   state.PSS = 0;
   entry.AB = 60;
@@ -2623,22 +2642,24 @@ TEST_CASE( "ab 63 RX.S0") {
   state.ROAR = 0x49c;
   state.M = 0x30000000;
   entry.AB = 63;
+  setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
   roarAB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 0)); // Not M:01, not S0
   state.ROAR = 0x49c;
   state.M = 0x70000000;
   entry.AB = 63;
+  setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
   roarAB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 0)); // M:01, not S0
   state.ROAR = 0x49c;
   state.M = 0x70000000;
-  state.S[0] = 1;
+  setS(state, {1, 0, 0, 0, 0, 0, 0, 0});
   entry.AB = 63;
   roarAB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 2)); // M:01, S0
   state.ROAR = 0x49c;
   state.M = 0x90000000;
-  state.S[0] = 1;
+  setS(state, {1, 0, 0, 0, 0, 0, 0, 0});
   entry.AB = 63;
   roarAB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 0)); // not M:01, S0
@@ -2660,10 +2681,11 @@ TEST_CASE("bb 1 1") {
 TEST_CASE( "bb 2 (S0)") {
   state.ROAR = 0x49c;
   entry.BB = 2;
+  setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
   roarBB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 0));
   state.ROAR = 0x49c;
-  state.S[0] = 1;
+  setS(state, {1, 0, 0, 0, 0, 0, 0, 0});
   entry.BB = 2;
   roarBB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 1));
@@ -2672,10 +2694,11 @@ TEST_CASE( "bb 2 (S0)") {
 TEST_CASE( "bb 3 (S1)") {
   state.ROAR = 0x49c;
   entry.BB = 3;
+  setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
   roarBB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 0));
   state.ROAR = 0x49c;
-  state.S[1] = 1;
+  setS(state, {0, 1, 0, 0, 0, 0, 0, 0});
   entry.BB = 3;
   roarBB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 1));
@@ -2684,10 +2707,11 @@ TEST_CASE( "bb 3 (S1)") {
 TEST_CASE( "bb 4 (S2)") {
   state.ROAR = 0x49c;
   entry.BB = 4;
+  setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
   roarBB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 0));
   state.ROAR = 0x49c;
-  state.S[2] = 1;
+  setS(state, {0, 0, 1, 0, 0, 0, 0, 0});
   entry.BB = 4;
   roarBB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 1));
@@ -2696,10 +2720,11 @@ TEST_CASE( "bb 4 (S2)") {
 TEST_CASE( "bb 5 (S3)") {
   state.ROAR = 0x49c;
   entry.BB = 5;
+  setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
   roarBB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 0));
   state.ROAR = 0x49c;
-  state.S[3] = 1;
+  setS(state, {0, 0, 0, 1, 0, 0, 0, 0});
   entry.BB = 5;
   roarBB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 1));
@@ -2708,10 +2733,11 @@ TEST_CASE( "bb 5 (S3)") {
 TEST_CASE( "bb 6 (S4)") {
   state.ROAR = 0x49c;
   entry.BB = 6;
+  setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
   roarBB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 0));
   state.ROAR = 0x49c;
-  state.S[4] = 1;
+  setS(state, {0, 0, 0, 0, 1, 0, 0, 0});
   entry.BB = 6;
   roarBB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 1));
@@ -2720,10 +2746,11 @@ TEST_CASE( "bb 6 (S4)") {
 TEST_CASE( "bb 7 (S5)") {
   state.ROAR = 0x49c;
   entry.BB = 7;
+  setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
   roarBB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 0));
   state.ROAR = 0x49c;
-  state.S[5] = 1;
+  setS(state, {0, 0, 0, 0, 0, 1, 0, 0});
   entry.BB = 7;
   roarBB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 1));
@@ -2732,10 +2759,11 @@ TEST_CASE( "bb 7 (S5)") {
 TEST_CASE( "bb 8 (S6)") {
   state.ROAR = 0x49c;
   entry.BB = 8;
+  setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
   roarBB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 0));
   state.ROAR = 0x49c;
-  state.S[6] = 1;
+  setS(state, {0, 0, 0, 0, 0, 0, 1, 0});
   entry.BB = 8;
   roarBB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 1));
@@ -2744,10 +2772,11 @@ TEST_CASE( "bb 8 (S6)") {
 TEST_CASE( "bb 9 (S7)") {
   state.ROAR = 0x49c;
   entry.BB = 9;
+  setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
   roarBB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 0));
   state.ROAR = 0x49c;
-  state.S[7] = 1;
+  setS(state, {0, 0, 0, 0, 0, 0, 0, 1});
   entry.BB = 9;
   roarBB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 1));
@@ -2769,7 +2798,7 @@ TEST_CASE("bb 10 RSGNS") {
 
 // 11: HSCH
 
-TEST_CASE("bb 12 EXC", "[hide]") {
+TEST_CASE("bb 12 EXC", "[!hide]") {
   state.ROAR = 0x49c;
   // state.EXC = 0;
   entry.BB = 12;
@@ -3002,7 +3031,7 @@ TEST_CASE("bb 24 G2<0") {
   REQUIRE( state.ROAR == (0x49c | 0));
 
   state.ROAR = 0x49c;
-  state.G2NEG = 0;
+  state.G2NEG = 1;
   entry.BB = 24;
   roarBB(state, entry);
   REQUIRE( state.ROAR == (0x49c | 1));
@@ -3069,7 +3098,7 @@ TEST_CASE( "bb 27 (MD/JI)") {
   REQUIRE( state.ROAR == (0x49c | 1));
 }
 
-TEST_CASE("bb 28 IVA", "[hide]") {
+TEST_CASE("bb 28 IVA", "[!hide]") {
   state.ROAR = 0x49c;
   state.SAR = 0x102;
   entry.BB = 28;
@@ -3211,12 +3240,14 @@ TEST_CASE( "stat SS 3 D→CR*BS") {
 
 }
 
-TEST_CASE( "stat SS 4 E→SCANCTL", "[hide]") {
+TEST_CASE( "stat SS 4 E→SCANCTL", "[!hide]") {
 }
 
 TEST_CASE( "stat SS 5 L,RSGNS") {
   for (int i = 0; i < 16; i++) {
-  state.U = 0x40 | i;
+    state.U = 0x40 | i;
+      state.LSGNS = 0;
+      state.RSGNS = 0;
     if (i < 10) {
 #if 0
       entry.SS = 5;
@@ -3257,7 +3288,7 @@ TEST_CASE( "stat SS 6 IVD/RSGNS") {
   }
 }
 
-TEST_CASE( "stat SS 7 EDITSGN", "[hide]") {
+TEST_CASE( "stat SS 7 EDITSGN", "[!hide]") {
 }
 
 void checkArray(bool *b, std::vector<bool> v){
@@ -3273,9 +3304,7 @@ void checkArray(uint8_t *b, std::vector<uint8_t> v){
 }
                     
 TEST_CASE( "stat8 E→S03") {
-  state.S[0] = 1;
-  state.S[3] = 1;
-  state.S[7] = 1;
+  setS(state, {1, 0, 0, 1, 0, 0, 0, 1});
   entry.CE = 3;
   entry.SS = 8;
   stat(state, entry);
@@ -3284,9 +3313,7 @@ TEST_CASE( "stat8 E→S03") {
 }
 
 TEST_CASE( "stat9 S03ΩE,1→LSGN") {
-  state.S[0] = 1;
-  state.S[3] = 1;
-  state.S[7] = 1;
+  setS(state, {1, 0, 0, 1, 0, 0, 0, 1});
   entry.CE = 3;
   entry.SS = 9;
   stat(state, entry);
@@ -3295,9 +3322,7 @@ TEST_CASE( "stat9 S03ΩE,1→LSGN") {
 }
 
 TEST_CASE( "stat10 S03ΩE") {
-  state.S[0] = 1;
-  state.S[3] = 1;
-  state.S[7] = 1;
+  setS(state, {1, 0, 0, 1, 0, 0, 0, 1});
   entry.CE = 3;
   entry.SS = 10;
   stat(state, entry);
@@ -3305,9 +3330,7 @@ TEST_CASE( "stat10 S03ΩE") {
 }
 
 TEST_CASE( "stat11 S03ΩE,0→BS") {
-  state.S[0] = 1;
-  state.S[3] = 1;
-  state.S[7] = 1;
+  setS(state, {1, 0, 0, 1, 0, 0, 0, 1});
   entry.CE = 3;
   entry.SS = 11;
   stat(state, entry);
@@ -3360,56 +3383,56 @@ TEST_CASE( "stat12: X0,B0,SYL1") {
 
 void testFpzero(int ss) {
   state.T = 0x12000000;
-  state.S[3] = 1;
+  setS(state, {0, 0, 0, 1, 0, 0, 0, 0});
   state.F = 0;
   entry.SS = ss;
   stat(state, entry);
   REQUIRE( state.S[0] == 1);
 
   state.T = 0x82000000;
-  state.S[3] = 1;
+  setS(state, {0, 0, 0, 1, 0, 0, 0, 0});
   state.F = 0;
   entry.SS = ss;
   stat(state, entry);
   REQUIRE( state.S[0] == 1);
 
   state.T = 0x00000000;
-  state.S[3] = 1;
+  setS(state, {0, 0, 0, 1, 0, 0, 0, 0});
   state.F = 0;
   entry.SS = ss;
   stat(state, entry);
   REQUIRE( state.S[0] == 1);
 
   state.T = 0x00000001;
-  state.S[3] = 1;
+  setS(state, {0, 0, 0, 1, 0, 0, 0, 0});
   state.F = 0;
   entry.SS = ss;
   stat(state, entry);
   REQUIRE( state.S[0] == 0);
 
   state.T = 0x00800000;
-  state.S[3] = 1;
+  setS(state, {0, 0, 0, 1, 0, 0, 0, 0});
   state.F = 0;
   entry.SS = ss;
   stat(state, entry);
   REQUIRE( state.S[0] == 0);
 
   state.T = 0xff000001;
-  state.S[3] = 1;
+  setS(state, {0, 0, 0, 1, 0, 0, 0, 0});
   state.F = 0;
   entry.SS = ss;
   stat(state, entry);
   REQUIRE( state.S[0] == 0);
 
   state.T = 0x00000001;
-  state.S[3] = 1;
+  setS(state, {0, 0, 0, 1, 0, 0, 0, 0});
   state.F = 1;
   entry.SS = ss;
   stat(state, entry);
   REQUIRE( state.S[0] == 0);
 
   state.T = 0x00000001;
-  state.S[3] = 1;
+  setS(state, {0, 0, 0, 1, 0, 0, 0, 0});
   state.F = 0;
   entry.SS = ss;
   stat(state, entry);
@@ -3475,17 +3498,13 @@ TEST_CASE( "stat15: B0,SYL1") {
 }
 
 TEST_CASE( "stat16: S03.¬E") {
-  state.S[2] = 1;
-  state.S[3] = 1;
-  state.S[7] = 1;
+  setS(state, {0, 0, 1, 1, 0, 0, 0, 1});
   entry.CE = 6;
   entry.SS = 16;
   stat(state, entry);
   checkArray(state.S, {0, 0, 0, 1, 0, 0, 0, 1});
 
-  for (int i = 0; i < 8; i++) {
-    state.S[i] = 1;
-  }
+  setS(state, {1, 1, 1, 1, 1, 1, 1, 1});
   entry.CE = 15;
   entry.SS = 16;
   stat(state, entry);
@@ -3500,9 +3519,7 @@ TEST_CASE( "stat SS 17: (T=0)→S3") {
 }
 
 TEST_CASE( "stat18: E→BS,T30→S3") {
-  state.S[2] = 1;
-  state.S[3] = 1;
-  state.S[7] = 1;
+  setS(state, {0, 0, 1, 1, 0, 0, 0, 1});
   state.T = 0;
   entry.CE = 6;
   entry.SS = 18;
@@ -3541,13 +3558,11 @@ TEST_CASE( "stat20: 1→BS*MB") {
 
 // SS 22: unused
 
-TEST_CASE( "stat SS 23: MANUAL→STOP", "[hide]") {
+TEST_CASE( "stat SS 23: MANUAL→STOP", "[!hide]") {
 }
 
 TEST_CASE( "stat24: E→S47") {
-  state.S[2] = 1;
-  state.S[3] = 1;
-  state.S[7] = 1;
+  setS(state, {0, 0, 1, 1, 0, 0, 0, 1});
   entry.CE = 6;
   entry.SS = 24;
   stat(state, entry);
@@ -3555,9 +3570,7 @@ TEST_CASE( "stat24: E→S47") {
 }
 
 TEST_CASE( "stat25: S47ΩE") {
-  state.S[2] = 1;
-  state.S[3] = 1;
-  state.S[7] = 1;
+  setS(state, {0, 0, 1, 1, 0, 0, 0, 1});
   entry.CE = 6;
   entry.SS = 25;
   stat(state, entry);
@@ -3565,19 +3578,17 @@ TEST_CASE( "stat25: S47ΩE") {
 }
 
 TEST_CASE( "stat26: S47.¬E") {
-  state.S[2] = 1;
-  state.S[3] = 1;
-  state.S[7] = 1;
+  setS(state, {0, 0, 1, 1, 0, 0, 0, 1});
   entry.CE = 6;
   entry.SS = 26;
   stat(state, entry);
   checkArray(state.S, {0, 0, 1, 1, 0, 0, 0, 1});
 }
 
-TEST_CASE( "stat SS 27: S47,ED*FP", "[hide]") {
+TEST_CASE( "stat SS 27: S47,ED*FP", "[!hide]") {
 }
 
-TEST_CASE( "stat SS 28: OPPANEL→S47", "[hide]") {
+TEST_CASE( "stat SS 28: OPPANEL→S47", "[!hide]") {
 }
 
 TEST_CASE( "stat29: CAR,(T≠0)→CR") {
@@ -3738,18 +3749,19 @@ TEST_CASE( "stat SS 43: ¬S4,S4→CR") {
   stat(state, entry);
   REQUIRE( state.CR == 2);
 
-  state.S[4] = 1;
+  setS(state, {0, 0, 0, 0, 1, 0, 0, 0});
   entry.SS = 43;
   stat(state, entry);
   REQUIRE( state.CR == 1);
 }
 
 TEST_CASE( "stat SS 44: S4,¬S4→CR") {
+  setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
   entry.SS = 44;
   stat(state, entry);
   REQUIRE( state.CR == 1);
 
-  state.S[4] = 1;
+  setS(state, {0, 0, 0, 0, 1, 0, 0, 0});
   entry.SS = 44;
   stat(state, entry);
   REQUIRE( state.CR == 2);
@@ -3761,25 +3773,25 @@ TEST_CASE( "stat SS 45: 1→REFETCH") {
   REQUIRE( state.REFETCH == 1);
 }
 
-TEST_CASE( "stat SS 46: SYNC→OPPANEL", "[hide]") {
+TEST_CASE( "stat SS 46: SYNC→OPPANEL", "[!hide]") {
 }
 
-TEST_CASE( "stat SS 47: SCAN*E,10", "[hide]") {
+TEST_CASE( "stat SS 47: SCAN*E,10", "[!hide]") {
 }
 
 // SS 48, 49: I/O
 
-TEST_CASE( "stat SS 50: E(0)→IBFULL", "[hide]") {
+TEST_CASE( "stat SS 50: E(0)→IBFULL", "[!hide]") {
 }
 
 // SS 51: unused
 
-TEST_CASE( "stat SS 52: E→CH", "[hide]") {
+TEST_CASE( "stat SS 52: E→CH", "[!hide]") {
 }
 
 // SS 53: unused
 
-TEST_CASE( "stat SS 54: 1→TIMERIRPT", "[hide]") {
+TEST_CASE( "stat SS 54: 1→TIMERIRPT", "[!hide]") {
 }
 
 // T to AMWP bits
@@ -3799,7 +3811,7 @@ TEST_CASE( "stat56 T→PSW") {
   REQUIRE( state.AMWP == 0xf);
 }
 
-TEST_CASE( "stat57", "[hide]") {
+TEST_CASE( "stat57", "[!hide]") {
   // 57: SCAN*E00
   entry.SS = 57;
   entry.CE = 0x3;
@@ -3807,7 +3819,7 @@ TEST_CASE( "stat57", "[hide]") {
   // REQUIRE( state.SCANCTRL == 0x0c);
 }
 
-TEST_CASE( "stat SS 58: 1→IOMODE", "[hide]") {
+TEST_CASE( "stat SS 58: 1→IOMODE", "[!hide]") {
 }
 
 // SS 59-63: I/O
@@ -3872,14 +3884,14 @@ TEST_CASE( "al1 Q→SR1→F") {
 TEST_CASE( "al 2 L0,¬S4→") {
   state.T0 = 0x12345678;
   state.L = 0x78901234;
-    state.S[4]= 0;
+  setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
   entry.AL = 2;
   adderAL(state, entry);
   REQUIRE( state.T == 0xf8345678);
 
   state.T0 = 0x12345678;
   state.L = 0x78901234;
-    state.S[4]= 1;
+  setS(state, {0, 0, 0, 0, 1, 0, 0, 0});
   entry.AL = 2;
   adderAL(state, entry);
   REQUIRE( state.T == 0x78345678);
@@ -3902,14 +3914,14 @@ TEST_CASE( "al4 -SGN→") {
 TEST_CASE( "al5 L0,S4→") {
   state.T0 = 0x12345678;
   state.L = 0x78901234;
-    state.S[4] = 0;
+  setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
   entry.AL = 5;
   adderAL(state, entry);
   REQUIRE( state.T == 0x78345678);
 
   state.T0 = 0x12345678;
   state.L = 0x78901234;
-    state.S[4] = 1;
+  setS(state, {0, 0, 0, 0, 1, 0, 0, 0});
   entry.AL = 5;
   adderAL(state, entry);
   REQUIRE( state.T == 0xf8345678);
@@ -4178,7 +4190,7 @@ TEST_CASE( "al23 1→FPSR4→F") {
   REQUIRE( state.F == 0x8);
 }
 
-TEST_CASE( "al24 SR4→H", "[hide]") {
+TEST_CASE( "al24 SR4→H", "[!hide]") {
 }
 
 TEST_CASE( "al25 F→SR4") {
@@ -4235,7 +4247,7 @@ TEST_CASE( "al27 F→SR1→Q") {
   REQUIRE( state.Q == 0);
 }
 
-TEST_CASE( "al28 DKEY→", "[hide]") {
+TEST_CASE( "al28 DKEY→", "[!hide]") {
 }
 
 // al 29 is I/O
@@ -4249,5 +4261,5 @@ TEST_CASE( "al30 D→") {
   REQUIRE( state.T == 0x12345678);
 }
 
-TEST_CASE( "al31 AKEY→", "[hide]") {
+TEST_CASE( "al31 AKEY→", "[!hide]") {
 }
