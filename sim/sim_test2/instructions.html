@@ -693,13 +693,13 @@ QUnit.module("Instructions", function(hooks) {
     reg(1, 0xffffffff);
     reg(5, 0x00000100);
     reg(6, 0x00000200);
-    state['MS'][0x500] = 0x11111111;
+    state['MS'][0x500] = 0x111111111;
     execute([0x5f156200], assert, 'SL 1,200(5,6)');
     assert.equal(reg(1), 0xeeeeeeee);
     assert.equal(state['CR'], 3); // Non-zero, carry (no borrow)
   });
 
-  QUnit.test( "Subtract Logical SL b", function(assert) {
+  QUnit.test( "Subtract Logical SL", function(assert) {
     reg(1, 0x12345678);
     reg(5, 0x00000100);
     reg(6, 0x00000200);
@@ -717,7 +717,7 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(state['CR'], 0); // Operands are equal
   });
 
-  QUnit.test( "Compare CR b", function(assert) {
+  QUnit.test( "Compare CR", function(assert) {
     reg(1, 0xfffffffe); // -2
     reg(2, 0xfffffffd); // -3
     execute([0x19120000], assert, 'CR 1,2');
@@ -725,7 +725,7 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(state['CR'], 2); // First operand is high
   });
 
-  QUnit.test( "Compare CR c", function(assert) {
+  QUnit.test( "Compare CR", function(assert) {
     reg(1, 2);
     reg(2, 3);
     execute([0x19120000], assert, 'CR 1,2');
@@ -1155,7 +1155,7 @@ QUnit.module("Instructions", function(hooks) {
     });
   });
 
-  QUnit.test( "Load (FP long) LDR - bad register b", function(assert) {
+  QUnit.test( "Load (FP long) LDR - bad register", function(assert) {
     assert.throws(function() {
       execute([0x28140000], assert, 'LDR 1,4');
     });
@@ -1389,7 +1389,7 @@ QUnit.module("Instructions", function(hooks) {
     });
   });
 
-  QUnit.test( "Load (FP short) LER - bad register b", function(assert) {
+  QUnit.test( "Load (FP short) LER - bad register", function(assert) {
     assert.throws(function() {
       execute([0x38410000], assert, 'LER 4,1');
     });
@@ -1563,7 +1563,7 @@ QUnit.module("Instructions", function(hooks) {
       state['MS'][0x100] = 0xaabbccdd;
       execute([0x42501100], assert, 'STC 5,100(0,1)');
       var shift = (3 - i) * 8;
-      var desired = ((0xaabbccdd & ~(0xff << shift)) | (0x12 << shift)) >>> 0;
+      var desired = (0xaabbccdd & ~(0xff << shift) | (0x12 << shift)) >>> 0;
       assert.equal(state['MS'][0x100], desired);
     }
   });
@@ -1943,7 +1943,7 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(reg(3), 0x12345678);
   });
 
-  QUnit.test( "Compare C b", function(assert) {
+  QUnit.test( "Compare C", function(assert) {
     reg(3, 0x12345678);
     reg(4, 0x1000);
     reg(5, 0x200);
@@ -2023,14 +2023,13 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.test("Divide D random", function(assert) { // F
     var rand = rand32(43);
     for (var i = 0; i < testcycles; i++) {
-      var quotient = rand();
+      var quotiend = rand();
       var remainder = rand();
       var divisor = rand();
       if (quotient * divisor * remainder < 0) {
         remainder = -remainder;
       }
       var dividend = quotient * divisor + remainder;
-      // XXX Need to implement this
       reg(2, n1);
       state['MS'][0x100] = n2;
       execute([0x5d200100], assert, 'D 2,100(0,0)');
@@ -2398,7 +2397,7 @@ QUnit.module("Instructions", function(hooks) {
   });
 
   // Add increment to first operand, compare with odd register after R3
-  QUnit.test("Branch on index High BXH shared reg not taken", function(assert) {
+  QUnit.test("Branch on index High BXH shared reg", function(assert) {
     reg(1, 0xffffffff); // Value
     reg(3, 0x12345678); // Increment and comparand
     reg(2, 0x1000); // Branch target
@@ -2440,7 +2439,7 @@ QUnit.module("Instructions", function(hooks) {
   });
 
   // Add increment to first operand, compare with odd register after R3
-  QUnit.test("Branch on index Low or Equal BXLE shared reg taken", function(assert) {
+  QUnit.test("Branch on index Low or Equal BXLE shared reg", function(assert) {
     reg(1, 0xffffffff); // Value
     reg(3, 0x12345678); // Increment and comparand
     reg(2, 0x1000); // Branch target
@@ -2842,7 +2841,7 @@ QUnit.module("Instructions", function(hooks) {
     // Princ Ops 152
     reg(12, 0x00005600);
     reg(15, 0x00004500);
-    state['MS'][0x5600] = 0x7788990c;
+    state['MS'][0x5600] = 0xc7788990c;
     state['MS'][0x4500] = 0x123456ff;
     execute([0xf132c000, 0xf0000000], assert, 'MVO 0(4, 12), 0(3, 15)');
     assert.equal(state['MS'][0x5600],  0x0123456c);
@@ -3015,7 +3014,7 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(state['CR'], 1); // first operand is low
   });
 
-  QUnit.test( "Compare Logical CL b", function(assert) {
+  QUnit.test( "Compare Logical CL", function(assert) {
     reg(1, 0x12345678);
     reg(2, 0x100);
     reg(3, 0x100);
@@ -3157,7 +3156,7 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.test( "Set Storage Key SSK - priv", function(assert) {
     state['AMWP'] = 0; // Privileged
     reg(1, 0x11223344); // Key
-    reg(2, 0x00005670); // Address: last 4 bits must be 0
+    reg(2, 0x12345670); // Address: last 4 bits must be 0
     execute([0x08120000], assert, 'SSK 1,2');
     assert.equal(state['KEYS'][0x12345678 & 0x00fff100], 4);
   });
@@ -3165,7 +3164,7 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.test( "Set Storage Key SSK - unaligned", function(assert) {
     state['AMWP'] = 0; // Privileged
     reg(1, 0x11223344); // Key
-    reg(2, 0x00005674); // Unaligned: last 4 bits not 0
+    reg(2, 0x12345674); // Unaligned: last 4 bits not 0
     assert.throws(function() {
       execute([0x08120000], assert, 'SSK 1,2');
     });

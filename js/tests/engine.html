@@ -1375,11 +1375,11 @@ QUnit.test( "ab 9 (S7)", function(assert) {
 });
 
 QUnit.test( "ab 10 (CSTAT)", function(assert) {
-  var state = {'ROAR': 0x49c, 'S': [0, 0, 0, 0, 0, 0, 0, 0]};
-  roarAB(state, {'AB': 9});
+  var state = {'ROAR': 0x49c, 'CSTAT': 0};
+  roarAB(state, {'AB': 10});
   assert.equal(state['ROAR'], 0x49c | 0);
-  state = {'ROAR': 0x49c, 'S': [0, 0, 0, 0, 0, 0, 0, 1]};
-  roarAB(state, {'AB': 9});
+  state = {'ROAR': 0x49c, 'CSTAT': 1};
+  roarAB(state, {'AB': 10});
   assert.equal(state['ROAR'], 0x49c | 2);
 });
 

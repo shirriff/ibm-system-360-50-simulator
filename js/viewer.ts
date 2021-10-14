@@ -62,7 +62,7 @@ function search() {
       if (entry['AD'] == undefined) {
         // console.log("I/O: " + addr + ' ' + entry['TR']);
       } else {
-        results.push(["Found: " + addr + ' ' + val + ' AD: ' + entry['AD']]);
+        results.push(["Found: " + addr + ' ' + val + ' UR: ' + entry['UR'] + ' ' + labels['UR'][entry['UR']]]);
         found = addr;
       }
     }

@@ -1410,7 +1410,7 @@ function stat(state, entry) {
       state['CR'] = (state['CAR'] ? 2 : 0) | (state['T'] != 0 ? 1 : 0);
       break;
     case 30: // KEY→F // QT115/020E
-      state['F'] = state['KEYS'][state['SAR'] & 0x00fff100] | 0; // 0 if undefined
+      state['F'] = state['KEYS'][state['SAR'] | 0; // 0 if undefined
       break;
     case 31: // F→KEY // QT220/02BF  QA800: write storage key
       state['KEYS'][state['SAR'] & 0x00fff100] = state['F'];
