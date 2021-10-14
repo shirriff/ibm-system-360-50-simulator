@@ -4,6 +4,7 @@
 #include <sstream>
 #include <iomanip>
 #include <iostream>
+#include <vector>
 
 typedef struct instr {
     std::string op;
@@ -270,12 +271,12 @@ instr instructions[256] = {
 };
 
 // Pass in a list of 16-bit halfwords
-std::string getName(uint16_t *hw) {
+std::string getName(std::vector<uint16_t> hw) {
     uint16_t op = hw[0] >> 8; // Opcode
     return instructions[op].text;
 }
 
-std::string disasm(uint16_t *hw) {
+std::string disasm(std::vector<uint16_t> hw) {
     uint16_t op = hw[0] >> 8; // Opcode
     uint16_t type = op >> 6; // Top two bits
     uint16_t ic;

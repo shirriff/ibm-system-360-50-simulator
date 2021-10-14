@@ -1,28 +1,35 @@
 // The 360 microcode simulator engine
 #include <cstdint>
+#include <cstdlib>
 #include <string>
 #include <iostream>
 #include <sstream>
 #include <utility>
 #include <iomanip>
+#include "state.hpp"
 #include "engine.hpp"
-
+#include "utils.hpp"
 
 void unexpected(std::string name, uint32_t value) {
-    std::cerr << "Unexpected " << name << ": " << value;
-    exit(-1);
+    std::ostringstream sstream;
+    sstream << "Unexpected " << name << ": " << value;
+    std::cerr << sstream.str();
+    throw sstream.str();
 }
 
 void unimplemented(std::string name, uint32_t value) {
-    std::cerr << "Unimplemented " << name << ": " << value;
+    std::ostringstream sstream;
+    sstream << "Unimplemented " << name << ": " << value;
+    std::cerr << sstream.str();
+    throw sstream.str();
 }
 
-uint32_t bsmask(state_t& state);
+uint32_t bsmask(State& state);
 
 // state is the current processor state
 // entry is the ROS entry
 // Returns message if any
-std::string cycle(state_t& state, entry_t& entry) {
+std::string cycle(State& state, Entry_t& entry) {
     state.pending.G1 = state.G1;
     state.pending.G2 = state.G2;
     state.pending.L = state.L;
@@ -73,7 +80,7 @@ std::string cycle(state_t& state, entry_t& entry) {
 // PSW = SYSMASK(8), KEY(4), AMWP(4), IRUPT(16);   ILC(2), CR(2), PROGMASK(4), IAR(24)
 
 // Sets state.XG based on entry.LX and TC
-void adderLX(state_t& state, entry_t& entry) {
+void adderLX(State& state, Entry_t& entry) {
     uint32_t xg = 0;
     switch (entry.LX) { // left input to adder [XG]
         case 0: { // No adder input
@@ -122,9 +129,9 @@ void adderLX(state_t& state, entry_t& entry) {
 }
 
 // Sets state.Y based on entry.RY
-void adderRY(state_t& state, entry_t& entry) {
+void adderRY(State& state, Entry_t& entry) {
     // Right input to adder Y
-    uint8_t y = 0;
+    uint32_t y = 0;
     switch (entry.RY) {
         case 0: { // No input
             y = 0;
@@ -167,7 +174,7 @@ void adderRY(state_t& state, entry_t& entry) {
 
 // Sets carry-in state.CIN based on entry.DG
 // Does other DG voids such as G1, G2
-void adderDG(state_t& state, entry_t& entry) {
+void adderDG(State& state, Entry_t& entry) {
     uint8_t carry = 0;
     
     // Length counter and carry insert ctrl
@@ -261,7 +268,7 @@ void adderDG(state_t& state, entry_t& entry) {
 
 // Does the actual addition using XG, Y and CIN. Sets state.T
 // Adder AD voids, mostly setting carry flag
-void adderT(state_t& state, entry_t& entry) {
+void adderT(State& state, Entry_t& entry) {
     uint64_t t;
     
     uint64_t xg = state.XG;
@@ -413,7 +420,7 @@ void adderT(state_t& state, entry_t& entry) {
 }
 
 // Force n to unsigned 32-bit
-uint32_t u32(uint8_t n) {
+uint32_t u32(uint32_t n) {
     return n;
 }
 
@@ -458,7 +465,7 @@ std::pair<uint32_t, uint8_t> sl4(uint8_t src, uint32_t reg) {
     return {u32(reg1), u4(dst1)};
 }
 
-std::string adderAL(state_t& state, entry_t& entry) {
+std::string adderAL(State& state, Entry_t& entry) {
     std::string msg = "";
     // Shift gate and adder latch control
     state.T = state.T0; // may be overwritten below
@@ -639,37 +646,31 @@ std::string adderAL(state_t& state, entry_t& entry) {
 }
 
 // Perform a ROS-level trap. See CLF 122 / QT300
-void rosTrap(state_t& state, uint32_t addr, std::string trap) {
+void rosTrap(State& state, uint32_t addr, std::string trap) {
     state.TRAP = addr;
     state.TRAPTYPE = trap;
 }
 
-void trapStorProt(state_t& state) {
+void trapStorProt(State& state) {
     rosTrap(state, 0x0142, "storage protect");
 }
 
-void trapInvalidOpndAddr(state_t& state) {
+void trapInvalidOpndAddr(State& state) {
     rosTrap(state, 0x01c0, "invalid operand addr");
 }
 
-void trapAddrSpecViolation(state_t& state) {
+void trapAddrSpecViolation(State& state) {
     rosTrap(state, 0x01c2, "addr spec violation");
 }
 
 // Invalid decimal data or sign
-void trapInvalidDecimal(state_t& state) {
+void trapInvalidDecimal(State& state) {
     rosTrap(state, 0x0140, "invalid decimal");
-}
-
-std::string fmt4(uint8_t n) {
-    std::ostringstream sstream;
-    sstream << std::hex << std::setw(4) << std::setfill('0') << n;
-    return sstream.str();
 }
 
 // Write memory: call after setting SDR
 // Assume SAR and SDR set up
-std::string store(state_t& state) {
+std::string store(State& state) {
     state.MS[state.SAR & ~3] = state.SDR;
     std::ostringstream sstream;
     sstream << "Storing " << fmt4(state.SDR) << " in " << fmt4(state.SAR);
@@ -678,33 +679,38 @@ std::string store(state_t& state) {
 
 // Read memory: call before using SDR
 // Assume SAR
-std::string read(state_t& state) {
+std::string read(State& state) {
     // Add some bounds to memory? Or just implement the whole 16 MB?
+    if (state.SAR >= 0x65536) {
+        std::ostringstream sstream;
+        sstream << "Out of bounds address " << fmt4(state.SAR);
+        throw sstream.str();
+    }
     state.SDR = state.MS[state.SAR & ~3];
     std::ostringstream sstream;
     sstream << "Read " << fmt4(state.SDR) << " from " << fmt4(state.SAR);
     return sstream.str();
 }
 
-void checkaddr(state_t& state, uint8_t alignment) {
+void checkaddr(State& state, uint8_t alignment) {
     if (state.SAR & (alignment-1)) {
         trapAddrSpecViolation(state);
     }
 }
 
 // Helper voids
-void x0(state_t& state) {
+void x0(State& state) {
     // (X=0)→S0, where X = T(12-15)
     state.S[0] = (state.T & 0x000f0000) == 0 ? 1 : 0;
 }
 
-void b0(state_t& state) {
+void b0(State& state) {
     // B0 is usually in T(0-3), which equals MD, e.g. QT115:14c,
     // Unclear if T(0-3) is the right source, or MD is better
     state.S[1] = (state.T & 0xf0000000) == 0 ? 1 : 0;
 }
 
-void syl1(state_t& state) {
+void syl1(State& state) {
     // Set 1SYL
     uint8_t op0 = state.T >> 28;
     if (op0 <= 3) {
@@ -714,7 +720,7 @@ void syl1(state_t& state) {
     }
 }
 
-std::string adderLatch(state_t& state, entry_t& entry) {
+std::string adderLatch(State& state, Entry_t& entry) {
     
     // Store carry CAR to CSTAT
     state.CSTAT = state.CAR;
@@ -747,7 +753,7 @@ std::string adderLatch(state_t& state, entry_t& entry) {
             break;
         }
         case 5: { // L0
-            state.L = ((state.T & 0xff000000) | (state.L & 0x00ffffff));
+            state.pending.L = ((state.T & 0xff000000) | (state.L & 0x00ffffff));
             break;
         }
         case 6: { // R,A       // stores to R and address reg.
@@ -757,7 +763,7 @@ std::string adderLatch(state_t& state, entry_t& entry) {
             break;
         }
         case 7: { // L
-            state.L = state.T;
+            state.pending.L = state.T;
             break;
         }
         case 8: { // HA→A   Complicated hardware address implementation.
@@ -814,7 +820,7 @@ std::string adderLatch(state_t& state, entry_t& entry) {
             break;
         }
         case 16: { // L,A
-            state.L = state.T;
+            state.pending.L = state.T;
             state.SAR = state.T;
             checkaddr(state, 1);
             break;
@@ -848,7 +854,7 @@ std::string adderLatch(state_t& state, entry_t& entry) {
             break;
         }
         case 24: { // L,M
-            state.L = state.T;
+            state.pending.L = state.T;
             state.M = state.T;
             break;
         }
@@ -857,7 +863,7 @@ std::string adderLatch(state_t& state, entry_t& entry) {
             // S1 on, S0 on if X=0.
             // QT115:14e: T → L, M. 0→Refetch, T(12-15)→J, T(16-19)→MD, (X=0)→ S0,
             // 16-19(B) → MD, 12-15 (X) → J, set ILC, 1SYL. (B=0)→S1
-            state.L = state.T;
+            state.pending.L = state.T;
             state.M = state.T;
             state.REFETCH = 0;
             state.J = (state.T >> 16) & 0xf;
@@ -899,7 +905,7 @@ std::string adderLatch(state_t& state, entry_t& entry) {
             break;
         }
         case 30: { // L13 // QP206/0D95
-            state.L = ((state.L & 0xff000000) | (state.T & 0x00ffffff));
+            state.pending.L = ((state.L & 0xff000000) | (state.T & 0x00ffffff));
             break;
         }
         case 31: { // J   Use bits 12-15
@@ -911,7 +917,6 @@ std::string adderLatch(state_t& state, entry_t& entry) {
             break;
         }
     } // TR
-    
     
     // Store any pending entries
     state.G1 = state.pending.G1;
@@ -925,7 +930,7 @@ std::string adderLatch(state_t& state, entry_t& entry) {
 uint32_t bytemask[] = {0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff};
 uint8_t byteshift[] = {24, 16, 8, 0};
 
-void moverU(state_t& state, entry_t& entry) {
+void moverU(State& state, Entry_t& entry) {
     // Mover input left side → U
     uint8_t u = 0;
     // See CROS manual page 25 for left mover bit patterns
@@ -972,7 +977,7 @@ void moverU(state_t& state, entry_t& entry) {
 }
 
 // Mover input right side → V
-void moverV(state_t& state, entry_t& entry) {
+void moverV(State& state, Entry_t& entry) {
     uint8_t v = 0;
     switch (entry.MV) {
         case 0: { // no value
@@ -1000,7 +1005,7 @@ void moverV(state_t& state, entry_t& entry) {
 // That way this code can be shared for WL and WR.
 // The appropriate half will need to be used.
 // Returns value
-uint8_t moverOp(state_t& state, entry_t& entry, uint8_t op) {
+uint8_t moverOp(State& state, Entry_t& entry, uint8_t op) {
     uint8_t u = state.U;
     uint8_t v = state.V;
     uint8_t w = 0; // 8-bit value
@@ -1082,18 +1087,18 @@ uint8_t moverOp(state_t& state, entry_t& entry, uint8_t op) {
 }
 
 // This is almost the same as moverWL, but uses right nibble instead of left, so not close enough to merge
-void moverWL(state_t& state, entry_t& entry) {
+void moverWL(State& state, Entry_t& entry) {
     state.WL = moverOp(state, entry, entry.UL) >> 4;
 }
 
 // Also sets W
 // This is almost the same as moverWL, but uses right nibble instead of left, so not close enough to merge
-void moverWR(state_t& state, entry_t& entry) {
+void moverWR(State& state, Entry_t& entry) {
     state.WR = (moverOp(state, entry, entry.UR) & 0xf);
     state.W = ((state.WL << 4) | state.WR);
 }
 
-void storeMover(state_t& state, entry_t& entry) {
+void storeMover(State& state, Entry_t& entry) {
     // Mover output destination W →
     switch (entry.WM) {
         case 0: { // no action
@@ -1140,16 +1145,16 @@ void storeMover(state_t& state, entry_t& entry) {
             break;
         }
         case 9: { // WL→G1
-            state.G1 = state.WL;
+            state.pending.G1 = state.WL;
             break;
         }
         case 10: { // WR→G2
-            state.G2 = state.WR;
+            state.pending.G2 = state.WR;
             break;
         }
         case 11: { // W→G
-            state.G1 = state.WL;
-            state.G2 = state.WR;
+            state.pending.G1 = state.WL;
+            state.pending.G2 = state.WR;
             break;
         }
         case 13: { // WL→MD
@@ -1174,7 +1179,7 @@ void storeMover(state_t& state, entry_t& entry) {
 
 // Instruction address reg control
 // These need to happen after the mover so are implemented here.
-void iar2(state_t& state, entry_t& entry) {
+void iar2(State& state, Entry_t& entry) {
     switch (entry.IV) {
         case 1: { // WL→IVD  trap on invalid digit
             if (state.WL > 9) {
@@ -1199,7 +1204,7 @@ void iar2(state_t& state, entry_t& entry) {
 }
 
 // Update LB, MB, MD
-void counters(state_t& state, entry_t& entry) {
+void counters(State& state, Entry_t& entry) {
     // Counter void control
     switch (entry.UP) {
         case 0: { // 0→
@@ -1256,7 +1261,7 @@ void counters(state_t& state, entry_t& entry) {
     }
 }
 
-void localStorageLSAR(state_t& state, entry_t& entry) {
+void localStorageLSAR(State& state, Entry_t& entry) {
     // Local storage addressing
     switch (entry.WS) {
         case 0: {
@@ -1300,7 +1305,7 @@ void localStorageLSAR(state_t& state, entry_t& entry) {
     }
 }
 
-void localStore(state_t& state, entry_t& entry) {
+void localStore(State& state, Entry_t& entry) {
     // Local storage void
     switch (entry.SF) {
         case 0: { // R→LS // QT210/1A3
@@ -1346,7 +1351,7 @@ void localStore(state_t& state, entry_t& entry) {
 }
 
 // Instruction address reg control
-void iar(state_t& state, entry_t& entry) {
+void iar(State& state, Entry_t& entry) {
     switch (entry.IV) {
         case 0: { // default
             break;
@@ -1405,7 +1410,7 @@ void iar(state_t& state, entry_t& entry) {
     }
 }
 
-void stat(state_t& state, entry_t& entry) {
+void stat(State& state, Entry_t& entry) {
     // C: Stat setting and misc control
     switch (entry.SS) {
         case 0: { // default;
@@ -1657,12 +1662,14 @@ void stat(state_t& state, entry_t& entry) {
             break;
         }
         case 30: { // KEY→F // QT115/020E
-            unimplemented("SS",  entry.SS);
+            if (state.SAR > 65536) {
+                throw "Bad address";
+            }
             state.F = state.KEYS[state.SAR >> 11];
             break;
         }
         case 31: { // F→KEY // QT220/02BF  QA800: write storage key
-            state.KEYS[state.SAR >> 11] = (state.F >> 3) & 0x1f;
+            state.KEYS[state.SAR >> 11] = state.F;
             break;
         }
         case 32: { // 1→LSGNS
@@ -1835,7 +1842,7 @@ void stat(state_t& state, entry_t& entry) {
 
 // Compute ROAR address
 // See special bits in CROS manual page 29
-void roar(state_t& state, entry_t& entry) {
+void roar(State& state, Entry_t& entry) {
     uint32_t roar;
     roar = entry.ZP << 6;
     if (entry.ZN != 0) {
@@ -1845,13 +1852,13 @@ void roar(state_t& state, entry_t& entry) {
     state.ROAR = roar;
 }
 
-uint32_t bsmask(state_t& state) {
+uint32_t bsmask(State& state) {
     return ((state.BS[0] ? 0xff000000 : 0) | (state.BS[1] ? 0x00ff0000 : 0) |
             (state.BS[2] ? 0x0000ff00 : 0) | (state.BS[3] ? 0x000000ff : 0));
 }
 
 // Evaluate TZ*BS, i.e. T zero, masked by BS
-bool tzbs(state_t& state) {
+bool tzbs(State& state) {
     if ((state.T & bsmask(state)) == 0) {
         return 1;
     } else {
@@ -1859,7 +1866,7 @@ bool tzbs(state_t& state) {
     }
 }
 
-void roarAB(state_t& state, entry_t& entry) {
+void roarAB(State& state, Entry_t& entry) {
     // Condition test (left side)
     uint32_t roar = state.ROAR;
     switch (entry.AB) {
@@ -2208,7 +2215,7 @@ void roarAB(state_t& state, entry_t& entry) {
     state.ROAR = roar;
 }
 
-void roarBB(state_t& state, entry_t& entry) {
+void roarBB(State& state, Entry_t& entry) {
     uint32_t roar = state.ROAR;
     // B bit can be set later in the cycle, see CROS manual page 31
     switch (entry.BB) {
@@ -2382,7 +2389,7 @@ void roarBB(state_t& state, entry_t& entry) {
     state.ROAR = roar;
 }
 
-void roarZN(state_t& state, entry_t& entry) {
+void roarZN(State& state, Entry_t& entry) {
     uint32_t roar = state.ROAR;
     
     // ROS address control

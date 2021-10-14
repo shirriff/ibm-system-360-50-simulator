@@ -1,31 +1,32 @@
 #include "catch.hpp"
+#include "state.hpp"
 #include "engine.hpp"
 
-state_t state;
-entry_t entry;
 
 // Helper to call all the adder routines
-void adder(state_t &state, entry_t &entry) {
+void adder(State &state, Entry_t &entry) {
   adderLX(state, entry);
     adderRY(state, entry);
     adderDG(state, entry);
     adderT(state, entry);
 }
 
-void setBS(state_t &state, bool bs0, bool bs1, bool bs2, bool bs3) {
+void setBS(State &state, bool bs0, bool bs1, bool bs2, bool bs3) {
   state.BS[0] = bs0;
   state.BS[1] = bs1;
   state.BS[2] = bs2;
   state.BS[3] = bs3;
 }
 
-void setS(state_t &state, std::vector<bool>v) {
+void setS(State &state, std::vector<bool>v) {
   for (int i = 0; i < 8; i++) {
     state.S[i] = v[i];
   }
 }
 
 TEST_CASE( "adder") {
+  State state;
+  Entry_t entry;
   state.L = 0x12345678;
   state.R = 0x23456789;
   entry.LX = 1; /* L */
@@ -39,6 +40,8 @@ TEST_CASE( "adder") {
 }
 
 TEST_CASE( "adder2") {
+  State state;
+  Entry_t entry;
   state.L = 0x1234;
   state.H = 0x1233;
   entry.LX = 1; /* L */
@@ -52,6 +55,8 @@ TEST_CASE( "adder2") {
 }
 
 TEST_CASE( "adder3") {
+  State state;
+  Entry_t entry;
   state.M = 0x12345678;
   entry.CE = 4;
   entry.LX = 3; /* E */
@@ -65,6 +70,8 @@ TEST_CASE( "adder3") {
 }
 
 TEST_CASE( "adder lx 0 0") {
+  State state;
+  Entry_t entry;
   state.L = 0x12345678;
   entry.LX = 0;
   adderLX(state, entry);
@@ -72,6 +79,8 @@ TEST_CASE( "adder lx 0 0") {
 }
 
 TEST_CASE( "adder lx 1 L") {
+  State state;
+  Entry_t entry;
   state.L = 0x12345678;
   entry.LX = 1;
   adderLX(state, entry);
@@ -79,6 +88,8 @@ TEST_CASE( "adder lx 1 L") {
 }
 
 TEST_CASE( "adder lx 2 SGN") {
+  State state;
+  Entry_t entry;
   state.L = 0x12345678;
   entry.LX = 2;
   adderLX(state, entry);
@@ -86,6 +97,8 @@ TEST_CASE( "adder lx 2 SGN") {
 }
 
 TEST_CASE( "adder lx 3 E") {
+  State state;
+  Entry_t entry;
   entry.LX = 3;
   entry.CE = 0x9;
   adderLX(state, entry);
@@ -93,6 +106,8 @@ TEST_CASE( "adder lx 3 E") {
 }
 
 TEST_CASE( "adder lx 4 LRL") {
+  State state;
+  Entry_t entry;
   state.L = 0x12345678;
   entry.LX = 4; /* LRL */
   adderLX(state, entry);
@@ -100,6 +115,8 @@ TEST_CASE( "adder lx 4 LRL") {
 }
 
 TEST_CASE( "adder lx 5 LWA") {
+  State state;
+  Entry_t entry;
     state.L = 0x12345678;
   entry.LX = 5;
   adderLX(state, entry);
@@ -111,24 +128,32 @@ TEST_CASE( "adder lx 5 LWA") {
 }
 
 TEST_CASE( "adder lx 6 4") {
+  State state;
+  Entry_t entry;
   entry.LX = 6;
   adderLX(state, entry);
   REQUIRE( state.XG == 4);
 }
 
 TEST_CASE( "adder lx 7 64C", "[!hide]") {
+  State state;
+  Entry_t entry;
   entry.LX = 7;
   adderLX(state, entry);
   REQUIRE( state.XG == ~64); // Complement of 64
 }
 
 TEST_CASE( "adder RY 0 0") {
+  State state;
+  Entry_t entry;
   entry.RY = 0;
   adderRY(state, entry);
   REQUIRE( state.Y == 0);
 }
 
 TEST_CASE( "adder RY 1 R") {
+  State state;
+  Entry_t entry;
   state.R = 0x12345678;
   entry.RY = 1;
   adderRY(state, entry);
@@ -136,6 +161,8 @@ TEST_CASE( "adder RY 1 R") {
 }
 
 TEST_CASE( "adder RY 2 M") {
+  State state;
+  Entry_t entry;
   state.M = 0x12345678;
   entry.RY = 2;
   adderRY(state, entry);
@@ -143,6 +170,8 @@ TEST_CASE( "adder RY 2 M") {
 }
 
 TEST_CASE( "adder RY 3 M23") {
+  State state;
+  Entry_t entry;
   state.M = 0x12345678;
   entry.RY = 3;
   adderRY(state, entry);
@@ -150,6 +179,8 @@ TEST_CASE( "adder RY 3 M23") {
 }
 
 TEST_CASE( "adder RY 4 H") {
+  State state;
+  Entry_t entry;
   state.H = 0x12345678;
   entry.RY = 4;
   adderRY(state, entry);
@@ -161,6 +192,8 @@ TEST_CASE( "adder RY 5 SEMT", "[!hide]") {
 
   // Based on 02D3
 TEST_CASE( "adder-dec") {
+  State state;
+  Entry_t entry;
   state.R = 0;
   entry.RY = 1;
   entry.TC = 0;
@@ -175,6 +208,8 @@ TEST_CASE( "adder-dec") {
 
   // The default adder inputs when nothing happens
 TEST_CASE( "adder-default") {
+  State state;
+  Entry_t entry;
   entry.RY = 0;
   entry.TC = 1;
   entry.LX = 0;
@@ -190,6 +225,8 @@ TEST_CASE( "adder ad 2 BCF0", "[!hide]") {
 }
 
 TEST_CASE( "adder-carry0 ad 4 BC0") {
+  State state;
+  Entry_t entry;
   state.XG = 0xffffffff;
   state.Y = 0x00000001;
   state.CIN = 0;
@@ -233,6 +270,8 @@ uint32_t invert(uint32_t x) {
 }
 
 TEST_CASE( "adder-carry0 sub ad 4 BC0") {
+  State state;
+  Entry_t entry;
   // Basic subtraction is 1"s complement
   state.Y = 0x00000000;
   state.XG = invert(0x00000001);
@@ -260,6 +299,8 @@ TEST_CASE( "adder-carry0 sub ad 4 BC0") {
 }
 
 TEST_CASE( "adder-carry0 sub +hot1 ad 4 BC0") {
+  State state;
+  Entry_t entry;
   // Add hot1 to get 2"s complement subtraction
   state.Y = 0x00000000;
   state.XG = invert(0x00000001);
@@ -290,6 +331,8 @@ TEST_CASE( "adder-carry0 sub +hot1 ad 4 BC0") {
 }
 
 TEST_CASE( "adder-overflow ad 5 BC⩝C") {
+  State state;
+  Entry_t entry;
   // Normal positive addition
   state.XG = 0x12345678;
   state.Y = 0x12345678;
@@ -374,6 +417,8 @@ TEST_CASE( "adder-overflow ad 5 BC⩝C") {
 }
 
 TEST_CASE( "adder-subtract-overflow ad 5 BC⩝C") {
+  State state;
+  Entry_t entry;
   // Normal positive subtraction: note that L is subtracted from R
   state.R = 0x12345678;
   state.L = 0x12345677;
@@ -461,6 +506,8 @@ TEST_CASE( "adder-subtract-overflow ad 5 BC⩝C") {
 
 // Block carry from 8, save carry from 1. Used for floating point exponent math.
 TEST_CASE( "adder ad 6 BC1B") {
+  State state;
+  Entry_t entry;
   // Exponents equal
   state.XG = 0x12345678;
   state.AUX = 0;
@@ -504,6 +551,8 @@ TEST_CASE( "adder ad 6 BC1B") {
 
 // Carry out of pos 8
 TEST_CASE( "adderT ad 7 BC8") {
+  State state;
+  Entry_t entry;
   state.XG = 0x00000000;
   state.AUX = 0;
   state.Y = 0xffffffff;
@@ -530,6 +579,8 @@ TEST_CASE( "adderT ad 7 BC8") {
 }
 
 TEST_CASE( "adderT ad 8 DHL") {
+  State state;
+  Entry_t entry;
   state.XG = 0xdddddddd;
   state.AUX = 0;
   state.Y = 0;
@@ -581,6 +632,8 @@ TEST_CASE( "adderT ad 8 DHL") {
 }
 
 TEST_CASE( "adder ad 9 DC0") {
+  State state;
+  Entry_t entry;
   setS(state, {0, 1, 0, 0, 0, 0, 0, 0});
   entry.AD = 9;
   entry.DG = 0;
@@ -592,6 +645,8 @@ TEST_CASE( "adder ad 10 DDC0", "[!hide]") {
 }
 
 TEST_CASE( "adderT ad 11 DHH") {
+  State state;
+  Entry_t entry;
   state.XG = 0xdddddddd;
   state.AUX = 0;
   state.Y = 0;
@@ -642,6 +697,8 @@ TEST_CASE( "adder ad 12 DCBS", "[!hide]") {
 }
 
 TEST_CASE( "adder dg 1 CSTAT→ADDER") {
+  State state;
+  Entry_t entry;
   state.CSTAT = 0;
   entry.DG = 1; /* CSTAT→ADDER */
   adderDG(state, entry);
@@ -654,6 +711,8 @@ TEST_CASE( "adder dg 1 CSTAT→ADDER") {
 }
 
 TEST_CASE( "adder dg2 HOT1→ADDER") {
+  State state;
+  Entry_t entry;
   state.L = 0x12345678;
   entry.LX = 1; /* L */
   entry.RY = 0; /* 0 */
@@ -665,6 +724,8 @@ TEST_CASE( "adder dg2 HOT1→ADDER") {
 }
 
 TEST_CASE( "adder dg 3 G1-1") {
+  State state;
+  Entry_t entry;
   state.G1 = 1;
   entry.DG = 3; /* G1-1 */
   adderDG(state, entry);
@@ -679,6 +740,8 @@ TEST_CASE( "adder dg 3 G1-1") {
 }
 
 TEST_CASE( "adder dg 4 HOT1,G-1") {
+  State state;
+  Entry_t entry;
   state.G1 = 2;
   state.G2 = 1;
   entry.DG = 4;
@@ -697,6 +760,8 @@ TEST_CASE( "adder dg 4 HOT1,G-1") {
 }
 
 TEST_CASE( "adder dg 5 G2-1") {
+  State state;
+  Entry_t entry;
   state.G2 = 1;
   entry.DG = 5; /* G2-1 */
   adderDG(state, entry);
@@ -711,6 +776,8 @@ TEST_CASE( "adder dg 5 G2-1") {
 }
 
 TEST_CASE( "adder dg 6 G-1") {
+  State state;
+  Entry_t entry;
   state.G1 = 2;
   state.pending.G1 = 2;
   state.G2 = 1;
@@ -729,6 +796,8 @@ TEST_CASE( "adder dg 6 G-1") {
 }
 
 TEST_CASE( "adder dg 7 G1,2-1") {
+  State state;
+  Entry_t entry;
   state.G1 = 0;
   state.G2 = 1;
     state.pending.G1 = 7;
@@ -751,6 +820,8 @@ TEST_CASE( "adder dg 7 G1,2-1") {
 
 
 TEST_CASE( "iar0") {
+  State state;
+  Entry_t entry;
   state.T = 0x12345678;
   state.R = 0x56781234;
   entry.IV = 0;
@@ -761,6 +832,8 @@ TEST_CASE( "iar0") {
 }
 
 TEST_CASE( "iar iv 1 WL→IVD") {
+  State state;
+  Entry_t entry;
   state.WL = 0x0;
   entry.IV = 1;
   iar(state, entry); // Nop, implemented in iar2
@@ -779,6 +852,8 @@ TEST_CASE( "iar iv 1 WL→IVD") {
 }
 
 TEST_CASE( "iar iv 2 WR→IVD") {
+  State state;
+  Entry_t entry;
   state.WR = 0x0;
   entry.IV = 2;
   iar(state, entry); // Nop, implemented in iar2
@@ -797,6 +872,8 @@ TEST_CASE( "iar iv 2 WR→IVD") {
 }
 
 TEST_CASE( "iar iv 3 W→IVD") {
+  State state;
+  Entry_t entry;
   state.WL = 0x0;
   state.WR = 0x4;
   entry.IV = 3;
@@ -819,6 +896,8 @@ TEST_CASE( "iar iv 3 W→IVD") {
 }
 
 TEST_CASE( "iar iv 4 IA/4→A,IA") {
+  State state;
+  Entry_t entry;
   state.IAR = 0x12340000;
   entry.IV = 4;
   iar(state, entry);
@@ -827,6 +906,8 @@ TEST_CASE( "iar iv 4 IA/4→A,IA") {
 }
 
 TEST_CASE( "iar iv 5 IA+2/4") {
+  State state;
+  Entry_t entry;
   // instruction length << 30
   state.ILC = 0;
   state.IAR = 0x12340000;
@@ -854,6 +935,8 @@ TEST_CASE( "iar iv 5 IA+2/4") {
 }
 
 TEST_CASE( "iar iv 6 IA+2") {
+  State state;
+  Entry_t entry;
   state.IAR = 0x12340000;
   entry.IV = 6;
   iar(state, entry);
@@ -861,6 +944,8 @@ TEST_CASE( "iar iv 6 IA+2") {
 }
 
 TEST_CASE( "iar iv 7 IA+0/2→A") {
+  State state;
+  Entry_t entry;
   // No refetch: should increment
   state.SAR = 1;
   state.IAR = 0x12340002;
@@ -906,6 +991,8 @@ TEST_CASE( "iar iv 7 IA+0/2→A") {
 }
 
 TEST_CASE( "latch tr 1 R") {
+  State state;
+  Entry_t entry;
   state.T = 0x12345678;
   state.R = 0x56781234;
   entry.TR = 1; /* R */
@@ -914,6 +1001,8 @@ TEST_CASE( "latch tr 1 R") {
 }
 
 TEST_CASE( "latch tr 2 R0") {
+  State state;
+  Entry_t entry;
   state.T = 0x12345678;
   state.R = 0x56781234;
   entry.TR = 2; /* R0 */
@@ -922,6 +1011,8 @@ TEST_CASE( "latch tr 2 R0") {
 }
 
 TEST_CASE( "latch tr 3 M") {
+  State state;
+  Entry_t entry;
   state.T = 0x12345678;
   state.R = 0x56781234;
   entry.TR = 3; /* M */
@@ -930,6 +1021,8 @@ TEST_CASE( "latch tr 3 M") {
 }
 
 TEST_CASE( "latch tr 4 D") {
+  State state;
+  Entry_t entry;
   state.T = 0x12345678;
   state.R = 0x56781234;
   state.SAR = 0x20;
@@ -940,6 +1033,8 @@ TEST_CASE( "latch tr 4 D") {
 }
 
 TEST_CASE( "latch tr 5 L0") {
+  State state;
+  Entry_t entry;
   state.T = 0x12345678;
   state.L = 0x56781234;
   entry.TR = 5; /* L0 */
@@ -948,6 +1043,8 @@ TEST_CASE( "latch tr 5 L0") {
 }
 
 TEST_CASE( "latch tr 6 R,A") {
+  State state;
+  Entry_t entry;
   state.T = 0x12345678;
   state.R = 0x56781234;
   entry.TR = 6; /* R,A */
@@ -957,6 +1054,8 @@ TEST_CASE( "latch tr 6 R,A") {
 }
 
 TEST_CASE( "latch tr 7 L") {
+  State state;
+  Entry_t entry;
   state.T = 0x12345678;
   entry.TR = 7; /* L */
   adderLatch(state, entry);
@@ -967,6 +1066,8 @@ TEST_CASE( "latch tr 8 HA→A", "[!hide]") {
 }
 
 TEST_CASE( "latch tr 9 R,AN") {
+  State state;
+  Entry_t entry;
   state.T = 0x12345679;
   entry.TR = 9; /* R,AN */
   adderLatch(state, entry);
@@ -976,6 +1077,8 @@ TEST_CASE( "latch tr 9 R,AN") {
 }
 
 TEST_CASE( "latch tr 10 R,AW") {
+  State state;
+  Entry_t entry;
   state.T = 0x12345678;
   entry.TR = 10; /* R,AW */
   adderLatch(state, entry);
@@ -986,6 +1089,8 @@ TEST_CASE( "latch tr 10 R,AW") {
   }
 
 TEST_CASE( "latch tr 11 R,AD") {
+  State state;
+  Entry_t entry;
   state.T = 0x12345678;
   entry.TR = 11; /* R,AD */
   adderLatch(state, entry);
@@ -995,6 +1100,8 @@ TEST_CASE( "latch tr 11 R,AD") {
 }
 
 TEST_CASE( "latch tr 12 D→IAR") {
+  State state;
+  Entry_t entry;
   state.T = 0x12345678;
   state.SAR = 0x10;
   state.MS[0x10] = 0x3456789a;
@@ -1007,6 +1114,8 @@ TEST_CASE( "latch tr 13 SCAN→D", "[!hide]") {
 }
 
 TEST_CASE( "latch tr 14 R13") {
+  State state;
+  Entry_t entry;
   state.T = 0x12345678;
   state.R = 0xaabbccdd;
   entry.TR = 14;
@@ -1015,6 +1124,8 @@ TEST_CASE( "latch tr 14 R13") {
 }
 
 TEST_CASE( "latch tr 15 A") {
+  State state;
+  Entry_t entry;
   state.T = 0x12345678;
   entry.TR = 15;
   adderLatch(state, entry);
@@ -1022,6 +1133,8 @@ TEST_CASE( "latch tr 15 A") {
 }
 
 TEST_CASE( "latch tr 16 L,A") {
+  State state;
+  Entry_t entry;
   state.T = 0x12345678;
   entry.TR = 16;
   adderLatch(state, entry);
@@ -1036,6 +1149,8 @@ TEST_CASE( "latch tr 16 L,A") {
 // 19: I/O
 
 TEST_CASE( "latch tr 20 H") {
+  State state;
+  Entry_t entry;
   state.T = 0x12345678;
   entry.TR = 20; /* H */
   adderLatch(state, entry);
@@ -1043,6 +1158,8 @@ TEST_CASE( "latch tr 20 H") {
 }
 
 TEST_CASE( "latch tr 21 IA") {
+  State state;
+  Entry_t entry;
   state.T = 0x12345678;
   entry.TR = 21;
   adderLatch(state, entry);
@@ -1055,6 +1172,8 @@ TEST_CASE( "latch tr 22 FOLD→D", "[!hide]") {
 // 23: unused
 
 TEST_CASE( "latch tr 24 L,M") {
+  State state;
+  Entry_t entry;
   state.T = 0x12345678;
   entry.TR = 24;
   adderLatch(state, entry);
@@ -1064,6 +1183,8 @@ TEST_CASE( "latch tr 24 L,M") {
 
   // Complex instruction decoding
 TEST_CASE( "latch 25 MLJK") {
+  State state;
+  Entry_t entry;
   // X=0, B=0
   state.T = 0x12300678;
   entry.TR = 25;
@@ -1132,6 +1253,8 @@ TEST_CASE( "latch 25 MLJK") {
 }
 
 TEST_CASE( "latch tr 26 MHL") {
+  State state;
+  Entry_t entry;
   state.T = 0x12345678;
   state.M = 0x11223344;
   entry.TR = 26;
@@ -1141,6 +1264,8 @@ TEST_CASE( "latch tr 26 MHL") {
 }
 
 TEST_CASE( "latch tr 27 MD") {
+  State state;
+  Entry_t entry;
   state.T = 0x12345678;
   entry.TR = 27;
   adderLatch(state, entry);
@@ -1148,6 +1273,8 @@ TEST_CASE( "latch tr 27 MD") {
 }
 
 TEST_CASE( "latch tr 28 M,SP") {
+  State state;
+  Entry_t entry;
   state.T = 0x12345678;
   entry.TR = 28;
   adderLatch(state, entry);
@@ -1156,6 +1283,8 @@ TEST_CASE( "latch tr 28 M,SP") {
 }
 
 TEST_CASE( "latch29 D*BS") {
+  State state;
+  Entry_t entry;
   // BS = 0011: only modify last two memory words
   state.T = 0x12345678;
   setBS(state, 0, 0, 1, 1);
@@ -1168,6 +1297,8 @@ TEST_CASE( "latch29 D*BS") {
 }
 
 TEST_CASE( "latch tr 30 L13") {
+  State state;
+  Entry_t entry;
   state.T = 0x12345678;
   state.L = 0xaabbccdd;
   entry.TR = 30;
@@ -1176,6 +1307,8 @@ TEST_CASE( "latch tr 30 L13") {
 }
 
 TEST_CASE( "latch tr 31 J") {
+  State state;
+  Entry_t entry;
   state.T = 0x12345678;
   entry.TR = 31; /* J */
   adderLatch(state, entry);
@@ -1183,6 +1316,8 @@ TEST_CASE( "latch tr 31 J") {
 }
 
 TEST_CASE( "mover") {
+  State state;
+  Entry_t entry;
   // Extract 5 from E, 8 from M3
   state.M = 0x12345678;
   state.MB = 3;
@@ -1204,6 +1339,8 @@ TEST_CASE( "mover") {
 }
 
 TEST_CASE( "mover lu 4 XTR") {
+  State state;
+  Entry_t entry;
   state.M = 0x12345678;
   state.MB = 3;
   entry.LU = 4; /* XTR */
@@ -1221,6 +1358,8 @@ TEST_CASE( "mover lu 4 XTR") {
 }
 
 TEST_CASE( "mover2") {
+  State state;
+  Entry_t entry;
   // E->WR, W->MMB
   state.MB = 0;
   state.M = 0x12345678;
@@ -1243,6 +1382,8 @@ TEST_CASE( "mover2") {
 }
 
 TEST_CASE( "movers") {
+  State state;
+  Entry_t entry;
   // E->WR, W->MMB
   state.LB = 0;
   state.L = 0x34000000;
@@ -1312,12 +1453,16 @@ TEST_CASE( "movers") {
 }
 
 TEST_CASE("moverU 0") {
+  State state;
+  Entry_t entry;
   entry.LU = 0;
   moverU(state, entry);
   REQUIRE( state.U == 0);
 }
 
 TEST_CASE("moverU 1 MD,F") {
+  State state;
+  Entry_t entry;
   state.MD = 0x3;
   state.F = 0x4;
   entry.LU = 1;
@@ -1326,6 +1471,8 @@ TEST_CASE("moverU 1 MD,F") {
 }
 
 TEST_CASE("moverU 2 R3") {
+  State state;
+  Entry_t entry;
   state.R = 0x11223344;
   entry.LU = 2;
   moverU(state, entry);
@@ -1333,12 +1480,16 @@ TEST_CASE("moverU 2 R3") {
 }
 
 TEST_CASE("moverU 4 XTR") {
+  State state;
+  Entry_t entry;
   entry.LU = 4;
   moverU(state, entry);
   REQUIRE( state.U == 0);
 }
 
 TEST_CASE("moverU 5 PSW4") {
+  State state;
+  Entry_t entry;
   state.ILC = 2;
   state.CR = 3;
   state.PROGMASK = 0xa;
@@ -1348,6 +1499,8 @@ TEST_CASE("moverU 5 PSW4") {
 }
 
 TEST_CASE("moverU 6 LMB") {
+  State state;
+  Entry_t entry;
   state.L = 0x11223344;
   state.MB = 2;
   entry.LU = 6;
@@ -1356,6 +1509,8 @@ TEST_CASE("moverU 6 LMB") {
 }
 
 TEST_CASE("moverU 7 LLB") {
+  State state;
+  Entry_t entry;
   state.L = 0x11223344;
   state.LB = 1;
   entry.LU = 7;
@@ -1364,12 +1519,16 @@ TEST_CASE("moverU 7 LLB") {
 }
 
 TEST_CASE("moverV 0 0") {
+  State state;
+  Entry_t entry;
   entry.MV = 0;
   moverV(state, entry);
   REQUIRE( state.V == 0);
 }
 
 TEST_CASE("moverV 1 MLB") {
+  State state;
+  Entry_t entry;
   state.M = 0x11223344;
   state.LB = 1;
   entry.MV = 1;
@@ -1378,6 +1537,8 @@ TEST_CASE("moverV 1 MLB") {
 }
 
 TEST_CASE("moverV 2 MMB") {
+  State state;
+  Entry_t entry;
   state.M = 0x11223344;
   state.MB = 2;
   entry.MV = 2;
@@ -1386,6 +1547,8 @@ TEST_CASE("moverV 2 MMB") {
 }
 
 TEST_CASE("storeMover WM 1 W→MMB") {
+  State state;
+  Entry_t entry;
   state.W = 0x89;
   state.WL = 0x8;
   state.WR = 0x9;
@@ -1397,6 +1560,8 @@ TEST_CASE("storeMover WM 1 W→MMB") {
 }
 
 TEST_CASE("storeMover WM 2 W67→MB") {
+  State state;
+  Entry_t entry;
   state.W = 0x89;
   state.WL = 8;
   state.WR = 9;
@@ -1406,6 +1571,8 @@ TEST_CASE("storeMover WM 2 W67→MB") {
 }
 
 TEST_CASE("storeMover WM 3 W67→LB") {
+  State state;
+  Entry_t entry;
   state.W = 0x89;
   state.WL = 8;
   state.WR = 9;
@@ -1415,6 +1582,8 @@ TEST_CASE("storeMover WM 3 W67→LB") {
 }
 
 TEST_CASE("storeMover WM 4 W27→PSW4") {
+  State state;
+  Entry_t entry;
   state.W = 0x98;
   state.WL = 9;
   state.WR = 8;
@@ -1425,6 +1594,8 @@ TEST_CASE("storeMover WM 4 W27→PSW4") {
 }
 
 TEST_CASE("storeMover WM 5 W→PSW0") {
+  State state;
+  Entry_t entry;
   state.W = 0x89;
   state.WL = 8;
   state.WR = 9;
@@ -1434,6 +1605,8 @@ TEST_CASE("storeMover WM 5 W→PSW0") {
 }
 
 TEST_CASE("storeMover WM 6 WL→J") {
+  State state;
+  Entry_t entry;
   state.W = 0x89;
   state.WL = 8;
   state.WR = 9;
@@ -1443,12 +1616,11 @@ TEST_CASE("storeMover WM 6 WL→J") {
 }
 
 TEST_CASE("storeMover WM 7 W→CHCTL", "[!hide]") {
-  state.W = 0x89;
-  state.WL = 8;
-  state.WR = 9;
 }
 
 TEST_CASE("storeMover WM 8 W,E→A(BUMP)") {
+  State state;
+  Entry_t entry;
   state.W = 0x89;
   state.WL = 8;
   state.WR = 9;
@@ -1459,6 +1631,8 @@ TEST_CASE("storeMover WM 8 W,E→A(BUMP)") {
 }
 
 TEST_CASE("storeMover WM 9 WL→G1") {
+  State state;
+  Entry_t entry;
   state.W = 0x89;
   state.WL = 8;
   state.WR = 9;
@@ -1468,6 +1642,8 @@ TEST_CASE("storeMover WM 9 WL→G1") {
 }
 
 TEST_CASE("storeMover WM 10 WR→G2") {
+  State state;
+  Entry_t entry;
   state.W = 0x89;
   state.WL = 8;
   state.WR = 9;
@@ -1477,6 +1653,8 @@ TEST_CASE("storeMover WM 10 WR→G2") {
 }
 
 TEST_CASE("storeMover WM 11 W→G") {
+  State state;
+  Entry_t entry;
   state.W = 0x89;
   state.WL = 8;
   state.WR = 9;
@@ -1490,6 +1668,8 @@ TEST_CASE("storeMover WM 12 W→MMB(E?)", "[!hide]") {
 }
 
 TEST_CASE("storeMover WM 13 WL→MD") {
+  State state;
+  Entry_t entry;
   state.W = 0x89;
   state.WL = 8;
   state.WR = 9;
@@ -1499,6 +1679,8 @@ TEST_CASE("storeMover WM 13 WL→MD") {
 }
 
 TEST_CASE("storeMover WM 14 WR→F") {
+  State state;
+  Entry_t entry;
   state.W = 0x89;
   state.WL = 8;
   state.WR = 9;
@@ -1508,6 +1690,8 @@ TEST_CASE("storeMover WM 14 WR→F") {
 }
 
 TEST_CASE("storeMover WM 15 W→MD,F") {
+  State state;
+  Entry_t entry;
   state.W = 0x89;
   state.WL = 8;
   state.WR = 9;
@@ -1518,6 +1702,8 @@ TEST_CASE("storeMover WM 15 W→MD,F") {
 }
 
 TEST_CASE( "counters") {
+  State state;
+  Entry_t entry;
   state.LB = 1;
   state.MB = 1;
   state.MD = 1;
@@ -1556,6 +1742,8 @@ TEST_CASE( "counters") {
 }
 
 TEST_CASE( "localStorage") {
+  State state;
+  Entry_t entry;
   for (int i = 0; i < 64; i++) {
     state.LS[i] = i;
   }
@@ -1570,18 +1758,24 @@ TEST_CASE( "localStorage") {
 }
 
 TEST_CASE("localStorage LSAR 1 WS1→LSA") {
+  State state;
+  Entry_t entry;
   entry.WS = 1;
   localStorageLSAR(state, entry);
   REQUIRE( state.LSAR == 0x11);
 }
 
 TEST_CASE("localStorage LSAR 2 WS2→LSA") {
+  State state;
+  Entry_t entry;
   entry.WS = 2;
   localStorageLSAR(state, entry);
   REQUIRE( state.LSAR == 0x12);
 }
 
 TEST_CASE("localStorage LSAR 3 WS,E→LSA") {
+  State state;
+  Entry_t entry;
   entry.WS = 3;
   entry.CE = 5;
   localStorageLSAR(state, entry);
@@ -1589,6 +1783,8 @@ TEST_CASE("localStorage LSAR 3 WS,E→LSA") {
 }
 
 TEST_CASE("localStorage LSAR 4 FN,J→LSA") {
+  State state;
+  Entry_t entry;
   state.FN = 2;
   state.J = 3;
   entry.WS = 4;
@@ -1605,6 +1801,8 @@ TEST_CASE("localStorage LSAR 4 FN,J→LSA") {
 }
 
 TEST_CASE("localStorage LSAR 5 FN,JΩ1→LSA") {
+  State state;
+  Entry_t entry;
   state.FN = 2;
   state.J = 2;
   entry.WS = 5;
@@ -1613,6 +1811,8 @@ TEST_CASE("localStorage LSAR 5 FN,JΩ1→LSA") {
 }
 
 TEST_CASE("localStorage LSAR 6 FN,MD→LSA") {
+  State state;
+  Entry_t entry;
   state.FN = 2;
   state.MD = 7;
   entry.WS = 6;
@@ -1621,6 +1821,8 @@ TEST_CASE("localStorage LSAR 6 FN,MD→LSA") {
 }
 
 TEST_CASE("localStorage LSAR 7 FN,MDΩ1→LSA") {
+  State state;
+  Entry_t entry;
   state.FN = 2;
   state.MD = 6;
   entry.WS = 7;
@@ -1629,6 +1831,8 @@ TEST_CASE("localStorage LSAR 7 FN,MDΩ1→LSA") {
 }
 
 TEST_CASE( "localStorage SF=0 R→LS") {
+  State state;
+  Entry_t entry;
   state.LSAR = 0x32;
   state.LS[0x32] = 0x12345678;
   state.R = 0x11223344;
@@ -1639,6 +1843,8 @@ TEST_CASE( "localStorage SF=0 R→LS") {
 }
 
 TEST_CASE( "localStorage SF=1 LS→L,R→LS") {
+  State state;
+  Entry_t entry;
   state.LSAR = 0x32;
   state.LS[0x32] = 0x12345678;
   state.R = 0x11223344;
@@ -1650,6 +1856,8 @@ TEST_CASE( "localStorage SF=1 LS→L,R→LS") {
 }
 
 TEST_CASE( "localStorage WS=2 WS2→LSA, SF=2 LS→R→LS") {
+  State state;
+  Entry_t entry;
   state.LS[0x12] = 0x12345678;
   state.R = 0x11223344;
   entry.WS = 2;
@@ -1661,6 +1869,8 @@ TEST_CASE( "localStorage WS=2 WS2→LSA, SF=2 LS→R→LS") {
 }
 
 TEST_CASE( "localStorage SF=4 L→LS") {
+  State state;
+  Entry_t entry;
   state.LSAR = 0x32;
   state.LS[0x32] = 0x12345678;
   state.L = 0x11223344;
@@ -1671,6 +1881,8 @@ TEST_CASE( "localStorage SF=4 L→LS") {
 }
 
 TEST_CASE( "localStorage SF=5 LS→R,L→LS") {
+  State state;
+  Entry_t entry;
   state.LSAR = 0x32;
   state.LS[0x32] = 0x12345678;
   state.L = 0x11223344;
@@ -1683,6 +1895,8 @@ TEST_CASE( "localStorage SF=5 LS→R,L→LS") {
 }
 
 TEST_CASE( "localStorage SF=6 LS→L→LS") {
+  State state;
+  Entry_t entry;
   state.LSAR = 0x32;
   state.LS[0x32] = 0x12345678;
   state.L = 0x11223344;
@@ -1693,6 +1907,8 @@ TEST_CASE( "localStorage SF=6 LS→L→LS") {
 }
 
 TEST_CASE( "ls sf 0 R→LS") {
+  State state;
+  Entry_t entry;
   state.R = 0x12345678;
   state.LSAR = 0x31;
   // Update LSA
@@ -1706,6 +1922,8 @@ TEST_CASE( "ls sf 0 R→LS") {
 }
 
 TEST_CASE( "ls3  WS,E→LSA") {
+  State state;
+  Entry_t entry;
   state.R = 0x12345678;
   entry.CE = 5;
   entry.WS = 3; /* WS,E→LSA */
@@ -1717,6 +1935,8 @@ TEST_CASE( "ls3  WS,E→LSA") {
 }
 
 TEST_CASE( "roar1") {
+  State state;
+  Entry_t entry;
   entry.ZP = 0x12;
   entry.ZF = 0x7;
   entry.ZN = 4;
@@ -1728,6 +1948,8 @@ TEST_CASE( "roar1") {
 }
 
 TEST_CASE( "roar-zn") {
+  State state;
+  Entry_t entry;
   // Test ZN functions
   state.ROAR = 0x49c;
   entry.ZP = 0x12;
@@ -1753,6 +1975,8 @@ TEST_CASE( "roar-zn") {
 
   // Test ZF functions (ZN = 0)
 TEST_CASE( "roar-zf") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x480;
   state.F = 3;
   entry.ZP = 0x12;
@@ -1795,6 +2019,8 @@ TEST_CASE( "roar-zf") {
 }
 
 TEST_CASE( "ab 0 (0)") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   entry.AB = 0;
   roarAB(state, entry);
@@ -1802,6 +2028,8 @@ TEST_CASE( "ab 0 (0)") {
 }
 
 TEST_CASE( "ab 1 (1)") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   entry.AB = 1;
   roarAB(state, entry);
@@ -1809,6 +2037,8 @@ TEST_CASE( "ab 1 (1)") {
 }
 
 TEST_CASE( "ab 2 (S0)") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
   entry.AB = 2;
@@ -1822,6 +2052,8 @@ TEST_CASE( "ab 2 (S0)") {
 }
 
 TEST_CASE( "ab 3 (S1)") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
   entry.AB = 3;
@@ -1835,6 +2067,8 @@ TEST_CASE( "ab 3 (S1)") {
 }
 
 TEST_CASE( "ab 4 (S2)") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
   entry.AB = 4;
@@ -1848,6 +2082,8 @@ TEST_CASE( "ab 4 (S2)") {
 }
 
 TEST_CASE( "ab 5 (S3)") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
   entry.AB = 5;
@@ -1862,6 +2098,8 @@ TEST_CASE( "ab 5 (S3)") {
 
 
 TEST_CASE( "ab 6 (S4)") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
   entry.AB = 6;
@@ -1875,6 +2113,8 @@ TEST_CASE( "ab 6 (S4)") {
 }
 
 TEST_CASE( "ab 7 (S5)") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
   entry.AB = 7;
@@ -1888,6 +2128,8 @@ TEST_CASE( "ab 7 (S5)") {
 }
 
 TEST_CASE( "ab 8 (S6)") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
   entry.AB = 8;
@@ -1901,6 +2143,8 @@ TEST_CASE( "ab 8 (S6)") {
 }
 
 TEST_CASE( "ab 9 (S7)") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
   entry.AB = 9;
@@ -1914,6 +2158,8 @@ TEST_CASE( "ab 9 (S7)") {
 }
 
 TEST_CASE( "ab 10 (CSTAT)") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   entry.AB = 10;
   state.CSTAT = 0;
@@ -1929,6 +2175,8 @@ TEST_CASE( "ab 10 (CSTAT)") {
 // 11 unused
 
 TEST_CASE( "ab 12 (SYL1S)") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.SYL1 = 0;
   entry.AB = 12;
@@ -1942,6 +2190,8 @@ TEST_CASE( "ab 12 (SYL1S)") {
 }
 
 TEST_CASE( "ab 13 (LSGNS)") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.LSGNS = 0;
   entry.AB = 13;
@@ -1955,6 +2205,8 @@ TEST_CASE( "ab 13 (LSGNS)") {
 }
 
 TEST_CASE( "ab 14 (⩝SGNS)") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.LSGNS = 0;
   state.RSGNS = 0;
@@ -1984,6 +2236,8 @@ TEST_CASE( "ab 14 (⩝SGNS)") {
 // 15 unused
 
 TEST_CASE( "roar ab 16 CRMD") {
+  State state;
+  Entry_t entry;
   // Negative cases
   state.ROAR = 0x49c;
   state.CR = 0;
@@ -2044,6 +2298,8 @@ TEST_CASE( "roar ab 16 CRMD") {
 }
 
 TEST_CASE( "roar ab 17 W=0") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.W = 1;
   entry.AB = 17;
@@ -2058,6 +2314,8 @@ TEST_CASE( "roar ab 17 W=0") {
 }
 
 TEST_CASE( "roar ab 18 WL=0") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.WL = 1;
   entry.AB = 18;
@@ -2072,6 +2330,8 @@ TEST_CASE( "roar ab 18 WL=0") {
 }
 
 TEST_CASE( "roar ab 19 WR=0") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.WR = 1;
   entry.AB = 19;
@@ -2086,6 +2346,8 @@ TEST_CASE( "roar ab 19 WR=0") {
 }
 
 TEST_CASE( "roar ab 20 MD=FP") {
+  State state;
+  Entry_t entry;
   for (int i = 0; i < 16; i++) {
       state.ROAR = 0x49c;
       state.MD = i;
@@ -2100,6 +2362,8 @@ TEST_CASE( "roar ab 20 MD=FP") {
 }
 
 TEST_CASE( "roar ab 21 MB=3") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.MB = 2;
   entry.AB = 21;
@@ -2114,6 +2378,8 @@ TEST_CASE( "roar ab 21 MB=3") {
 }
 
 TEST_CASE( "roar ab 22 G1=0") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.MD = 0xe;
   entry.AB = 22; /* MD3=0 */
@@ -2127,6 +2393,8 @@ TEST_CASE( "roar ab 22 G1=0") {
 }
 
 TEST_CASE( "roar ab 23 G1=0") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.G1 = 1;
   entry.AB = 23;
@@ -2141,6 +2409,8 @@ TEST_CASE( "roar ab 23 G1=0") {
 }
 
 TEST_CASE( "ab 24 (G1NEG)") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.G1NEG = 0;
   entry.AB = 24;
@@ -2154,6 +2424,8 @@ TEST_CASE( "ab 24 (G1NEG)") {
 }
 
 TEST_CASE( "ab 25 (G<4)") {
+  State state;
+  Entry_t entry;
   // Negative cases
   state.ROAR = 0x49c;
   state.G1 = 0;
@@ -2178,6 +2450,8 @@ TEST_CASE( "ab 25 (G<4)") {
 }
 
 TEST_CASE( "ab 26 (G1MBZ)") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.G1 = 1;
   state.MB = 1;
@@ -2202,6 +2476,8 @@ TEST_CASE( "ab 26 (G1MBZ)") {
 // 28: I/O
 
 TEST_CASE( "ab 29 R(31)") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.R = 0xfffffffe;
   entry.AB = 29;
@@ -2216,6 +2492,8 @@ TEST_CASE( "ab 29 R(31)") {
 }
 
 TEST_CASE( "ab 30 F(2)") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.F = 13;
   entry.AB = 30;
@@ -2230,6 +2508,8 @@ TEST_CASE( "ab 30 F(2)") {
 }
 
 TEST_CASE( "ab 31 L(0)") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.L = 0x7fffffff;
   entry.AB = 31;
@@ -2244,6 +2524,8 @@ TEST_CASE( "ab 31 L(0)") {
 }
 
 TEST_CASE( "ab 32 F=0") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.F = 1;
   entry.AB = 32;
@@ -2258,6 +2540,8 @@ TEST_CASE( "ab 32 F=0") {
 }
 
 TEST_CASE( "ab 33 (UNORM)") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.T = 0xff0fffff;
   entry.AB = 33;
@@ -2277,6 +2561,8 @@ TEST_CASE( "ab 33 (UNORM)") {
 }
 
 TEST_CASE("ab 34 TZ*BS") {
+  State state;
+  Entry_t entry;
   // Negative cases
   state.ROAR = 0x49c;
   state.T = 0x05000000;
@@ -2347,6 +2633,8 @@ TEST_CASE( "ab 35 EDITPAT", "[!hide]") {
 }
 
 TEST_CASE( "ab 36 PROB") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.AMWP = 0xe;
   entry.AB = 36;
@@ -2366,6 +2654,8 @@ TEST_CASE( "ab 37 TIMUP", "[!hide]") {
 // 38 unused
 
 TEST_CASE( "ab 39 (GZ/MB3)") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.G1 = 0;
   state.G2 = 0;
@@ -2406,6 +2696,8 @@ TEST_CASE("ab 42 STC=0", "[!hide]") {
 }
 
 TEST_CASE("ab 43 G2<=LB") {
+  State state;
+  Entry_t entry;
   // Negative cases
   state.ROAR = 0x49c;
   state.G2 = 3;
@@ -2454,6 +2746,8 @@ TEST_CASE("ab 43 G2<=LB") {
 // 44 unused
 
 TEST_CASE("ab 45 D(7)") {
+  State state;
+  Entry_t entry;
   // Negative case
   state.ROAR = 0x49c;
   state.MS[0x100] = 0xfeffffff;
@@ -2472,6 +2766,8 @@ TEST_CASE("ab 45 D(7)") {
 }
 
 TEST_CASE("ab 46 SCPS") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.SCPS = 0;
   entry.AB = 46;
@@ -2486,6 +2782,8 @@ TEST_CASE("ab 46 SCPS") {
 }
 
 TEST_CASE("ab 47 SCFS") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.SCFS = 0;
   entry.AB = 47;
@@ -2503,6 +2801,8 @@ TEST_CASE("ab 47 SCFS") {
 
 // Note: sets A and B
 TEST_CASE("ab 49 W(67)→AB") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.W = 0;
   entry.AB = 49;
@@ -2535,6 +2835,8 @@ TEST_CASE("ab 49 W(67)→AB") {
 // 50-53 unused?
 
 TEST_CASE("ab 54 CANG") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.SAR = 0x100;
   state.T = 0xfffffff8;
@@ -2565,6 +2867,8 @@ TEST_CASE("ab 55 CHLOG", "[!hide]") {
 
 // Sets A and B
 TEST_CASE("ab 56 I-FETCH") {
+  State state;
+  Entry_t entry;
   // off-bounds fetch (i.e. halfword, not word aligned)
   state.ROAR = 0x49c;
   state.IAR = 0x102;
@@ -2603,6 +2907,8 @@ TEST_CASE("ab 56 I-FETCH") {
 }
 
 TEST_CASE( "ab 57 IA(30)") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.IAR = 0x12340000;
   entry.AB = 57;
@@ -2621,6 +2927,8 @@ TEST_CASE("ab 58 EXT,CHIRPT", "[!hide]") {
 // 59 not used?
 
 TEST_CASE("ab 60 PSS", "[!hide]") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.PSS = 0;
   entry.AB = 60;
@@ -2639,6 +2947,8 @@ TEST_CASE("ab 60 PSS", "[!hide]") {
 // 62 not used
 
 TEST_CASE( "ab 63 RX.S0") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.M = 0x30000000;
   entry.AB = 63;
@@ -2665,6 +2975,8 @@ TEST_CASE( "ab 63 RX.S0") {
   REQUIRE( state.ROAR == (0x49c | 0)); // not M:01, S0
 }
 TEST_CASE("bb 0 0") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   entry.BB = 0;
   roarBB(state, entry);
@@ -2672,6 +2984,8 @@ TEST_CASE("bb 0 0") {
 }
 
 TEST_CASE("bb 1 1") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   entry.BB = 1;
   roarBB(state, entry);
@@ -2679,6 +2993,8 @@ TEST_CASE("bb 1 1") {
 }
 
 TEST_CASE( "bb 2 (S0)") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   entry.BB = 2;
   setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
@@ -2692,6 +3008,8 @@ TEST_CASE( "bb 2 (S0)") {
 }
 
 TEST_CASE( "bb 3 (S1)") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   entry.BB = 3;
   setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
@@ -2705,6 +3023,8 @@ TEST_CASE( "bb 3 (S1)") {
 }
 
 TEST_CASE( "bb 4 (S2)") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   entry.BB = 4;
   setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
@@ -2718,6 +3038,8 @@ TEST_CASE( "bb 4 (S2)") {
 }
 
 TEST_CASE( "bb 5 (S3)") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   entry.BB = 5;
   setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
@@ -2731,6 +3053,8 @@ TEST_CASE( "bb 5 (S3)") {
 }
 
 TEST_CASE( "bb 6 (S4)") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   entry.BB = 6;
   setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
@@ -2744,6 +3068,8 @@ TEST_CASE( "bb 6 (S4)") {
 }
 
 TEST_CASE( "bb 7 (S5)") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   entry.BB = 7;
   setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
@@ -2757,6 +3083,8 @@ TEST_CASE( "bb 7 (S5)") {
 }
 
 TEST_CASE( "bb 8 (S6)") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   entry.BB = 8;
   setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
@@ -2770,6 +3098,8 @@ TEST_CASE( "bb 8 (S6)") {
 }
 
 TEST_CASE( "bb 9 (S7)") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   entry.BB = 9;
   setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
@@ -2783,6 +3113,8 @@ TEST_CASE( "bb 9 (S7)") {
 }
 
 TEST_CASE("bb 10 RSGNS") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.RSGNS = 0;
   entry.BB = 10;
@@ -2799,6 +3131,8 @@ TEST_CASE("bb 10 RSGNS") {
 // 11: HSCH
 
 TEST_CASE("bb 12 EXC", "[!hide]") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   // state.EXC = 0;
   entry.BB = 12;
@@ -2813,6 +3147,8 @@ TEST_CASE("bb 12 EXC", "[!hide]") {
 }
 
 TEST_CASE("bb 13 WR=0") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.WR = 1;
   entry.BB = 13;
@@ -2830,6 +3166,8 @@ TEST_CASE("bb 13 WR=0") {
 
 // Inexplicably, T13=0 seems to mean T bits 8 to 31 are 0 (i.e. fraction in a float)
 TEST_CASE( "bb 15 (T13=0)") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.T = 0x00800000;
   entry.BB = 15;
@@ -2848,6 +3186,8 @@ TEST_CASE( "bb 15 (T13=0)") {
 }
 
 TEST_CASE( "bb 16 T(0)") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.T = 0x80000000;
   entry.BB = 16;
@@ -2861,6 +3201,8 @@ TEST_CASE( "bb 16 T(0)") {
 }
 
 TEST_CASE( "bb 17 T=0") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.T = 0;
   entry.BB = 17;
@@ -2874,6 +3216,8 @@ TEST_CASE( "bb 17 T=0") {
 }
 
 TEST_CASE("bb 18 TZ*BS") {
+  State state;
+  Entry_t entry;
   // Negative cases
   state.ROAR = 0x49c;
   state.T = 0x05000000;
@@ -2941,6 +3285,8 @@ TEST_CASE("bb 18 TZ*BS") {
 }
 
 TEST_CASE("bb 19 W=1") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.W = 0;
   entry.BB = 19;
@@ -2962,6 +3308,8 @@ TEST_CASE("bb 19 W=1") {
 }
 
 TEST_CASE("bb 20 LB=0") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.LB = 1;
   entry.BB = 20;
@@ -2976,6 +3324,8 @@ TEST_CASE("bb 20 LB=0") {
 }
 
 TEST_CASE("bb 21 LB=3") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.LB = 1;
   entry.BB = 21;
@@ -2995,6 +3345,8 @@ TEST_CASE("bb 21 LB=3") {
 }
 
 TEST_CASE("bb 22 MD=0") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.MD = 1;
   entry.BB = 22;
@@ -3009,6 +3361,8 @@ TEST_CASE("bb 22 MD=0") {
 }
 
 TEST_CASE("bb 23 G2=0") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.ROAR = 0x49c;
   state.G2 = 1;
@@ -3024,6 +3378,8 @@ TEST_CASE("bb 23 G2=0") {
 }
 
 TEST_CASE("bb 24 G2<0") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.G2NEG = 0;
   entry.BB = 24;
@@ -3038,6 +3394,8 @@ TEST_CASE("bb 24 G2<0") {
 }
 
 TEST_CASE("bb 25 G2LBZ") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.G2 = 1;
   state.LB = 1;
@@ -3062,6 +3420,8 @@ TEST_CASE("bb 25 G2LBZ") {
 // 26 I/O
 
 TEST_CASE( "bb 27 (MD/JI)") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.MD = 2;
   state.J = 4;
@@ -3099,6 +3459,8 @@ TEST_CASE( "bb 27 (MD/JI)") {
 }
 
 TEST_CASE("bb 28 IVA", "[!hide]") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.SAR = 0x102;
   entry.BB = 28;
@@ -3115,6 +3477,8 @@ TEST_CASE("bb 28 IVA", "[!hide]") {
 // 29 I/O
 
 TEST_CASE( "bb 30 (CAR)") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.CAR = 0;
   entry.BB = 30;
@@ -3128,6 +3492,8 @@ TEST_CASE( "bb 30 (CAR)") {
 }
 
 TEST_CASE( "bb 31 (Z00)") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.T0 = 0x7fffffff;
   entry.BB = 31;
@@ -3141,6 +3507,8 @@ TEST_CASE( "bb 31 (Z00)") {
 }
 
 TEST_CASE( "roar ZN 1 SMIF") {
+  State state;
+  Entry_t entry;
   entry.ZP = 0x12;
   entry.ZF = 0x7;
   entry.ZN = 1;
@@ -3149,6 +3517,8 @@ TEST_CASE( "roar ZN 1 SMIF") {
 }
 
 TEST_CASE( "roar AB 56 I-FETCH") {
+  State state;
+  Entry_t entry;
   state.ROAR = 0x49c;
   state.IAR = 0x12340000;
   state.REFETCH = 0;
@@ -3190,6 +3560,8 @@ TEST_CASE( "roar AB 56 I-FETCH") {
 // SS 1, 2: unused
 
 TEST_CASE( "stat SS 3 D→CR*BS") {
+  State state;
+  Entry_t entry;
   state.SAR = 0x30;
   setBS(state, 1, 0, 0, 0);
   state.MS[0x30] = 0x81234567; // Leftmost bit of byte 0 set
@@ -3244,6 +3616,8 @@ TEST_CASE( "stat SS 4 E→SCANCTL", "[!hide]") {
 }
 
 TEST_CASE( "stat SS 5 L,RSGNS") {
+  State state;
+  Entry_t entry;
   for (int i = 0; i < 16; i++) {
     state.U = 0x40 | i;
       state.LSGNS = 0;
@@ -3268,6 +3642,8 @@ TEST_CASE( "stat SS 5 L,RSGNS") {
 }
 
 TEST_CASE( "stat SS 6 IVD/RSGNS") {
+  State state;
+  Entry_t entry;
   for (int i = 0; i < 16; i++) {
   state.RSGNS = 1;
   state.U = 0x40 | i;
@@ -3304,6 +3680,8 @@ void checkArray(uint8_t *b, std::vector<uint8_t> v){
 }
                     
 TEST_CASE( "stat8 E→S03") {
+  State state;
+  Entry_t entry;
   setS(state, {1, 0, 0, 1, 0, 0, 0, 1});
   entry.CE = 3;
   entry.SS = 8;
@@ -3313,6 +3691,8 @@ TEST_CASE( "stat8 E→S03") {
 }
 
 TEST_CASE( "stat9 S03ΩE,1→LSGN") {
+  State state;
+  Entry_t entry;
   setS(state, {1, 0, 0, 1, 0, 0, 0, 1});
   entry.CE = 3;
   entry.SS = 9;
@@ -3322,6 +3702,8 @@ TEST_CASE( "stat9 S03ΩE,1→LSGN") {
 }
 
 TEST_CASE( "stat10 S03ΩE") {
+  State state;
+  Entry_t entry;
   setS(state, {1, 0, 0, 1, 0, 0, 0, 1});
   entry.CE = 3;
   entry.SS = 10;
@@ -3330,6 +3712,8 @@ TEST_CASE( "stat10 S03ΩE") {
 }
 
 TEST_CASE( "stat11 S03ΩE,0→BS") {
+  State state;
+  Entry_t entry;
   setS(state, {1, 0, 0, 1, 0, 0, 0, 1});
   entry.CE = 3;
   entry.SS = 11;
@@ -3340,6 +3724,8 @@ TEST_CASE( "stat11 S03ΩE,0→BS") {
 
 // Unclear exactly which half of the word X0 and B0 come from
 TEST_CASE( "stat12: X0,B0,SYL1") {
+  State state;
+  Entry_t entry;
   // X=0, B=0
   state.T = 0x02305678;
   entry.SS = 12;
@@ -3382,6 +3768,8 @@ TEST_CASE( "stat12: X0,B0,SYL1") {
 }
 
 void testFpzero(int ss) {
+    State state;
+    Entry_t entry;
   state.T = 0x12000000;
   setS(state, {0, 0, 0, 1, 0, 0, 0, 0});
   state.F = 0;
@@ -3445,6 +3833,8 @@ TEST_CASE( "stat SS 13: FPZERO") {
 }
 
 TEST_CASE( "stat SS 14: FPZERO,E→FN") {
+  State state;
+  Entry_t entry;
   testFpzero(14);
 
   state.T = 0x00000001;
@@ -3456,6 +3846,8 @@ TEST_CASE( "stat SS 14: FPZERO,E→FN") {
 }
 
 TEST_CASE( "stat15: B0,SYL1") {
+  State state;
+  Entry_t entry;
   // X=0, B=0
   state.T = 0x02305678;
   entry.SS = 15;
@@ -3498,6 +3890,8 @@ TEST_CASE( "stat15: B0,SYL1") {
 }
 
 TEST_CASE( "stat16: S03.¬E") {
+  State state;
+  Entry_t entry;
   setS(state, {0, 0, 1, 1, 0, 0, 0, 1});
   entry.CE = 6;
   entry.SS = 16;
@@ -3512,6 +3906,8 @@ TEST_CASE( "stat16: S03.¬E") {
 }
 
 TEST_CASE( "stat SS 17: (T=0)→S3") {
+  State state;
+  Entry_t entry;
   state.T = 0;
   entry.SS = 17;
   stat(state, entry);
@@ -3519,6 +3915,8 @@ TEST_CASE( "stat SS 17: (T=0)→S3") {
 }
 
 TEST_CASE( "stat18: E→BS,T30→S3") {
+  State state;
+  Entry_t entry;
   setS(state, {0, 0, 1, 1, 0, 0, 0, 1});
   state.T = 0;
   entry.CE = 6;
@@ -3536,6 +3934,8 @@ TEST_CASE( "stat18: E→BS,T30→S3") {
 }
 
 TEST_CASE( "stat SS 19: E→BS") {
+  State state;
+  Entry_t entry;
   entry.CE = 15;
   entry.SS = 19;
   stat(state, entry);
@@ -3548,6 +3948,8 @@ TEST_CASE( "stat SS 19: E→BS") {
 }
 
 TEST_CASE( "stat20: 1→BS*MB") {
+  State state;
+  Entry_t entry;
   state.MB = 2;
   entry.SS = 20;
   stat(state, entry);
@@ -3562,6 +3964,8 @@ TEST_CASE( "stat SS 23: MANUAL→STOP", "[!hide]") {
 }
 
 TEST_CASE( "stat24: E→S47") {
+  State state;
+  Entry_t entry;
   setS(state, {0, 0, 1, 1, 0, 0, 0, 1});
   entry.CE = 6;
   entry.SS = 24;
@@ -3570,6 +3974,8 @@ TEST_CASE( "stat24: E→S47") {
 }
 
 TEST_CASE( "stat25: S47ΩE") {
+  State state;
+  Entry_t entry;
   setS(state, {0, 0, 1, 1, 0, 0, 0, 1});
   entry.CE = 6;
   entry.SS = 25;
@@ -3578,6 +3984,8 @@ TEST_CASE( "stat25: S47ΩE") {
 }
 
 TEST_CASE( "stat26: S47.¬E") {
+  State state;
+  Entry_t entry;
   setS(state, {0, 0, 1, 1, 0, 0, 0, 1});
   entry.CE = 6;
   entry.SS = 26;
@@ -3592,6 +4000,8 @@ TEST_CASE( "stat SS 28: OPPANEL→S47", "[!hide]") {
 }
 
 TEST_CASE( "stat29: CAR,(T≠0)→CR") {
+  State state;
+  Entry_t entry;
   state.CAR = 0;
   state.T = 0;
   entry.CE = 6;
@@ -3619,6 +4029,8 @@ TEST_CASE( "stat29: CAR,(T≠0)→CR") {
 }
 
 TEST_CASE( "stat30: KEY→F") {
+  State state;
+  Entry_t entry;
   state.SAR = 0x00005670;
   state.KEYS[state.SAR >> 11] = 4;
   entry.SS = 30;
@@ -3627,6 +4039,8 @@ TEST_CASE( "stat30: KEY→F") {
 }
                     
 TEST_CASE( "stat31: F→KEY") {
+  State state;
+  Entry_t entry;
   state.F = 4;
   state.SAR = 0x00005670;
   entry.SS = 31;
@@ -3635,30 +4049,40 @@ TEST_CASE( "stat31: F→KEY") {
 }
 
 TEST_CASE( "stat32: 1→LSGNS") {
+  State state;
+  Entry_t entry;
   entry.SS = 32;
   stat(state, entry);
   REQUIRE(state.LSGNS == 1);
 }
 
 TEST_CASE( "stat33: 0→LSGNS") {
+  State state;
+  Entry_t entry;
   entry.SS = 33;
   stat(state, entry);
   REQUIRE(state.LSGNS == 0);
 }
 
 TEST_CASE( "stat34: 1→RSGNS") {
+  State state;
+  Entry_t entry;
   entry.SS = 34;
   stat(state, entry);
   REQUIRE(state.RSGNS == 1);
 }
 
 TEST_CASE( "stat35: 0→RSGNS") {
+  State state;
+  Entry_t entry;
   entry.SS = 35;
   stat(state, entry);
   REQUIRE(state.RSGNS == 0);
 }
 
 TEST_CASE( "stat36: L(0)→LSGNS") {
+  State state;
+  Entry_t entry;
   state.L = 0x76543210;
   entry.SS = 36;
   stat(state, entry);
@@ -3670,6 +4094,8 @@ TEST_CASE( "stat36: L(0)→LSGNS") {
 }
 
 TEST_CASE( "stat37: R(0)→RSGNS") {
+  State state;
+  Entry_t entry;
   state.R = 0x76543210;
   entry.SS = 37;
   stat(state, entry);
@@ -3681,6 +4107,8 @@ TEST_CASE( "stat37: R(0)→RSGNS") {
 }
 
 TEST_CASE( "stat38: E(13)→WFN") {
+  State state;
+  Entry_t entry;
   entry.SS = 38;
   entry.CE = 0xe;
   stat(state, entry);
@@ -3688,6 +4116,8 @@ TEST_CASE( "stat38: E(13)→WFN") {
 }
 
 TEST_CASE( "stat SS 39: E(23)→FN") {
+  State state;
+  Entry_t entry;
   entry.SS = 39;
   entry.CE = 0xe;
   stat(state, entry);
@@ -3695,6 +4125,8 @@ TEST_CASE( "stat SS 39: E(23)→FN") {
 }
 
 TEST_CASE( "stat SS 40: E(23)→CR") {
+  State state;
+  Entry_t entry;
   entry.SS = 40;
   entry.CE = 0xe;
   stat(state, entry);
@@ -3702,6 +4134,8 @@ TEST_CASE( "stat SS 40: E(23)→CR") {
 }
 
 TEST_CASE( "stat41: SETCRALG") {
+  State state;
+  Entry_t entry;
   state.T = 0;
   entry.SS = 41;
   entry.CE = 0xe;
@@ -3722,6 +4156,8 @@ TEST_CASE( "stat41: SETCRALG") {
 }
 
 TEST_CASE( "stat SS 42: SETCRLOG") {
+  State state;
+  Entry_t entry;
   state.T = 0x00110022;
   setBS(state, 1, 0, 1, 0);
   state.C0 = 1;
@@ -3745,6 +4181,8 @@ TEST_CASE( "stat SS 42: SETCRLOG") {
 }
 
 TEST_CASE( "stat SS 43: ¬S4,S4→CR") {
+  State state;
+  Entry_t entry;
   entry.SS = 43;
   stat(state, entry);
   REQUIRE( state.CR == 2);
@@ -3756,6 +4194,8 @@ TEST_CASE( "stat SS 43: ¬S4,S4→CR") {
 }
 
 TEST_CASE( "stat SS 44: S4,¬S4→CR") {
+  State state;
+  Entry_t entry;
   setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
   entry.SS = 44;
   stat(state, entry);
@@ -3768,6 +4208,8 @@ TEST_CASE( "stat SS 44: S4,¬S4→CR") {
 }
 
 TEST_CASE( "stat SS 45: 1→REFETCH") {
+  State state;
+  Entry_t entry;
   entry.SS = 45;
   stat(state, entry);
   REQUIRE( state.REFETCH == 1);
@@ -3796,6 +4238,8 @@ TEST_CASE( "stat SS 54: 1→TIMERIRPT", "[!hide]") {
 
 // T to AMWP bits
 TEST_CASE( "stat55  T→PSW,IPL→T") {
+  State state;
+  Entry_t entry;
   state.T = 0x12345678;
   entry.SS = 55;
   stat(state, entry);
@@ -3805,6 +4249,8 @@ TEST_CASE( "stat55  T→PSW,IPL→T") {
 
 // T to AMWP bits
 TEST_CASE( "stat56 T→PSW") {
+  State state;
+  Entry_t entry;
   state.T = 0x123f5678;
   entry.SS = 56;
   stat(state, entry);
@@ -3812,6 +4258,8 @@ TEST_CASE( "stat56 T→PSW") {
 }
 
 TEST_CASE( "stat57", "[!hide]") {
+  State state;
+  Entry_t entry;
   // 57: SCAN*E00
   entry.SS = 57;
   entry.CE = 0x3;
@@ -3871,6 +4319,8 @@ TEST_CASE("sl4") {
 }
 
 TEST_CASE( "al1 Q→SR1→F") {
+  State state;
+  Entry_t entry;
   state.T0 = 0x12345679;
   state.Q = 1;
   state.F = 5;
@@ -3882,6 +4332,8 @@ TEST_CASE( "al1 Q→SR1→F") {
 }
 
 TEST_CASE( "al 2 L0,¬S4→") {
+  State state;
+  Entry_t entry;
   state.T0 = 0x12345678;
   state.L = 0x78901234;
   setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
@@ -3898,6 +4350,8 @@ TEST_CASE( "al 2 L0,¬S4→") {
 }
 
 TEST_CASE( "al3 +SGN→") {
+  State state;
+  Entry_t entry;
   state.T0 = 0x12345678;
   entry.AL = 3;
   adderAL(state, entry);
@@ -3905,6 +4359,8 @@ TEST_CASE( "al3 +SGN→") {
 }
 
 TEST_CASE( "al4 -SGN→") {
+  State state;
+  Entry_t entry;
   state.T0 = 0x92345678;
   entry.AL = 4;
   adderAL(state, entry);
@@ -3912,6 +4368,8 @@ TEST_CASE( "al4 -SGN→") {
 }
 
 TEST_CASE( "al5 L0,S4→") {
+  State state;
+  Entry_t entry;
   state.T0 = 0x12345678;
   state.L = 0x78901234;
   setS(state, {0, 0, 0, 0, 0, 0, 0, 0});
@@ -3928,6 +4386,8 @@ TEST_CASE( "al5 L0,S4→") {
 }
 
 TEST_CASE( "al6 IA→H") {
+  State state;
+  Entry_t entry;
   state.IAR = 0x12345678;
   entry.AL = 6;
   adderAL(state, entry);
@@ -3935,6 +4395,8 @@ TEST_CASE( "al6 IA→H") {
 }
 
 TEST_CASE( "al7 Q→SL→-F") {
+  State state;
+  Entry_t entry;
   state.T0 = 0x12345678;
   state.Q = 0;
   state.F = 0xf;
@@ -3961,6 +4423,8 @@ TEST_CASE( "al7 Q→SL→-F") {
 }
 
 TEST_CASE( "al8 Q→SL1→F") {
+  State state;
+  Entry_t entry;
   state.Q = 0;
   state.T0 = 0x72345678;
   state.F = 0xc;
@@ -3996,6 +4460,8 @@ TEST_CASE( "al8 Q→SL1→F") {
 
 // Overflow bits from T spill into F, which is shifted into T.
 TEST_CASE( "al9 F→SL1→F") {
+  State state;
+  Entry_t entry;
   state.T0 = 0x92345678;
   state.F = 0xc;
   entry.AL = 9;
@@ -4020,6 +4486,8 @@ TEST_CASE( "al9 F→SL1→F") {
 }
 
 TEST_CASE( "al10 SL1→Q") {
+  State state;
+  Entry_t entry;
   state.T0 = 0x92345678;
   entry.AL = 10;
   adderAL(state, entry);
@@ -4029,6 +4497,8 @@ TEST_CASE( "al10 SL1→Q") {
 
 
 TEST_CASE( "al11 Q→SL1") {
+  State state;
+  Entry_t entry;
   state.T0 = 0x92345678;
   state.Q = 0;
   entry.AL = 11;
@@ -4043,6 +4513,8 @@ TEST_CASE( "al11 Q→SL1") {
 }
 
 TEST_CASE( "al12 SR1→F") {
+  State state;
+  Entry_t entry;
   state.T0 = 0x12345679;
   state.F = 3;
   entry.AL = 12;
@@ -4052,6 +4524,8 @@ TEST_CASE( "al12 SR1→F") {
 }
 
 TEST_CASE( "al13 SR1→Q") {
+  State state;
+  Entry_t entry;
   state.T0 = 0x12345679;
   entry.AL = 13;
   adderAL(state, entry);
@@ -4060,6 +4534,8 @@ TEST_CASE( "al13 SR1→Q") {
 }
 
 TEST_CASE( "al14 Q→SR1→Q") {
+  State state;
+  Entry_t entry;
   state.T0 = 0x92345679;
   state.Q = 0;
   entry.AL = 14;
@@ -4076,6 +4552,8 @@ TEST_CASE( "al14 Q→SR1→Q") {
 }
 
 TEST_CASE( "al15 F→SL1→Q") {
+  State state;
+  Entry_t entry;
   state.T0 = 0x12345678;
   state.F = 0x9;
   state.Q = 0;
@@ -4096,6 +4574,8 @@ TEST_CASE( "al15 F→SL1→Q") {
 }
 
 TEST_CASE( "al16 SL4→F") {
+  State state;
+  Entry_t entry;
   state.T0 = 0x12345678;
   state.F = 0x3;
   entry.AL = 16;
@@ -4105,6 +4585,8 @@ TEST_CASE( "al16 SL4→F") {
 }
 
 TEST_CASE( "al17 F→SL4→F") {
+  State state;
+  Entry_t entry;
   state.T0 = 0x12345678;
   state.F = 0x3;
   entry.AL = 17;
@@ -4114,6 +4596,8 @@ TEST_CASE( "al17 F→SL4→F") {
 }
 
 TEST_CASE( "al18 FPSL4") {
+  State state;
+  Entry_t entry;
   state.T0 = 0x12345678;
   state.F = 0xf;
   entry.AL = 18;
@@ -4124,6 +4608,8 @@ TEST_CASE( "al18 FPSL4") {
 }
 
 TEST_CASE( "al18 FPSL4 0") {
+  State state;
+  Entry_t entry;
   state.T0 = 0x12045678;
   state.F = 0xf;
   entry.AL = 18;
@@ -4134,6 +4620,8 @@ TEST_CASE( "al18 FPSL4 0") {
 }
 
 TEST_CASE( "al19 F→FPSL4") {
+  State state;
+  Entry_t entry;
   state.T0 = 0x12345678;
   state.F = 0x3;
   entry.AL = 19;
@@ -4144,6 +4632,8 @@ TEST_CASE( "al19 F→FPSL4") {
 }
 
 TEST_CASE( "al19 F→FPSL4 0") {
+  State state;
+  Entry_t entry;
   state.T0 = 0x12045678;
   state.F = 0x3;
   entry.AL = 19;
@@ -4154,6 +4644,8 @@ TEST_CASE( "al19 F→FPSL4 0") {
 }
 
 TEST_CASE( "al20 SR4→F") {
+  State state;
+  Entry_t entry;
   state.T0 = 0x12345678;
   state.F = 0x3;
   entry.AL = 20;
@@ -4163,6 +4655,8 @@ TEST_CASE( "al20 SR4→F") {
 }
 
 TEST_CASE( "al21") {
+  State state;
+  Entry_t entry;
   // F->SR4->F: guess as to function
   state.T0 = 0x12345678;
   state.F = 0x3;
@@ -4173,6 +4667,8 @@ TEST_CASE( "al21") {
 }
 
 TEST_CASE( "al22 FPSR4→F") {
+  State state;
+  Entry_t entry;
   state.T0 = 0x12345678;
   state.F = 0x3;
   entry.AL = 22;
@@ -4182,6 +4678,8 @@ TEST_CASE( "al22 FPSR4→F") {
 }
 
 TEST_CASE( "al23 1→FPSR4→F") {
+  State state;
+  Entry_t entry;
   state.T0 = 0x12345678;
   state.F = 0x3;
   entry.AL = 23;
@@ -4194,6 +4692,8 @@ TEST_CASE( "al24 SR4→H", "[!hide]") {
 }
 
 TEST_CASE( "al25 F→SR4") {
+  State state;
+  Entry_t entry;
   state.T0 = 0x12345678;
   state.F = 0x3;
   entry.AL = 25;
@@ -4203,6 +4703,8 @@ TEST_CASE( "al25 F→SR4") {
 }
 
 TEST_CASE( "al26 E→FPSL4") {
+  State state;
+  Entry_t entry;
   state.T0 = 0x12345678;
   state.F = 0x3;
   entry.AL = 26;
@@ -4214,6 +4716,8 @@ TEST_CASE( "al26 E→FPSL4") {
 }
 
 TEST_CASE( "al26 E→FPSL4 0") {
+  State state;
+  Entry_t entry;
   state.T0 = 0x12045678;
   state.F = 0x3;
   entry.AL = 26;
@@ -4225,6 +4729,8 @@ TEST_CASE( "al26 E→FPSL4 0") {
 }
 
 TEST_CASE( "al27 F→SR1→Q") {
+  State state;
+  Entry_t entry;
   state.T0 = 0x92345678;
   state.F = 0;
   entry.AL = 27;
@@ -4253,6 +4759,8 @@ TEST_CASE( "al28 DKEY→", "[!hide]") {
 // al 29 is I/O
 
 TEST_CASE( "al30 D→") {
+  State state;
+  Entry_t entry;
   state.SAR = 0x30;
   state.MS[0x30] = 0x12345678;
   entry.AL = 30;

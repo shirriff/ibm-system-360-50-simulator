@@ -9,7 +9,9 @@
 #ifndef disasm_h
 #define disasm_h
 
-extern std::string getName(uint16_t *hw);
-extern std::string disasm(uint16_t *hw);
+#include <vector>
+
+extern std::string getName(std::vector<uint16_t> hw);
+extern std::string disasm(std::vector<uint16_t> hw);
 
 #endif /* disasm_h */
