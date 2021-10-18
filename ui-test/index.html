@@ -33,12 +33,7 @@
         <div class="col-2" id="sidebar">
           This is the sidebar stuff.
         </div>
-        <!--
-        <div id="canvasdiv" class="h-100 col-10" style="border:1px solid green;">
-          <canvas id="canvas" style="border:1px solid red;"></canvas>
-        </div>
-        -->
-          <canvas id="canvas" class="col-10" style="border:1px solid red;"></canvas>
+        <canvas id="canvas" class="col-10"></canvas>
       </div>
     </div>
 
@@ -62,8 +57,6 @@
         canvasWidth = window.innerWidth - $("#sidebar").width();
         canvas.style.width = canvasWidth + "px";
         canvas.style.height = canvasHeight + "px";
-        console.log('canvas', canvas.style.width, canvas.style.height);
-        console.log('new canvas height', canvas.clientHeight, '=', window.innerHeight, '-', $("#nav").height());
         draw();
       }
 
@@ -77,7 +70,6 @@
         ctx1.clearRect(0, 0, canvas.width, canvas.height);
         ctx1.restore();
         // window is centered on 0, 0. Translate to center image.
-        console.log('drawInt')
         ctx1.save();
         ctx1.translate(-img.width / 2, -img.height / 2);
         ctx1.drawImage(img, 0, 0);
@@ -107,9 +99,6 @@
         var imatrix = matrix.invertSelf();
         var x1 = x * imatrix.a + y * imatrix.c + imatrix.e;
         var y1 = x * imatrix.b + y * imatrix.d + imatrix.f;
-        console.log(imatrix);
-        $("#sidebar").html(x + ' ' + y + '<br>' + x1 + " " + y1 + "<br>" + event.clientX + ' ' + event.clientY + ' ' + rect.left + ' ' + rect.top);
-        console.log(x + ' ' + y + ' ' + event.clientX + ' ' + event.clientY + ' ' + rect.left + ' ' + rect.top);
       });
 
       $(document).ready(function() {

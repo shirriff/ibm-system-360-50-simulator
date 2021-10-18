@@ -22,7 +22,6 @@ let ch = canvas.clientHeight;
 function init() {
   resize();
   canvas = document.getElementById("canvas")
-  console.log('init', canvas);
   ctx = canvas.getContext('2d')
   cameraOffset = { x: canvas.clientWidth/2, y: canvas.clientHeight/2 }
   cameraZoom = canvas.clientHeight / img_height;
@@ -30,13 +29,6 @@ function init() {
 
 function draw()
 {
-    console.log('draw');
-    console.log('canvas innerWidth', canvas.innerWidth, canvas.innerHeight);
-    console.log('canvas offsetWidth', canvas.offsetWidth, canvas.offsetHeight);
-    console.log('canvas clientWidth', canvas.clientWidth, canvas.clientHeight);
-    console.log(document.getElementById('canvas'))
-    console.log(cameraZoom);
-    
     cw = canvas.clientWidth;
     ch = canvas.clientHeight;
     canvas.width = cw;
@@ -137,23 +129,23 @@ function adjustZoom(zoomAmount, zoomFactor)
         }
         else if (zoomFactor)
         {
-            console.log(zoomFactor)
             cameraZoom = zoomFactor*lastZoom
         }
         
         cameraZoom = Math.min( cameraZoom, MAX_ZOOM )
         cameraZoom = Math.max( cameraZoom, MIN_ZOOM )
         
-        // console.log(zoomAmount)
     }
 }
 
 canvas.addEventListener('mousedown', onPointerDown)
 canvas.addEventListener('touchstart', (e) => handleTouch(e, onPointerDown))
 canvas.addEventListener('mouseup', onPointerUp)
-canvas.addEventListener('touchend',  (e) => handleTouch(e, onPointerUp))
+canvas.addEventListener('mouseout', onPointerUp)
+canvas.addEventListener('mouseleave', onPointerUp)
 canvas.addEventListener('mousemove', onPointerMove)
 canvas.addEventListener('touchmove', (e) => handleTouch(e, onPointerMove))
+
 canvas.addEventListener( 'wheel', function(e) {
   e.preventDefault();
   e.stopImmediatePropagation();
