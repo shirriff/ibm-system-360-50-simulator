@@ -1,3 +1,4 @@
+// Somewhat based on Smple Pan and Zoom Canvas:
 // Copyright (c) 2021 by Chengarda (https://codepen.io/chengarda/pen/wRxoyB)
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
@@ -9,56 +10,44 @@
 let canvas = document.getElementById("canvas")
 let ctx = canvas.getContext('2d')
 
-let cameraOffset = { x: window.innerWidth/2, y: window.innerHeight/2 }
-let cameraZoom = 1
+let img_height = 1951;
+let cameraOffset = { x: canvas.clientWidth/2, y: canvas.clientHeight/2 }
+let cameraZoom = canvas.clientHeight / img_height;
 let MAX_ZOOM = 5
 let MIN_ZOOM = 0.1
 let SCROLL_SENSITIVITY = 0.0005
+let cw = canvas.clientWidth;
+let ch = canvas.clientHeight;
+
+function init() {
+  resize();
+  canvas = document.getElementById("canvas")
+  console.log('init', canvas);
+  ctx = canvas.getContext('2d')
+  cameraOffset = { x: canvas.clientWidth/2, y: canvas.clientHeight/2 }
+  cameraZoom = canvas.clientHeight / img_height;
+}
 
 function draw()
 {
     console.log('draw');
-    console.log('window', window.innerWidth, window.innerHeight);
-    console.log('document body', document.body.offsetWidth, document.body.offsetHeight);
-    console.log('canvas', canvas.width, canvas.height);
+    console.log('canvas innerWidth', canvas.innerWidth, canvas.innerHeight);
+    console.log('canvas offsetWidth', canvas.offsetWidth, canvas.offsetHeight);
     console.log('canvas clientWidth', canvas.clientWidth, canvas.clientHeight);
-    console.log('canvas parent', canvas.offsetParent.offsetWidth, canvas.offsetParent.offsetHeight);
-    canvas.width = window.innerWidth
-    canvas.height = window.innerHeight
-    console.log('new canvas width', canvas.width, canvas.height);
+    console.log(document.getElementById('canvas'))
+    console.log(cameraZoom);
     
+    cw = canvas.clientWidth;
+    ch = canvas.clientHeight;
+    canvas.width = cw;
+    canvas.height = ch;
     // Translate to the canvas centre before zooming - so you'll always zoom on what you're looking directly at
-    ctx.translate( window.innerWidth / 2, window.innerHeight / 2 )
+    // ctx.setTransform(1, 0, 0, 1, 0, 0); // Identity
+    ctx.translate( cw / 2, ch / 2 );
     ctx.scale(cameraZoom, cameraZoom)
-    ctx.translate( -window.innerWidth / 2 + cameraOffset.x, -window.innerHeight / 2 + cameraOffset.y )
-    ctx.clearRect(0,0, window.innerWidth, window.innerHeight)
+    ctx.translate( -cw / 2 + cameraOffset.x, -ch / 2 + cameraOffset.y )
+    // ctx.translate( -cw / 2, -ch / 2);
     drawInt();
-    /*
-    ctx.fillStyle = "#991111"
-    drawRect(-50,-50,100,100)
-    
-    ctx.fillStyle = "#eecc77"
-    drawRect(-35,-35,20,20)
-    drawRect(15,-35,20,20)
-    drawRect(-35,15,70,20)
-    
-    ctx.fillStyle = "#fff"
-    drawText("Simple Pan and Zoom Canvas", -255, -100, 32, "courier")
-    
-    ctx.rotate(-31*Math.PI / 180)
-    ctx.fillStyle = `#${(Math.round(Date.now()/40)%4096).toString(16)}`
-    drawText("Now with touch!", -110, 100, 32, "courier")
-    
-    ctx.fillStyle = "#000"
-    ctx.rotate(31*Math.PI / 180)
-    
-    drawText("Wow, you found me!", -260, -20, 48, "courier")
-    drawText("Wow, you found me!", -260, -100, 48, "courier")
-    drawText("Wow, you found me!", -260, -500, 48, "courier")
-    drawText("Wow, you found me!", -260, -2000, 48, "courier")
-    */
-    
-    // requestAnimationFrame( draw )
 }
 
 // Gets the relevant location from a mouse or single touch event
@@ -72,17 +61,6 @@ function getEventLocation(e)
     {
         return { x: e.clientX, y: e.clientY }        
     }
-}
-
-function drawRect(x, y, width, height)
-{
-    ctx.fillRect( x, y, width, height )
-}
-
-function drawText(text, x, y, size, font)
-{
-    ctx.font = `${size}px ${font}`
-    ctx.fillText(text, x, y)
 }
 
 let isDragging = false
@@ -179,8 +157,9 @@ canvas.addEventListener('touchmove', (e) => handleTouch(e, onPointerMove))
 canvas.addEventListener( 'wheel', function(e) {
   e.preventDefault();
   e.stopImmediatePropagation();
-  adjustZoom(-e.deltaY / 20);
+  if (e.ctrlKey) {
+    adjustZoom(-e.deltaY * SCROLL_SENSITIVITY * 10);
+  } else {
+    adjustZoom(-e.deltaY * SCROLL_SENSITIVITY);
+  }
 });
-
-// Ready, set, go
-draw()
