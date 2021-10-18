@@ -29,16 +29,14 @@ function init() {
 
 function draw()
 {
+    ctx.setTransform(1, 0, 0, 1, 0, 0); // Identity
     cw = canvas.clientWidth;
     ch = canvas.clientHeight;
     canvas.width = cw;
     canvas.height = ch;
-    // Translate to the canvas centre before zooming - so you'll always zoom on what you're looking directly at
-    // ctx.setTransform(1, 0, 0, 1, 0, 0); // Identity
-    ctx.translate( cw / 2, ch / 2 );
-    ctx.scale(cameraZoom, cameraZoom)
-    ctx.translate( -cw / 2 + cameraOffset.x, -ch / 2 + cameraOffset.y )
-    // ctx.translate( -cw / 2, -ch / 2);
+    ctx.translate( cw / 2, ch / 2);
+    ctx.scale(cameraZoom, cameraZoom) // Zoom around center of canvas
+    ctx.translate( -cw / 2 + cameraOffset.x, -ch / 2 + cameraOffset.y);
     drawInt();
 }
 
@@ -74,6 +72,9 @@ function onPointerUp(e)
 
 function onPointerMove(e)
 {
+    if (e.buttons == 0) {
+      isDragging = false; // Button might have been lifted while mouse was outside window
+    }
     if (isDragging)
     {
         cameraOffset.x = getEventLocation(e).x/cameraZoom - dragStart.x
@@ -141,8 +142,8 @@ function adjustZoom(zoomAmount, zoomFactor)
 canvas.addEventListener('mousedown', onPointerDown)
 canvas.addEventListener('touchstart', (e) => handleTouch(e, onPointerDown))
 canvas.addEventListener('mouseup', onPointerUp)
-canvas.addEventListener('mouseout', onPointerUp)
-canvas.addEventListener('mouseleave', onPointerUp)
+// canvas.addEventListener('mouseout', onPointerUp)
+// canvas.addEventListener('mouseleave', onPointerUp)
 canvas.addEventListener('mousemove', onPointerMove)
 canvas.addEventListener('touchmove', (e) => handleTouch(e, onPointerMove))
 

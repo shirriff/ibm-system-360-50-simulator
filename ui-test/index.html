@@ -45,9 +45,8 @@
 
     <script type="text/javascript">
       let img = new Image;
-      let ctx1 = $("#canvas")[0].getContext('2d');
       img.addEventListener("load", function() {
-        drawInt();
+        draw();
       });
       img.src = "imgs/console.jpg";
       let set = 0;
@@ -65,40 +64,77 @@
 
       function drawInt() {
         // Clear
-        ctx1.save();
-        ctx1.setTransform(1, 0, 0, 1, 0, 0); // Identity
-        ctx1.clearRect(0, 0, canvas.width, canvas.height);
-        ctx1.restore();
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0); // Identity
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.restore();
         // window is centered on 0, 0. Translate to center image.
-        ctx1.save();
-        ctx1.translate(-img.width / 2, -img.height / 2);
-        ctx1.drawImage(img, 0, 0);
-        ctx1.fillStyle = "yellow";
-        ctx.fillRect(-1400, -900, 10, 10);
+        ctx.translate(-img.width / 2, -img.height / 2);
+        ctx.drawImage(img, 0, 0);
+        ctx.fillStyle = "yellow";
         for (let i = 0; i < 18; i++) {
           const x = (833 - 427) / 17 * i + 427;
           const y = 783;
-          ctx1.beginPath();
-          ctx1.arc(x, y, 8, 0, 2 * Math.PI);
-          ctx1.fill();
+          ctx.beginPath();
+          ctx.arc(x, y, 8, 0, 2 * Math.PI);
+          ctx.fill();
         }
-        ctx1.restore();
       }
-      /*
-      ctx1.fillStyle = "#ff0000";
-      ctx1.fillRect(0, 0, 100, 100);
-      img.onload = function() {
-        ctx1.scale(.5, .5);
-      }
-      */
       $("#canvas").click(function(event) {
         const rect = $("#canvas")[0].getBoundingClientRect();
         const x = event.clientX - rect.left;
         const y = event.clientY - rect.top;
-        var matrix = ctx1.getTransform();
+        var matrix = ctx.getTransform();
         var imatrix = matrix.invertSelf();
         var x1 = x * imatrix.a + y * imatrix.c + imatrix.e;
         var y1 = x * imatrix.b + y * imatrix.d + imatrix.f;
+        $("#sidebar").html(Math.round(x1) + "," + Math.round(y1));
+      });
+
+      function processMouse(e) {
+        // Need to translate mouse position from scaled coordinates to original coordinates
+        const rect = $("#canvas")[0].getBoundingClientRect();
+        const xscaled = event.clientX - rect.left;
+        const yscaled = event.clientY - rect.top;
+        var matrix = ctx.getTransform();
+        var imatrix = matrix.invertSelf();
+        var x = xscaled * imatrix.a + yscaled * imatrix.c + imatrix.e;
+        var y = xscaled * imatrix.b + yscaled * imatrix.d + imatrix.f;
+        $("#sidebar").html('mouse' + Math.round(x) + "," + Math.round(y) + " " + e.button + " " + e.buttons);
+        if (x >= 403 && x <= 1457) {
+          if (y > 730 && y < 760) {
+            return ['roller', 1];
+          } else if (y > 822 & y < 860) {
+            return ['roller', 2];
+          } else if (y > 913 & y < 950) {
+            return ['roller', 3];
+          } else if (y > 1009 & y < 1046) {
+            return ['roller', 4];
+          }
+        }
+        if (x > 1282 && x < 1331 && y > 244 && y < 301) {
+          return ['epo'];
+        }
+        return undefined;
+      }
+
+      $("#canvas").on("mousemove", function(e) {
+        const result = processMouse(e);
+        if (result) {
+          $('#canvas').css('cursor', 'pointer');
+        } else {
+          $('#canvas').css('cursor', 'default');
+        }
+      });
+
+      $("#canvas").on("mousedown", function(e) {
+        const result = processMouse(e);
+        if (result) {
+          if (result[0] == 'epo') {
+            window.close(); // What would you expect???
+          }
+          $("#sidebar").html(result);
+        }
       });
 
       $(document).ready(function() {
