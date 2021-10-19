@@ -142,9 +142,7 @@ function adjustZoom(zoomAmount, zoomFactor)
 canvas.addEventListener('mousedown', onPointerDown)
 canvas.addEventListener('touchstart', (e) => handleTouch(e, onPointerDown))
 canvas.addEventListener('mouseup', onPointerUp)
-// canvas.addEventListener('mouseout', onPointerUp)
-// canvas.addEventListener('mouseleave', onPointerUp)
-canvas.addEventListener('mousemove', onPointerMove)
+// canvas.addEventListener('mousemove', onPointerMove)
 canvas.addEventListener('touchmove', (e) => handleTouch(e, onPointerMove))
 
 canvas.addEventListener( 'wheel', function(e) {
