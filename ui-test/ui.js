@@ -1,35 +1,35 @@
-let img = new Image;
-img.addEventListener("load", function() {
-  draw();
-});
-img.src = "imgs/console.jpg";
 let set = 0;
 var canvasWidth = 0, canvasHeight = 0;
+var imgWidth = 0, imgHeight = 0;
 function resize() {
   canvasHeight = window.innerHeight - $("#nav").height();
   canvasWidth = window.innerWidth - $("#sidebar").width();
   canvas.style.width = canvasWidth + "px";
   canvas.style.height = canvasHeight + "px";
+  console.log(canvasHeight, canvasWidth, canvas.style.width, canvas.style.height);
   draw();
 }
 
-$(window).resize(resize);
 
 let imatrix = null; // Inverted transformation matrix.
 
+/**
+ * Draws the display.
+ * This is called after the zoom windowhas been configured correctly.
+ */
 function drawInt() {
   // Clear
+  console.log('drawInt');
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0); // Identity
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.restore();
   // window is centered on 0, 0. Translate to center image.
-  ctx.translate(-img.width / 2, -img.height / 2);
+  ctx.translate(-imgWidth / 2, -imgHeight / 2);
   var matrix = ctx.getTransform();
   imatrix = matrix.invertSelf(); // Remember inverted transformation matrix.
   ctx.drawImage(img, 0, 0);
   ctx.fillStyle = "yellow";
-  initUI();
 }
 
 /**
@@ -225,6 +225,10 @@ function initUI() {
   }
 }
 
+/**
+ * Tests if the event e is inside a region.
+ * Returns the region or undefined.
+ */
 function testLocation(e) {
   // Need to translate mouse position from scaled coordinates to original coordinates
   const [x, y] = coords(e);
@@ -236,6 +240,9 @@ function testLocation(e) {
   return undefined;
 }
 
+/**
+ * Updates pointer when over a clickable region.
+ */
 $("#canvas").on("mousemove", function(e) {
   const result = testLocation(e);
   if (result) {
@@ -247,9 +254,27 @@ $("#canvas").on("mousemove", function(e) {
   }
 });
 
+$("#canvas").on("click", function(e) {
+  const result = testLocation(e);
+  if (result) {
+    $("#sidebar").html(result);
+    $('#canvas').css('cursor', 'pointer');
+  } else {
+    $("#sidebar").html("");
+    $('#canvas').css('cursor', 'default');
+  }
+});
 
+
+let img = undefined; // The image of the console
 $(document).ready(function() {
-  init();
-  // initUI();
-  resize()
+  img = new Image;
+  img.addEventListener("load", function() {
+    imgWidth = img.width;
+    imgHeight = img.height;
+    draw();
+  });
+  img.src = "imgs/console.jpg";
+  initUI();
+  initZoom();
 });

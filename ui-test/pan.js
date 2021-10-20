@@ -19,12 +19,32 @@ let SCROLL_SENSITIVITY = 0.0005
 let cw = canvas.clientWidth;
 let ch = canvas.clientHeight;
 
-function init() {
-  resize();
+function initZoom() {
+  $(window).resize(resize); // Set handler
+  resize(); // Call handler now
   canvas = document.getElementById("canvas")
   ctx = canvas.getContext('2d')
   cameraOffset = { x: canvas.clientWidth/2, y: canvas.clientHeight/2 }
   cameraZoom = canvas.clientHeight / img_height;
+
+  // Events for zooming
+  canvas.addEventListener('resize', resize);
+  canvas.addEventListener('click', (e) => console.log(e));
+  canvas.addEventListener('mousedown', onPointerDown)
+  canvas.addEventListener('touchstart', (e) => handleTouch(e, onPointerDown))
+  canvas.addEventListener('mouseup', onPointerUp)
+  canvas.addEventListener('mousemove', onPointerMove)
+  canvas.addEventListener('touchmove', (e) => handleTouch(e, onPointerMove))
+
+  canvas.addEventListener( 'wheel', function(e) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    if (e.ctrlKey) {
+      adjustZoom(-e.deltaY * SCROLL_SENSITIVITY * 10);
+    } else {
+      adjustZoom(-e.deltaY * SCROLL_SENSITIVITY);
+    }
+  });
 }
 
 function draw()
@@ -138,19 +158,3 @@ function adjustZoom(zoomAmount, zoomFactor)
         
     }
 }
-
-canvas.addEventListener('mousedown', onPointerDown)
-canvas.addEventListener('touchstart', (e) => handleTouch(e, onPointerDown))
-canvas.addEventListener('mouseup', onPointerUp)
-// canvas.addEventListener('mousemove', onPointerMove)
-canvas.addEventListener('touchmove', (e) => handleTouch(e, onPointerMove))
-
-canvas.addEventListener( 'wheel', function(e) {
-  e.preventDefault();
-  e.stopImmediatePropagation();
-  if (e.ctrlKey) {
-    adjustZoom(-e.deltaY * SCROLL_SENSITIVITY * 10);
-  } else {
-    adjustZoom(-e.deltaY * SCROLL_SENSITIVITY);
-  }
-});
