@@ -1,6 +1,7 @@
 let set = 0;
 var canvasWidth = 0, canvasHeight = 0;
 var imgWidth = 0, imgHeight = 0;
+// Resize isn't really working
 function resize() {
   canvasHeight = window.innerHeight - $("#nav").height();
   canvasWidth = window.innerWidth - $("#sidebar").width();
@@ -29,6 +30,11 @@ function drawInt() {
   var matrix = ctx.getTransform();
   imatrix = matrix.invertSelf(); // Remember inverted transformation matrix.
   ctx.drawImage(img, 0, 0);
+  // Draw rollers in their current positions. Each roller is drawn in two parts
+  for (let r = 0; r < 4; r++) {
+    ctx.drawImage(rollerImgs[2 * r][rollerPos[r] - 1], 393, interp(723, 1008, 4, r), 454, 24);
+    ctx.drawImage(rollerImgs[2 * r + 1][rollerPos[r] - 1], 868, interp(723, 1008, 4, r), 454, 24);
+  }
   ctx.fillStyle = "yellow";
 }
 
@@ -115,12 +121,12 @@ lights = [];
 
 let rollerImgs = [];
 /**
- * Loads all the roller images: 8 positions for 4 rollers.
+ * Loads all the roller images: 8 positions for 8 half-rollers.
  * The images are stored in rollerImgs.
  */
 function initRollers() {
-  let imgs = [];
-  for (let roller = 1; roller <= 4; roller++) {
+  for (let roller = 1; roller <= 8; roller++) {
+    let imgs = [];
     for (let pos = 1; pos <= 8; pos++) {
       let img = new Image;
       img.src = "imgs/roller-" + roller + "-" + pos + ".jpg";
@@ -128,6 +134,12 @@ function initRollers() {
     }
     rollerImgs.push(imgs);
   }
+}
+
+// Linearly interpolates between x0 and x1. Assume n points in total and we select point i.
+// That is, for i=0, output x0; for i=N, output x1.
+function interp(x0, x1, n, i) {
+  return (x1 - x0) / (n - 1) * i + x0;
 }
 
 /**
@@ -254,16 +266,26 @@ $("#canvas").on("mousemove", function(e) {
   }
 });
 
-$("#canvas").on("click", function(e) {
+// Called on click without drag
+// Need to distinguish dragging the image from clicking on it.
+function clicked(e) {
   const result = testLocation(e);
   if (result) {
     $("#sidebar").html(result);
-    $('#canvas').css('cursor', 'pointer');
-  } else {
-    $("#sidebar").html("");
-    $('#canvas').css('cursor', 'default');
+    const parts = result.split("-");
+    if (parts[0] == "roller") {
+      updateRoller(parseInt(parts[1], 10));
+    }
   }
-});
+}
+
+let rollerPos = [1, 1, 1, 1]; // Positions of the four rollers
+
+function updateRoller(n) {
+  $("#sidebar").html("roller " + n);
+  rollerPos[n - 1] = (rollerPos[n - 1] % 8 ) + 1; // increment value 1-8, wrapping 8 to 1.
+  draw();
+}
 
 
 let img = undefined; // The image of the console

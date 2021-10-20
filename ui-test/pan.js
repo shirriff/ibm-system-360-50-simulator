@@ -75,16 +75,22 @@ function getEventLocation(e)
 
 let isDragging = false
 let dragStart = { x: 0, y: 0 }
+let dragStartRaw = { x: 0, y: 0 }
 
 function onPointerDown(e)
 {
     isDragging = true
     dragStart.x = getEventLocation(e).x/cameraZoom - cameraOffset.x
     dragStart.y = getEventLocation(e).y/cameraZoom - cameraOffset.y
+    dragStartRaw.x = getEventLocation(e).x;
+    dragStartRaw.y = getEventLocation(e).y;
 }
 
 function onPointerUp(e)
 {
+    if (Math.abs(getEventLocation(e).x - dragStartRaw.x) < 5 && Math.abs(getEventLocation(e).y - dragStartRaw.y) < 5) {
+      clicked(e);
+    }
     isDragging = false
     initialPinchDistance = null
     lastZoom = cameraZoom
