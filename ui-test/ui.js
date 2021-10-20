@@ -1,116 +1,114 @@
-      let img = new Image;
-      img.addEventListener("load", function() {
-        draw();
-      });
-      img.src = "imgs/console.jpg";
-      let set = 0;
-      var canvasWidth = 0, canvasHeight = 0;
-      function resize() {
-        canvasHeight = window.innerHeight - $("#nav").height();
-        canvasWidth = window.innerWidth - $("#sidebar").width();
-        canvas.style.width = canvasWidth + "px";
-        canvas.style.height = canvasHeight + "px";
-        draw();
-      }
+let img = new Image;
+img.addEventListener("load", function() {
+  draw();
+});
+img.src = "imgs/console.jpg";
+let set = 0;
+var canvasWidth = 0, canvasHeight = 0;
+function resize() {
+  canvasHeight = window.innerHeight - $("#nav").height();
+  canvasWidth = window.innerWidth - $("#sidebar").width();
+  canvas.style.width = canvasWidth + "px";
+  canvas.style.height = canvasHeight + "px";
+  draw();
+}
 
-      $(window).resize(resize);
+$(window).resize(resize);
 
-      let imatrix = null; // Inverted transformation matrix.
+let imatrix = null; // Inverted transformation matrix.
 
-      function drawInt() {
-        // Clear
-        ctx.save();
-        ctx.setTransform(1, 0, 0, 1, 0, 0); // Identity
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.restore();
-        // window is centered on 0, 0. Translate to center image.
-        ctx.translate(-img.width / 2, -img.height / 2);
-        var matrix = ctx.getTransform();
-        imatrix = matrix.invertSelf(); // Remember inverted transformation matrix.
-        ctx.drawImage(img, 0, 0);
-        ctx.fillStyle = "yellow";
-        initUI();
-      }
+function drawInt() {
+  // Clear
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0); // Identity
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.restore();
+  // window is centered on 0, 0. Translate to center image.
+  ctx.translate(-img.width / 2, -img.height / 2);
+  var matrix = ctx.getTransform();
+  imatrix = matrix.invertSelf(); // Remember inverted transformation matrix.
+  ctx.drawImage(img, 0, 0);
+  ctx.fillStyle = "yellow";
+  initUI();
+}
 
-      /**
-       * Returns the unscaled [x, y] coordinates for the event.
-       * Uses global imatrix, the inverted transformation matrix.
-       */
-      function coords(e) {
-        const rect = $("#canvas")[0].getBoundingClientRect();
-        const xscaled = e.clientX - rect.left;
-        const yscaled = e.clientY - rect.top;
-        const x = xscaled * imatrix.a + yscaled * imatrix.c + imatrix.e;
-        const y = xscaled * imatrix.b + yscaled * imatrix.d + imatrix.f;
-        return [Math.round(x), Math.round(y)];
-      }
+/**
+ * Returns the unscaled [x, y] coordinates for the event.
+ * Uses global imatrix, the inverted transformation matrix.
+ */
+function coords(e) {
+  const rect = $("#canvas")[0].getBoundingClientRect();
+  const xscaled = e.clientX - rect.left;
+  const yscaled = e.clientY - rect.top;
+  const x = xscaled * imatrix.a + yscaled * imatrix.c + imatrix.e;
+  const y = xscaled * imatrix.b + yscaled * imatrix.d + imatrix.f;
+  return [Math.round(x), Math.round(y)];
+}
 
-      const regions = [
-      [214,525,228,556, "switch-dcoff"],
-[334,541,374,581, "dial-voltage"],
-[511,282,538,310,"dial-6tc"],
-[631,284,660,317,"dial-12ros2"],
-[764,286,795,310,"dial-56xy1"],
-[507,375,533,401,"dial-6var"],
-[642,397,669,437,"dial-margin"],
-[764,372,788,404,"dial-60z1"],
-[509,477,536,499,"dial-6m2"],
-[766,472,793,499,"dial-56xy2"],
-[509,570,538,601, "dial-6ma"],
-[633,576,664,603, "dial-12ros1"],
-[768,572,797,599, "dial-60z2"],
+const regions = [
+  [214,525,228,556, "switch-dcoff"],
+  [334,541,374,581, "dial-voltage"],
+  [511,282,538,310,"dial-6tc"],
+  [631,284,660,317,"dial-12ros2"],
+  [764,286,795,310,"dial-56xy1"],
+  [507,375,533,401,"dial-6var"],
+  [642,397,669,437,"dial-margin"],
+  [764,372,788,404,"dial-60z1"],
+  [509,477,536,499,"dial-6m2"],
+  [766,472,793,499,"dial-56xy2"],
+  [509,570,538,601, "dial-6ma"],
+  [633,576,664,603, "dial-12ros1"],
+  [768,572,797,599, "dial-60z2"],
 
+  [899,277,955,324, "dial-storagetest"],
+  [1012,288,1032,328, "sw-storagetest-write"],
+  [1061,284,1083,335, "sw-storagetest-stop-on-check"],
+  [1105,284,1130,333, "sw-storagetest-invert"],
+  [1154,282,1176,333, "sw-storagetest-isolate"],
 
+  [1287,235,1360,295,"epo"],
 
-[899,277,955,324, "dial-storagetest"],
-[1012,288,1032,328, "sw-storagetest-write"],
-[1061,284,1083,335, "sw-storagetest-stop-on-check"],
-[1105,284,1130,333, "sw-storagetest-invert"],
-[1154,282,1176,333, "sw-storagetest-isolate"],
+  [902,468,939,503,"dial-56xy3"],
+  [1125,470,1170,503,"dial-56xy4"],
+  [895,565,935,599, "dial-60z3"],
+  [1010,499,1048,539, "dial-storage-margin"],
+  [1125,574,1172,607, "dial-60z4"],
 
-[1287,235,1360,295,"epo"],
-
-[902,468,939,503,"dial-56xy3"],
-[1125,470,1170,503,"dial-56xy4"],
-[895,565,935,599, "dial-60z3"],
-[1010,499,1048,539, "dial-storage-margin"],
-[1125,574,1172,607, "dial-60z4"],
-
-[154,740,205,774,"button-channel-enter"],
-[261,734,276,778,"sw-channel-op"],
-[194,836,234,869,"dial-channel-display"],
+  [154,740,205,774,"button-channel-enter"],
+  [261,734,276,778,"sw-channel-op"],
+  [194,836,234,869,"dial-channel-display"],
 
 
-[403, 730, 1467, 760, "roller-1"],
-[403, 822, 1467, 860, "roller-2"],
-[403, 913, 1467, 950, "roller-3"],
-[403, 1009, 1467, 1046, "roller-4"],
+  [403, 730, 1467, 760, "roller-1"],
+  [403, 822, 1467, 860, "roller-2"],
+  [403, 913, 1467, 950, "roller-3"],
+  [403, 1009, 1467, 1046, "roller-4"],
 
-[476,1403,520,1450,"dial-storage-select"],
+  [476,1403,520,1450,"dial-storage-select"],
 
-[407,1267,411,1318,"toggle"],
+  [407,1267,411,1318,"toggle"],
 
-[669,1578,713,1622,"dial-flt-control"],
-[856,1578,901,1618,"dial-check-control"],
-[669,1707,709,1743,"dial-rate"],
-[667,1808,713,1846,"button-start"],
-[794,1678,842,1713,"button-system-reset"],
-[856,1678,901,1713,"button-psw-restart"],
-[915,1678,963,1713,"button-check-reset"],
-[794,1741,842,1775,"button-set-io"],
-[856,1741,901,1775,"button-store"],
-[915,1741,963,1775,"button-display"],
-[794,1808,842,1844,"button-stop"],
-// [856,1808,901,1844,"button-white"],
-[915,1808,963,1844,"button-log-out"],
+  [669,1578,713,1622,"dial-flt-control"],
+  [856,1578,901,1618,"dial-check-control"],
+  [669,1707,709,1743,"dial-rate"],
+  [667,1808,713,1846,"button-start"],
+  [794,1678,842,1713,"button-system-reset"],
+  [856,1678,901,1713,"button-psw-restart"],
+  [915,1678,963,1713,"button-check-reset"],
+  [794,1741,842,1775,"button-set-io"],
+  [856,1741,901,1775,"button-store"],
+  [915,1741,963,1775,"button-display"],
+  [794,1808,842,1844,"button-stop"],
+  // [856,1808,901,1844,"button-white"],
+  [915,1808,963,1844,"button-log-out"],
 
-[1099,1583,1156,1630,"button-power-on"],
-[1303,1585,1363,1623,"button-power-off"],
-[1110,1692,1156,1734,"dial-load-1"],
-[1212,1692,1258,1734,"dial-load-2"],
-[1307,1694,1356,1734,"dial-load-3"],
-[1108,1809,1163,1842,"button-interrupt"],
-[1312,1811,1369,1847,"button-load"],
+  [1099,1583,1156,1630,"button-power-on"],
+  [1303,1585,1363,1623,"button-power-off"],
+  [1110,1692,1156,1734,"dial-load-1"],
+  [1212,1692,1258,1734,"dial-load-2"],
+  [1307,1694,1356,1734,"dial-load-3"],
+  [1108,1809,1163,1842,"button-interrupt"],
+  [1312,1811,1369,1847,"button-load"],
 ];
 
 lights = [];
@@ -225,68 +223,33 @@ function initUI() {
     ctx.arc(x, y, 8, 0, 2 * Math.PI);
     ctx.fill();
   }
-
-
-
 }
 
-      function testLocation(e) {
-        // Need to translate mouse position from scaled coordinates to original coordinates
-        const [x, y] = coords(e);
-        for (let i = 0; i < regions.length; i++) {
-          if (x > regions[i][0] && y > regions[i][1] && x < regions[i][2] && y < regions[i][3]) {
-            return regions[i][4];
-          }
-        }
-        return undefined;
-      }
+function testLocation(e) {
+  // Need to translate mouse position from scaled coordinates to original coordinates
+  const [x, y] = coords(e);
+  for (let i = 0; i < regions.length; i++) {
+    if (x > regions[i][0] && y > regions[i][1] && x < regions[i][2] && y < regions[i][3]) {
+      return regions[i][4];
+    }
+  }
+  return undefined;
+}
 
-      $("#canvas").on("mousemove", function(e) {
-        const result = testLocation(e);
-        if (result) {
-          $("#label").html(result);
-          $('#canvas').css('cursor', 'pointer');
-        } else {
-          $("#label").html("");
-          $('#canvas').css('cursor', 'default');
-        }
-      });
+$("#canvas").on("mousemove", function(e) {
+  const result = testLocation(e);
+  if (result) {
+    $("#label").html(result);
+    $('#canvas').css('cursor', 'pointer');
+  } else {
+    $("#label").html("");
+    $('#canvas').css('cursor', 'default');
+  }
+});
 
-      
-      /* --- Rubber band ---
 
-      let downEvent = 0;
-      $("#canvas").on("mousedown", function(e) {
-        downEvent = e;
-      });
-
-      $("#canvas").on("mousemove", function(e) {
-        if (downEvent != null) {
-          const [x0, y0] = coords(downEvent);
-          const [x1, y1] = coords(e);
-          ctx.fillRect(x0, y0, (x1 - x0), (y1 - y0));
-        }
-      });
-
-      $("#canvas").on("mouseup", function(e) {
-        const [x0, y0] = coords(downEvent);
-        const [x1, y1] = coords(e);
-        const val = [x0, y0, x1, y1, ""];
-        $("#sidebar").append(JSON.stringify(val) + ',<br/>');
-        downEvent = null;
-      });
-
-      function drawRegions() {
-        return;
-        for (let i = 0; i < regions.length; i++) {
-          ctx.fillRect(regions[i][0], regions[i][1], regions[i][2] - regions[i][0], regions[i][3] - regions[i][1]);
-        }
-      }
-
-      */
-
-      $(document).ready(function() {
-        init();
-        // initUI();
-        resize()
-      });
+$(document).ready(function() {
+  init();
+  // initUI();
+  resize()
+});
