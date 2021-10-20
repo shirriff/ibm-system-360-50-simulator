@@ -13,6 +13,8 @@ function createState() {
     'ROAR': 0xffff, 'BS': [0, 0, 0, 0],
     'LSGNS': 0, 'RSGNS': 0, 'CR': 0,
     'KEYS': {},
+    'CAR': 0,
+    'CSTAT': 0,
   };
   state['LS'] = new Array(64);
   for (var i = 0; i < 64; i++) {
