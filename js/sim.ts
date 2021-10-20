@@ -24,7 +24,7 @@ window.onerror = function err(errMsg, url, lineNumber) {
 };
 $(document).ready(function () {
     var can = $("#can")[0];
-    var ctx = can.getContext('2d');
+    var ctx = (<HTMLCanvasElement> can).getContext('2d');
     var div = $("#div")[0];
     divop1 = $("#divop1")[0];
     divop2 = $("#divop2")[0];
@@ -130,23 +130,31 @@ function animate() {
     for (var i = 0; i < count && running; i++) {
         step();
         if (skipping) {
-            var breakpoint = parseInt($("#breakpoint").val(), 16);
-            if ((breakpoint && state['ROAR'] == breakpoint) ||
-                (!breakpoint && !(state['ROAR'] in seenInstructions))) {
-                skipping = 0;
-                speed = 500;
-                stopAnimate();
-                return;
+            var breakpoint_s = $("#breakpoint").val();
+            if (typeof breakpoint_s === "string") {
+              var breakpoint = parseInt(breakpoint_s, 10);
+              if ((breakpoint && state['ROAR'] == breakpoint) ||
+                  (!breakpoint && !(state['ROAR'] in seenInstructions))) {
+                  skipping = 0;
+                  speed = 500;
+                  stopAnimate();
+                  return;
+              }
             }
         }
     }
 }
 // Return the addr in the addr UI field as a string. Also reformats field.
 function getAddrFromField() {
-    var iaddr = parseInt($("#addr").val(), 16);
-    var saddr = fmtAddress(iaddr);
-    $("#addr").val(saddr);
-    return saddr;
+    const addr = $("#addr").val();
+    if (typeof addr === "string") {
+        var iaddr = parseInt(addr, 16);
+        var saddr = fmtAddress(iaddr);
+        $("#addr").val(saddr);
+        return saddr;
+    } else {
+      return "";
+    }
 }
 // Gets a halfword from memory
 function getHW(state, addr) {

@@ -1,6 +1,7 @@
 bcros/
 env/
 ui-test/imgs/
+js/imgs/
 *.swo
 *.swp
 *.png

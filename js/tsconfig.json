@@ -8,6 +8,8 @@
         "engine.ts",
         "io.ts",
         "sim.ts",
+        "pan.ts",
+        "ui.ts",
         "utils.ts",
         "viewer.ts"
     ]

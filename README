@@ -1,10 +1,31 @@
 Microcode in 2050_vol18/19/20_Sep72.pdf
+
 Volume 20 QZ_000_1 etc has mapping from address to e.g. QT100 page.
 
 Microcode overview in Z22-2833-R_2050_Processing_Unit_Field_Engineering_Diagram_Manual_Jul66.pdf
 Page 14 has instruction table
 
+Warning: edit .ts files not .js!
+
+Compile typescript with "tsc"
+
 start web server:
-python pyserver.py 
+python3 -m http.server
 
 Open tests in browser, e.g. tests/instructions.html
+Tests don't all pass currently
+
+decode.js: generates the microcode expression box
+disasm.js: disassembles a System/360 instruction
+engine.js: the actual simulator engine
+io.js: i/O simulation: very basic
+sim.js: top-level simulator
+utils.js: shared utility functions
+viewer.js: used by display.html and viewer.html
+
+display.html: displays microcode
+sim.html: main simulator
+viewer.html: search/diff
+
+
+
