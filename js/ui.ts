@@ -4,6 +4,7 @@ var imgWidth = 0, imgHeight = 0;
 // Resize isn't really working
 function resize() {
   canvasHeight = window.innerHeight - $("#nav").height();
+  $("#sidebar").height(window.innerHeight - $("#nav").height());
   canvasWidth = window.innerWidth - $("#sidebar").width();
   canvas.style.width = canvasWidth + "px";
   canvas.style.height = canvasHeight + "px";
@@ -16,7 +17,7 @@ let imatrix = null; // Inverted transformation matrix.
 
 /**
  * Draws the display.
- * This is called after the zoom windowhas been configured correctly.
+ * This is called after the zoom window has been configured correctly.
  */
 function drawInt() {
   // Clear
@@ -287,31 +288,17 @@ function updateRoller(n: number) {
 
 
 let img = undefined; // The image of the console
-$(document).ready(function() {
-  img = new Image;
-  img.addEventListener("load", function() {
-    imgWidth = img.width;
-    imgHeight = img.height;
-    draw();
-  });
-  img.src = "imgs/console.jpg";
-  initUI();
-  initZoom();
-});
 
-var data = undefined;
-var div = undefined;
-var divop1 = undefined;
 var running = 0;
-var skipping;
+var skipping: number;
 var state = {};
 var then;
 var memactive;
-var divop1, divop2;
 var speed;
 var seenInstructions;
 // Override alert so simulator will stop if an error is hit.
 // https://stackoverflow.com/questions/1729501/javascript-overriding-alert
+let alerts = 0;
 (function (proxied) {
     window.alert = function () {
         running = 0; // Stop the simulator
@@ -321,33 +308,31 @@ var seenInstructions;
 })(window.alert);
 // Catch exceptions
 window.onerror = function err(errMsg, url, lineNumber) {
-    alert(errMsg + ' at ' + url + ' ' + lineNumber);
+    if (alerts++ < 3) {
+      alert(errMsg + ' at ' + url + ' ' + lineNumber);
+    }
 };
+
+let data = undefined;
+
 $(document).ready(function () {
-    var can = $("#can")[0];
-    var ctx = (<HTMLCanvasElement> can).getContext('2d');
-    var div = $("#div")[0];
-    divop1 = $("#divop1")[0];
-    divop2 = $("#divop2")[0];
-    div.innerHTML = '---loading---';
     memactive = false;
     // Load data and then start up
     $.getJSON("data.json", function (indata) {
         data = indata;
-        div.innerHTML = '';
         // Actions
-        $("#mem").click(function (e) {
+        $("#mem").on("click", function (e) {
             mem();
         });
-        $("#step").click(function (e) {
+        $("#step").on("click", function (e) {
             stopAnimate();
             step();
         });
-        $("#skip").click(function (e) {
+        $("#skip").on("click", function (e) {
             stopAnimate();
             skip();
         });
-        $("#control").click(function (e) {
+        $("#control").on("click", function (e) {
             if ($("#control").text() == 'Stop') {
                 stopAnimate();
             }
@@ -361,7 +346,16 @@ $(document).ready(function () {
             }
         });
         init();
-    }).fail(function () { alert('fail'); });
+    }).fail(function () { alert('failed to load JSON data.'); });
+  img = new Image;
+  img.addEventListener("load", function() {
+    imgWidth = img.width;
+    imgHeight = img.height;
+    draw();
+  });
+  img.src = "imgs/console.jpg";
+  initUI();
+  initZoom();
 });
 function mem() {
     memactive = true;
@@ -391,7 +385,7 @@ function init() {
     seenInstructions = {};
     state = createState();
     resetState(state);
-    displayOp(getAddrFromField(), divop1);
+    console.log('XXX display divop1', getAddrFromField());
     displayState(state);
 }
 function stopAnimate() {
@@ -477,13 +471,14 @@ function step() {
     count += 1;
     $("#count").text(count);
     seenInstructions[iaddr] = 1;
-    displayOp(saddr, divop2);
+    const microcode1 = decode(saddr, data[saddr]);
     var msg1 = cycle(state, data[saddr]);
     var msg2 = doio(state, data[saddr]);
     // Update address
     saddr = fmtAddress(state['ROAR']);
     $("#addr").val(saddr);
-    displayOp(saddr, divop1);
+    const microcode2 = decode(saddr, data[saddr]);
+    $("#microcode").html(microcode1 + '<br/>' + microcode2);
     displayState(state);
     $("#divmsg").html(msg1 || msg2 || '');
     if ([0x148, 0x149, 0x14a, 0x14c, 0x14e, 0x184, 0x185, 0x187, 0x188, 0x189, 0x19b].includes(state['ROAR'])) {
@@ -502,15 +497,7 @@ function skip() {
     skipping = 1;
     startAnimate();
 }
-// Display micro-operation with given address; put into div
-function displayOp(saddr, div) {
-    var result = decode(saddr, data[saddr]);
-    result.pop();
-    div.innerHTML = result.join('\n');
-    if (div == divop2) {
-        console.log(div.innerHTML);
-    }
-}
+
 function resetState(state) {
     // Initialize to state after memory reset loop for IPL, entering 0243
     state['S'] = [0, 0, 0, 1, 0, 0, 0, 0]; // For IPL
@@ -616,5 +603,5 @@ function displayState(state) {
             // console.log("No formatter for " + key);
         }
     }
-    $("#misc").html(misc.join(', '));
+    $("#registers").html(misc.join(', '));
 }

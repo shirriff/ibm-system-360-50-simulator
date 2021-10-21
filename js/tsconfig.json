@@ -1,6 +1,7 @@
 {
     "compilerOptions": {
-        "target": "es2017"
+        "target": "es2017",
+        "outDir": "out"
     },
     "files": [
         "decode.ts",
@@ -9,7 +10,6 @@
         "io.ts",
         "pan.ts",
         "ui.ts",
-        "utils.ts",
-        "viewer.ts"
+        "utils.ts"
     ]
 }
