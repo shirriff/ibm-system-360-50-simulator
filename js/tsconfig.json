@@ -4,12 +4,13 @@
         "outDir": "out"
     },
     "files": [
+        "console.ts",
         "decode.ts",
         "disasm.ts",
         "engine.ts",
         "io.ts",
         "pan.ts",
-        "ui.ts",
+        "sim.ts",
         "utils.ts"
     ]
 }

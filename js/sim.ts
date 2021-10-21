@@ -1,16 +1,13 @@
-var data = undefined;
-var div = undefined;
-var divop1 = undefined;
 var running = 0;
-var skipping;
+var skipping: number;
 var state = {};
 var then;
 var memactive;
-var divop1, divop2;
 var speed;
 var seenInstructions;
 // Override alert so simulator will stop if an error is hit.
 // https://stackoverflow.com/questions/1729501/javascript-overriding-alert
+let alerts = 0;
 (function (proxied) {
     window.alert = function () {
         running = 0; // Stop the simulator
@@ -20,33 +17,31 @@ var seenInstructions;
 })(window.alert);
 // Catch exceptions
 window.onerror = function err(errMsg, url, lineNumber) {
-    alert(errMsg + ' at ' + url + ' ' + lineNumber);
+    if (alerts++ < 3) {
+      alert(errMsg + ' at ' + url + ' ' + lineNumber);
+    }
 };
+
+let data = undefined;
+
 $(document).ready(function () {
-    var can = $("#can")[0];
-    var ctx = (<HTMLCanvasElement> can).getContext('2d');
-    var div = $("#div")[0];
-    divop1 = $("#divop1")[0];
-    divop2 = $("#divop2")[0];
-    div.innerHTML = '---loading---';
     memactive = false;
     // Load data and then start up
     $.getJSON("data.json", function (indata) {
         data = indata;
-        div.innerHTML = '';
         // Actions
-        $("#mem").click(function (e) {
+        $("#mem").on("click", function (e) {
             mem();
         });
-        $("#step").click(function (e) {
+        $("#step").on("click", function (e) {
             stopAnimate();
             step();
         });
-        $("#skip").click(function (e) {
+        $("#skip").on("click", function (e) {
             stopAnimate();
             skip();
         });
-        $("#control").click(function (e) {
+        $("#control").on("click", function (e) {
             if ($("#control").text() == 'Stop') {
                 stopAnimate();
             }
@@ -60,7 +55,10 @@ $(document).ready(function () {
             }
         });
         init();
-    }).fail(function () { alert('fail'); });
+    }).fail(function () { alert('failed to load JSON data.'); });
+
+  consoleInit();
+  initZoom();
 });
 function mem() {
     memactive = true;
@@ -90,7 +88,7 @@ function init() {
     seenInstructions = {};
     state = createState();
     resetState(state);
-    displayOp(getAddrFromField(), divop1);
+    console.log('XXX display divop1', getAddrFromField());
     displayState(state);
 }
 function stopAnimate() {
@@ -176,13 +174,17 @@ function step() {
     count += 1;
     $("#count").text(count);
     seenInstructions[iaddr] = 1;
-    displayOp(saddr, divop2);
+    const microcode1 = decode(saddr, data[saddr]);
     var msg1 = cycle(state, data[saddr]);
     var msg2 = doio(state, data[saddr]);
     // Update address
     saddr = fmtAddress(state['ROAR']);
     $("#addr").val(saddr);
-    displayOp(saddr, divop1);
+    const microcode2 = decode(saddr, data[saddr]);
+    function fmt(uc) {
+      return '<pre style="">' + uc.join('\n') + '</pre>';
+    }
+    $("#microcode").html('Current micro-instruction:' + fmt(microcode1) + 'Next micro-instruction:' + fmt(microcode2));
     displayState(state);
     $("#divmsg").html(msg1 || msg2 || '');
     if ([0x148, 0x149, 0x14a, 0x14c, 0x14e, 0x184, 0x185, 0x187, 0x188, 0x189, 0x19b].includes(state['ROAR'])) {
@@ -201,15 +203,7 @@ function skip() {
     skipping = 1;
     startAnimate();
 }
-// Display micro-operation with given address; put into div
-function displayOp(saddr, div) {
-    var result = decode(saddr, data[saddr]);
-    result.pop();
-    div.innerHTML = result.join('\n');
-    if (div == divop2) {
-        console.log(div.innerHTML);
-    }
-}
+
 function resetState(state) {
     // Initialize to state after memory reset loop for IPL, entering 0243
     state['S'] = [0, 0, 0, 1, 0, 0, 0, 0]; // For IPL
@@ -238,7 +232,7 @@ function fmtPsw(d) {
         ' ia:' + ia.toString(16) + ']';
     return psw;
 }
-var formatters = {
+const formatters = {
     'FN': fmtN,
     'J': fmtN,
     'LSAR': fmt1,
@@ -277,6 +271,46 @@ var formatters = {
     'CR': fmtN,
     'SDR': fmt4,
 };
+
+const tooltips = {
+  'FN': 'Function',
+  'J': " J register; local store addressing",
+  'LSAR': 'Local store address register',
+  'L': 'L register',
+  'R': 'R register',
+  'MD': 'Multiply/divide counter',
+  'F': 'F bits',
+  'Q': 'Q bits',
+  'M': 'M byte counter',
+  'H': 'H register',
+  'T': 'T register',
+  'A': 'A register',
+  'IAR': 'Instruction address register',
+  'D': 'D register',
+  'XG': 'Adder XG input',
+  'Y': 'Adder Y input',
+  'U': 'Mover U input',
+  'V': 'Mover V input',
+  'W': 'Mover output',
+  'G1': 'Length counter',
+  'G2': 'Length counter',
+  'LB': 'L register byte counter',
+  'MB': 'M register byte counter',
+  'ROAR': 'Read-only storage address register',
+  'SCANCTRL': 'Sequence counter',
+  'PSS': 'Progessive scan stat',
+  'SP': 'Storage protect',
+  'WL': 'Mover output (left)',
+  'WR': 'Mover output (right)',
+  'IBFULL': 'IB full trigger',
+  'SCFS': 'Fault scan fail stat',
+  'SCPS': 'Fault scan pass stat',
+  'SAR': 'Storage address register',
+  'BS': undefined,
+  'WFN': 'Mover function',
+  'CR': undefined,
+  'SDR': 'Storage data register',
+};
 function displayState(state) {
     var keys = Object.keys(state);
     keys = keys.sort();
@@ -294,20 +328,22 @@ function displayState(state) {
         }
         else if (key == 'LS') {
             // Local storage
-            for (var ls = 0; ls < 4; ls++) {
-                var line = state['LS'].slice(ls * 16, (ls + 1) * 16).map(fmt4).join(' ');
-                $("#LS" + ls).html(line);
+            const lines = [];
+            const ROWS = 8;
+            for (let ls = 0; ls < ROWS; ls++) {
+                let line = state['LS'].slice(ls * 64 / ROWS, (ls + 1) * 64 / ROWS).map(fmt4).join(' ');
+                lines.push(line);
             }
+            $("#LS").html(lines.join('</br>'));
         }
         else if (key == 'S') {
             var line = state['S'].join(' ');
             $("#S").html(line);
         }
         else if (key in formatters) {
-            if ($("#" + key).length) {
-                $("#" + key).html(formatters[key](state[key]));
-            }
-            else {
+            if (tooltips[key]) {
+              misc.push('<span data-toggle="tooltip" title="' + tooltips[key] + '">' + key + ': ' + formatters[key](state[key]) + '</span>');
+            } else {
                 misc.push(key + ': ' + formatters[key](state[key]));
             }
         }
@@ -315,5 +351,5 @@ function displayState(state) {
             // console.log("No formatter for " + key);
         }
     }
-    $("#misc").html(misc.join(', '));
+    $("#registers").html(misc.join(', '));
 }

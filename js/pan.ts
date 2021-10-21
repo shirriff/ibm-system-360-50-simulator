@@ -56,7 +56,7 @@ function draw()
     ctx.translate( cw / 2, ch / 2);
     ctx.scale(cameraZoom, cameraZoom) // Zoom around center of canvas
     ctx.translate( -cw / 2 + cameraOffset.x, -ch / 2 + cameraOffset.y);
-    drawInt();
+    consoleDraw();
 }
 
 // Gets the relevant location from a mouse or single touch event
