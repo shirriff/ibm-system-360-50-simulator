@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<!--
+This file holds unittests for viewer.js, using qunit
+-->
+<head>
+  <meta charset="utf-8">
+  <title>console.ts unittests</title>
+  <link rel="stylesheet" href="qunit-2.6.2.css" >
+  <script type="text/javascript">
+    function $() {
+      return {on: function() {}, ready: function() {}};
+    } // stub
+  </script>
+  <script src="../out/utils.js"></script>
+  <script src="../out/console.js"></script>
+  <script src="../out/decode.js"></script>
+  <script src="../out/disasm.js"></script>
+  <script src="../out/engine.js"></script>
+  <script src="../out/io.js"></script>
+  <script src="../out/pan.js"></script>
+  <script src="../out/sim.js"></script>
+</head>
+<body>
+  <div id="qunit"></div>
+  <div id="qunit-fixture"></div>
+
+  <div id="div"></div>
+  <div id="div2"></div>
+
+  <script src="qunit-2.6.2.js"></script>
+  <script>
+
+    // Convert an 8-bit value
+    QUnit.test( "bits-8", function(assert) {
+      let bits = new Array(8).fill(0);
+      extractBits(0x89, 8, bits, 0, false);
+      assert.deepEqual(bits, [1,0,0,0, 1,0,0,1]);
+    });
+
+    // Convert an 8-bit value with parity
+    QUnit.test( "bits-8p", function(assert) {
+      let bits = new Array(9).fill(0);
+      extractBits(0x88, 8, bits, 0, true);
+      assert.deepEqual(bits, [1, 1,0,0,0, 1,0,0,0]);
+
+      extractBits(0xfe, 8, bits, 0, true);
+      assert.deepEqual(bits, [0, 1,1,1,1, 1,1,1,0]);
+    });
+
+    // Convert an 8-bit value with parity and 4-bit offset. Make sure unused bits are not touched.
+    QUnit.test( "bits-8p-offset", function(assert) {
+      let bits = new Array(17).fill(0);
+      extractBits(0x88, 8, bits, 4, true);
+      assert.deepEqual(bits, [0,0,0,0, 1, 1,0,0,0, 1,0,0,0, 0,0,0,0]);
+
+      bits.fill(1);
+      extractBits(0x88, 8, bits, 4, true);
+      assert.deepEqual(bits, [1,1,1,1, 1, 1,0,0,0, 1,0,0,0, 1,1,1,1]);
+    });
+
+    // Convert a 16-bit value with parity
+    QUnit.test( "bits-16p", function(assert) {
+      let bits = new Array(18).fill(0);
+      extractBits(0x1234, 16, bits, 0, true);
+      assert.deepEqual(bits, [1, 0,0,0,1, 0,0,1,0, 0, 0,0,1,1, 0,1,0,0]);
+    });
+
+    // Convert a 16-bit value with parity and offset of 2 bits.
+    QUnit.test( "bits-16p-offset", function(assert) {
+      let bits = new Array(22).fill(1);
+      extractBits(0x1234, 16, bits, 2, true);
+      assert.deepEqual(bits, [1,1, 1, 0,0,0,1, 0,0,1,0, 0, 0,0,1,1, 0,1,0,0, 1,1]);
+    });
+
+    // Convert a 32-bit value.
+    QUnit.test( "bits-32", function(assert) {
+      let bits = new Array(32).fill(0);
+      extractBits(0x12345678, 32, bits, 0, false);
+      assert.deepEqual(bits, [0,0,0,1, 0,0,1,0, 0,0,1,1, 0,1,0,0, 0,1,0,1, 0,1,1,0, 0,1,1,1, 1,0,0,0]);
+    });
+
+    // Convert a 32-bit value with parity, yielding a 36-bit result. This is the typical conversion.
+    QUnit.test( "bits-32p", function(assert) {
+      let bits = new Array(36).fill(0);
+      extractBits(0x12345678, 32, bits, 0, true);
+      assert.deepEqual(bits, [1, 0,0,0,1, 0,0,1,0, 0, 0,0,1,1, 0,1,0,0, 1, 0,1,0,1, 0,1,1,0, 1, 0,1,1,1, 1,0,0,0]);
+    });
+
+</script>
+</body>
+</html>

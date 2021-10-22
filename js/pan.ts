@@ -7,19 +7,26 @@
 // 
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 // 
-let canvas = <HTMLCanvasElement> document.getElementById("canvas")
-let ctx = canvas.getContext('2d')
+let canvas;
+let ctx;
 
 let img_height = 1951;
-let cameraOffset = { x: canvas.clientWidth/2, y: canvas.clientHeight/2 }
-let cameraZoom = canvas.clientHeight / img_height;
+let cameraOffset;
+let cameraZoom;
 let MAX_ZOOM = 5
 let MIN_ZOOM = 0.1
 let SCROLL_SENSITIVITY = 0.0005
-let cw = canvas.clientWidth;
-let ch = canvas.clientHeight;
+let cw;
+let ch;
 
 function initZoom() {
+  canvas = <HTMLCanvasElement> document.getElementById("canvas")
+  ctx = canvas.getContext('2d')
+  cameraOffset = { x: canvas.clientWidth/2, y: canvas.clientHeight/2 }
+  cameraZoom = canvas.clientHeight / img_height;
+  cw = canvas.clientWidth;
+  ch = canvas.clientHeight;
+
   $(window).resize(resize); // Set handler
   resize(); // Call handler now
   ctx = canvas.getContext('2d')
