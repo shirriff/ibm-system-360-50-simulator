@@ -1,6 +1,3 @@
-import { assert } from "console";
-import { sign } from "crypto";
-
 let set = 0;
 var canvasWidth = 0, canvasHeight = 0;
 var imgWidth = 0, imgHeight = 0;
@@ -90,10 +87,10 @@ function consoleDrawLights() {
   bits.fill(false);
   switch (rollerPos[1]) {
     case 1:
-      extractBits(state['B'], 32, bits, 0, true /* parity */); // B register
+      extractBits(0, 32, bits, 0, true /* parity */); // I/O B register (TODO)
       break;
     case 2:
-      extractBits(state['C'], 32, bits, 0, true /* parity */); // C register
+      extractBits(0, 32, bits, 0, true /* parity */); // I/O C register (TODO)
       break;
     case 3:
       // TODO: Channel
@@ -133,7 +130,7 @@ function consoleDrawLights() {
     case 5:
       extractBits(state['SAR'], 24, bits, 0, true /* parity */); // SAR register (24 bits)
       extractBits(state['BS'], 4, bits, 28, false /* parity */); // Byte Stats
-      extractBits(state['BSS'], 4, bits, 32, false /* parity */); // Byte Store Stats
+      // TODO extractBits(state['BSS'], 4, bits, 32, false /* parity */); // Byte Store Stats
       break;
     case 6:
       // ROS
@@ -236,7 +233,9 @@ function consoleDrawLights() {
  * but that's not the case here.
  */
 function extractBits(value: number, nBits: number, bits: boolean[], offset: number, useParity: boolean) {
-  assert(value != undefined);
+  if (value == undefined) {
+    throw("bad value " + value);
+  }
 
   // Extract bit i (i==0 for leftmost bit)
   function bitValue(i: number): boolean {
@@ -266,13 +265,13 @@ function drawRollerLights(row: number, bits: boolean[]) {
     const col = pos < 18 ? pos : pos + 1; // Account for the gap between the two groups
     let x = interp(427, 1282, 37, col);
     let y = interp(782, 1069, 4, row);
-    ctx.beginPath();
     drawLight(x, y, bits[pos]);
   }
 }
 
 function drawLight(x: number, y: number, on: boolean) {
   ctx.fillStyle = on ? "#ee5555" : "#444444";
+  ctx.beginPath();
   ctx.arc(x, y, 8, 0, 2 * Math.PI);
   ctx.fill();
 }
@@ -288,7 +287,7 @@ const regions: [number, number, number, number, string][] = [
   [764, 372, 788, 404, "dial-60z1"],
   [509, 477, 536, 499, "dial-6m2"],
   [766, 472, 793, 499, "dial-56xy2"],
-  [509, 570, 538, 601, "dial-6ma"],
+  [509, 570, 538, 601, "dial-6m1"],
   [633, 576, 664, 603, "dial-12ros1"],
   [768, 572, 797, 599, "dial-60z2"],
 
@@ -354,7 +353,29 @@ const regions: [number, number, number, number, string][] = [
   [1312, 1811, 1369, 1847, "button-load"],
 ];
 
-const lights: { [name: string]: [number, number] } = {};
+const lights: { [name: string]: [number, number] } = {
+  "thermal-cpu": [214, 302],
+  "thermal-stor": [238, 302],
+  "thermal-pdu": [262, 302],
+  "open-cb": [358, 302],
+  "power-check": [405, 302],
+  "dc-off": [217, 599],
+"6tc": [524, 253],
+"12ros2": [654, 253],
+"56xy1": [784, 253],
+"6var": [524, 349],
+"60z1": [784, 349],
+"6m2": [524, 444],
+"56xy2": [784, 444],
+"6m1": [524, 539],
+"12ros1": [654, 539],
+"60z2": [784, 539],
+"56xy3": [923, 444],
+"aux-power-check": [1041, 444],
+"56xy4": [1159, 444],
+"60z3": [923, 541],
+"60z4": [1159, 541],
+};
 
 let rollerImgs = [];
 /**

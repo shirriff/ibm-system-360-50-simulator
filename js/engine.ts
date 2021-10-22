@@ -5,11 +5,14 @@
 // Returns message if any
 function cycle(state, entry) {
   try {
+    state['ROS'] = entry['ROS'] // The raw ROS bits
     adderLX(state, entry);
     adderRY(state, entry);
     adderDG(state, entry);
     adderT(state, entry);
 
+    state['PREV2ROAR'] = state['PREVROAR']
+    state['PREVROAR'] = state['ROAR']
     roar(state, entry); // Need roar before mover to get old W, see 2B7. Need before localStorage read
     roarAB(state, entry);
     roarBB(state, entry);

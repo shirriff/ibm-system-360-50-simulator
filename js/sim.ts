@@ -54,12 +54,13 @@ $(document).ready(function () {
                 step();
             }
         });
+        // Wait for microcode file to get loaded before initializing everything.
         init();
+        initZoom();
+        consoleInit();
+        resize(); // Trigger a redraw
     }).fail(function () { alert('failed to load JSON data.'); });
 
-    initZoom();
-    consoleInit();
-    resize(); // Trigger a redraw
 });
 
 function mem() {
@@ -179,6 +180,7 @@ function step() {
     const microcode1 = decode(saddr, data[saddr]);
     var msg1 = cycle(state, data[saddr]);
     var msg2 = doio(state, data[saddr]);
+    draw();
     // Update address
     saddr = fmtAddress(state['ROAR']);
     $("#addr").val(saddr);
