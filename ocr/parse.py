@@ -10,7 +10,7 @@ def checkParity(parts, labels):
   '''
   def bitsum(s):
     return sum(int(c) for c in s)
-  sums = map(bitsum, parts)
+  sums = list(map(bitsum, parts))
   assert(labels[0] == 'P')
   p = 1 # So first empty parity will be good
   for i, label in enumerate(labels):
@@ -36,7 +36,15 @@ def label(l, labels):
     raise Exception('blank')
   checkParity(parts, labels)
   nums = [int(x, 2) for x in parts]
-  return dict(zip(labels, nums))
+  d = dict(list(zip(labels, nums)))
+  bits = l.replace(' ', '')
+  if len(bits) == 90:
+    d['ROS'] = bits
+  elif len(bits) == 98:
+    d['ROS'] = bits[0:90]
+  else:
+    sys.exit('bad length', len(bits))
+  return d
 
 
 def parseLine(l):
@@ -77,27 +85,27 @@ with open('data.txt') as f:
  with open('data2.txt', 'w') as f2:
     for line in f.readlines():
       if line[0] == '*':
-        print >>f2, line.strip()
+        print(line.strip(), file=f2)
       else:
-        print >>f2, '%04x  %s' % (num, line.strip())
+        print('%04x  %s' % (num, line.strip()), file=f2)
         count += 1
         try:
           r = parseLine(line.strip())
-          if 'ZR' in r and r['ZR'] != 0: print 'Bad ZR at %x' % num
-          if 'UX' in r and r['UX'] != 0: print 'Bad UX at %x' % num
+          if 'ZR' in r and r['ZR'] != 0: print('Bad ZR at %x' % num)
+          if 'UX' in r and r['UX'] != 0: print('Bad UX at %x' % num)
           counts['ok'] += 1
           js['%04x' % num] = r
-        except Exception, e:
-          counts[e.message] += 1
-          print '%04x' % num, e
+        except Exception as e:
+          counts[str(e)] += 1
+          print('%04x' % num, e)
         num += 1
         if (num & 0x7F) == 0x58:
             num = (num & 0xFF80) + 0x80
 
-print 'Success: %.2f%%, failures: %d ' % (counts['ok'] * 100. / count, count - counts['ok'])
-print dict(counts)
+print('Success: %.2f%%, failures: %d ' % (counts['ok'] * 100. / count, count - counts['ok']))
+print(dict(counts))
 if sum(counts.values()) != count:
-  print 'Count mismatch'
+  print('Count mismatch')
 
 with open('data.json', 'w') as jsfile:
-  print >>jsfile, json.dumps(js)
+  print(json.dumps(js), file=jsfile)
