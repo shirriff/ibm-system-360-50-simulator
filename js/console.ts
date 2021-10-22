@@ -1,6 +1,10 @@
 let set = 0;
 var canvasWidth = 0, canvasHeight = 0;
 var imgWidth = 0, imgHeight = 0;
+let rollerPos = [1, 1, 1, 1]; // Positions of the four rollers
+let consoleImg = undefined; // The image of the console
+let imatrix = null; // Inverted transformation matrix.
+
 // Resize isn't really working
 function resize() {
   canvasHeight = window.innerHeight - $("#nav").height();
@@ -11,13 +15,6 @@ function resize() {
   console.log(canvasHeight, canvasWidth, canvas.style.width, canvas.style.height);
   draw();
 }
-
-function foo() {
-  console.log('foo');
-  return 1;
-}
-
-let imatrix = null; // Inverted transformation matrix.
 
 /**
  * Draws the display.
@@ -33,7 +30,7 @@ function consoleDraw() {
   ctx.translate(-imgWidth / 2, -imgHeight / 2);
   var matrix = ctx.getTransform();
   imatrix = matrix.invertSelf(); // Remember inverted transformation matrix.
-  ctx.drawImage(img, 0, 0);
+  ctx.drawImage(consoleImg, 0, 0);
 
   // Draw rollers in their current positions. Each roller is drawn in two parts
   for (let r = 0; r < 4; r++) {
@@ -186,20 +183,6 @@ function drawRollerLights(row: number, bits: number[]) {
   }
 }
 
-
-/**
- * Returns the unscaled [x, y] coordinates for the event.
- * Uses global imatrix, the inverted transformation matrix.
- */
-function coords(e) {
-  const rect = $("#canvas")[0].getBoundingClientRect();
-  const xscaled = e.clientX - rect.left;
-  const yscaled = e.clientY - rect.top;
-  const x = xscaled * imatrix.a + yscaled * imatrix.c + imatrix.e;
-  const y = xscaled * imatrix.b + yscaled * imatrix.d + imatrix.f;
-  return [Math.round(x), Math.round(y)];
-}
-
 const regions: [number, number, number, number, string][] = [
   [214, 525, 228, 556, "switch-dcoff"],
   [334, 541, 374, 581, "dial-voltage"],
@@ -295,13 +278,13 @@ function interp(x0: number, x1: number, n: number, i: number) {
  * Configures the lights and switch positions.
  */
 function consoleInit() {
-  img = new Image;
-  img.addEventListener("load", function () {
-    imgWidth = img.width;
-    imgHeight = img.height;
+  consoleImg = new Image;
+  consoleImg.addEventListener("load", function () {
+    imgWidth = consoleImg.width;
+    imgHeight = consoleImg.height;
     draw();
   });
-  img.src = "imgs/console.jpg";
+  consoleImg.src = "imgs/console.jpg";
   initRollers();
   ctx.fillStyle = "green";
 
@@ -391,6 +374,33 @@ function consoleInit() {
     ctx.arc(x, y, 8, 0, 2 * Math.PI);
     ctx.fill();
   }
+
+  /**
+   * Updates pointer when over a clickable region.
+   */
+  $("#canvas").on("mousemove", function (e) {
+    const result = testLocation(e);
+    if (result) {
+      $("#label").html(result);
+      $('#canvas').css('cursor', 'pointer');
+    } else {
+      $("#label").html("");
+      $('#canvas').css('cursor', 'default');
+    }
+  });
+}
+
+/**
+ * Returns the unscaled [x, y] coordinates for the event.
+ * Uses global imatrix, the inverted transformation matrix.
+ */
+ function coords(e) {
+  const rect = $("#canvas")[0].getBoundingClientRect();
+  const xscaled = e.clientX - rect.left;
+  const yscaled = e.clientY - rect.top;
+  const x = xscaled * imatrix.a + yscaled * imatrix.c + imatrix.e;
+  const y = xscaled * imatrix.b + yscaled * imatrix.d + imatrix.f;
+  return [Math.round(x), Math.round(y)];
 }
 
 /**
@@ -408,20 +418,6 @@ function testLocation(e): (string | undefined) {
   return undefined;
 }
 
-/**
- * Updates pointer when over a clickable region.
- */
-$("#canvas").on("mousemove", function (e) {
-  const result = testLocation(e);
-  if (result) {
-    $("#label").html(result);
-    $('#canvas').css('cursor', 'pointer');
-  } else {
-    $("#label").html("");
-    $('#canvas').css('cursor', 'default');
-  }
-});
-
 // Called on click without drag
 // Need to distinguish dragging the image from clicking on it.
 function clicked(e) {
@@ -434,12 +430,7 @@ function clicked(e) {
   }
 }
 
-let rollerPos = [1, 1, 1, 1]; // Positions of the four rollers
-
 function updateRoller(n: number) {
   rollerPos[n - 1] = (rollerPos[n - 1] % 8) + 1; // increment value 1-8, wrapping 8 to 1.
   draw();
 }
-
-
-let img = undefined; // The image of the console

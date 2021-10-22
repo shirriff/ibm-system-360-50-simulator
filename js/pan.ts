@@ -28,19 +28,15 @@ function initZoom() {
   ch = canvas.clientHeight;
 
   $(window).resize(resize); // Set handler
-  resize(); // Call handler now
-  ctx = canvas.getContext('2d')
-  cameraOffset = { x: canvas.clientWidth/2, y: canvas.clientHeight/2 }
-  cameraZoom = canvas.clientHeight / img_height;
 
   // Events for zooming
   canvas.addEventListener('resize', resize);
   canvas.addEventListener('click', (e) => console.log(e));
-  canvas.addEventListener('mousedown', onPointerDown)
-  canvas.addEventListener('touchstart', (e) => handleTouch(e, onPointerDown))
-  canvas.addEventListener('mouseup', onPointerUp)
-  canvas.addEventListener('mousemove', onPointerMove)
-  canvas.addEventListener('touchmove', (e) => handleTouch(e, onPointerMove))
+  canvas.addEventListener('mousedown', onPointerDown);
+  canvas.addEventListener('touchstart', (e) => handleTouch(e, onPointerDown));
+  canvas.addEventListener('mouseup', onPointerUp);
+  canvas.addEventListener('mousemove', onPointerMove);
+  canvas.addEventListener('touchmove', (e) => handleTouch(e, onPointerMove));
 
   canvas.addEventListener( 'wheel', function(e) {
     e.preventDefault();

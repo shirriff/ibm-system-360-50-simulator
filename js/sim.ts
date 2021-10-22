@@ -18,7 +18,7 @@ let alerts = 0;
 // Catch exceptions
 window.onerror = function err(errMsg, url, lineNumber) {
     if (alerts++ < 3) {
-      alert(errMsg + ' at ' + url + ' ' + lineNumber);
+        alert(errMsg + ' at ' + url + ' ' + lineNumber);
     }
 };
 
@@ -57,9 +57,11 @@ $(document).ready(function () {
         init();
     }).fail(function () { alert('failed to load JSON data.'); });
 
-  consoleInit();
-  initZoom();
+    initZoom();
+    consoleInit();
+    resize(); // Trigger a redraw
 });
+
 function mem() {
     memactive = true;
     var result = [];
@@ -130,14 +132,14 @@ function animate() {
         if (skipping) {
             var breakpoint_s = $("#breakpoint").val();
             if (typeof breakpoint_s === "string") {
-              var breakpoint = parseInt(breakpoint_s, 10);
-              if ((breakpoint && state['ROAR'] == breakpoint) ||
-                  (!breakpoint && !(state['ROAR'] in seenInstructions))) {
-                  skipping = 0;
-                  speed = 500;
-                  stopAnimate();
-                  return;
-              }
+                var breakpoint = parseInt(breakpoint_s, 10);
+                if ((breakpoint && state['ROAR'] == breakpoint) ||
+                    (!breakpoint && !(state['ROAR'] in seenInstructions))) {
+                    skipping = 0;
+                    speed = 500;
+                    stopAnimate();
+                    return;
+                }
             }
         }
     }
@@ -151,7 +153,7 @@ function getAddrFromField() {
         $("#addr").val(saddr);
         return saddr;
     } else {
-      return "";
+        return "";
     }
 }
 // Gets a halfword from memory
@@ -182,7 +184,7 @@ function step() {
     $("#addr").val(saddr);
     const microcode2 = decode(saddr, data[saddr]);
     function fmt(uc) {
-      return '<pre style="">' + uc.join('\n') + '</pre>';
+        return '<pre style="">' + uc.join('\n') + '</pre>';
     }
     $("#microcode").html('Current micro-instruction:' + fmt(microcode1) + 'Next micro-instruction:' + fmt(microcode2));
     displayState(state);
@@ -273,43 +275,43 @@ const formatters = {
 };
 
 const tooltips = {
-  'FN': 'Function',
-  'J': " J register; local store addressing",
-  'LSAR': 'Local store address register',
-  'L': 'L register',
-  'R': 'R register',
-  'MD': 'Multiply/divide counter',
-  'F': 'F bits',
-  'Q': 'Q bits',
-  'M': 'M byte counter',
-  'H': 'H register',
-  'T': 'T register',
-  'A': 'A register',
-  'IAR': 'Instruction address register',
-  'D': 'D register',
-  'XG': 'Adder XG input',
-  'Y': 'Adder Y input',
-  'U': 'Mover U input',
-  'V': 'Mover V input',
-  'W': 'Mover output',
-  'G1': 'Length counter',
-  'G2': 'Length counter',
-  'LB': 'L register byte counter',
-  'MB': 'M register byte counter',
-  'ROAR': 'Read-only storage address register',
-  'SCANCTRL': 'Sequence counter',
-  'PSS': 'Progessive scan stat',
-  'SP': 'Storage protect',
-  'WL': 'Mover output (left)',
-  'WR': 'Mover output (right)',
-  'IBFULL': 'IB full trigger',
-  'SCFS': 'Fault scan fail stat',
-  'SCPS': 'Fault scan pass stat',
-  'SAR': 'Storage address register',
-  'BS': undefined,
-  'WFN': 'Mover function',
-  'CR': undefined,
-  'SDR': 'Storage data register',
+    'FN': 'Function',
+    'J': " J register; local store addressing",
+    'LSAR': 'Local store address register',
+    'L': 'L register',
+    'R': 'R register',
+    'MD': 'Multiply/divide counter',
+    'F': 'F bits',
+    'Q': 'Q bits',
+    'M': 'M byte counter',
+    'H': 'H register',
+    'T': 'T register',
+    'A': 'A register',
+    'IAR': 'Instruction address register',
+    'D': 'D register',
+    'XG': 'Adder XG input',
+    'Y': 'Adder Y input',
+    'U': 'Mover U input',
+    'V': 'Mover V input',
+    'W': 'Mover output',
+    'G1': 'Length counter',
+    'G2': 'Length counter',
+    'LB': 'L register byte counter',
+    'MB': 'M register byte counter',
+    'ROAR': 'Read-only storage address register',
+    'SCANCTRL': 'Sequence counter',
+    'PSS': 'Progessive scan stat',
+    'SP': 'Storage protect',
+    'WL': 'Mover output (left)',
+    'WR': 'Mover output (right)',
+    'IBFULL': 'IB full trigger',
+    'SCFS': 'Fault scan fail stat',
+    'SCPS': 'Fault scan pass stat',
+    'SAR': 'Storage address register',
+    'BS': undefined,
+    'WFN': 'Mover function',
+    'CR': undefined,
+    'SDR': 'Storage data register',
 };
 function displayState(state) {
     var keys = Object.keys(state);
@@ -342,7 +344,7 @@ function displayState(state) {
         }
         else if (key in formatters) {
             if (tooltips[key]) {
-              misc.push('<span data-toggle="tooltip" title="' + tooltips[key] + '">' + key + ': ' + formatters[key](state[key]) + '</span>');
+                misc.push('<span data-toggle="tooltip" title="' + tooltips[key] + '">' + key + ': ' + formatters[key](state[key]) + '</span>');
             } else {
                 misc.push(key + ': ' + formatters[key](state[key]));
             }
