@@ -1,9 +1,14 @@
+import { assert } from "console";
+import { sign } from "crypto";
+
 let set = 0;
 var canvasWidth = 0, canvasHeight = 0;
 var imgWidth = 0, imgHeight = 0;
 let rollerPos = [1, 1, 1, 1]; // Positions of the four rollers
 let consoleImg = undefined; // The image of the console
 let imatrix = null; // Inverted transformation matrix.
+
+let lampTest: boolean = false;
 
 // Resize isn't really working
 function resize() {
@@ -43,9 +48,17 @@ function consoleDraw() {
 
 /**
  *  Draws the various console lights.
+ *  See SY22-2832-4_360-50Maint.pdf Appendix B for details.
  */
 function consoleDrawLights() {
-  let bits = new Array(36).fill(0);
+  // Initialize all lights to on or off based on the lampTest switch.
+  for (const [name, coord] of Object.entries(lights)) {
+    drawLight(coord[0], coord[1], lampTest);
+  }
+
+  if (lampTest) return;
+
+  let bits: boolean[] = new Array(36).fill(false);
   switch (rollerPos[0]) {
     case 1:
       // TODO: Common channel roller
@@ -74,7 +87,7 @@ function consoleDrawLights() {
   }
   drawRollerLights(0, bits);
 
-  bits.fill(0);
+  bits.fill(false);
   switch (rollerPos[1]) {
     case 1:
       extractBits(state['B'], 32, bits, 0, true /* parity */); // B register
@@ -103,7 +116,7 @@ function consoleDrawLights() {
   }
   drawRollerLights(1, bits);
 
-  bits.fill(0);
+  bits.fill(false);
   switch (rollerPos[2]) {
     case 1:
       extractBits(state['L'], 32, bits, 0, true /* parity */); // L register
@@ -119,18 +132,98 @@ function consoleDrawLights() {
       break;
     case 5:
       extractBits(state['SAR'], 24, bits, 0, true /* parity */); // SAR register (24 bits)
+      extractBits(state['BS'], 4, bits, 28, false /* parity */); // Byte Stats
+      extractBits(state['BSS'], 4, bits, 32, false /* parity */); // Byte Store Stats
       break;
     case 6:
-      // TODO: Channel
+      // ROS
+      for (let i = 0; i < 34; i++) {
+        bits[i] = (state['ROS'][56 + i] == '1'); // Parity and ROS 57-89
+      }
       break;
     case 7:
-      // TODO: Channel
-      break;
-    case 8:
       // Unused
       break;
+    case 8:
+      extractBits(state['PREV2ROAR'], 13, bits, 5, false /* parity */); // Previous ROAR. Not sure how to manage previous / current / next ROAR.
+      break;
   }
-  drawRollerLights(1, bits);
+  drawRollerLights(2, bits);
+
+  bits.fill(false);
+  switch (rollerPos[3]) {
+    case 1:
+      // ROS
+      for (let i = 0; i < 18; i++) {
+        bits[i] = (state['ROS'][i] == '1'); // Parity and ROS 1-30. There's a gap between bits 18 and 19 for some reason.
+      }
+      for (let i = 19; i < 32; i++) {
+        bits[i] = (state['ROS'][i - 1] == '1');
+      }
+      break;
+    case 2:
+      // ROS
+      for (let i = 0; i < 25; i++) {
+        bits[i] = (state['ROS'][31 + i] == '1'); // Parity and ROS 32-55. 
+      }
+      // CPU mover function
+      extractBits(0 /* CPU mover */, 4, bits, 26, false /* parity */); // Unclear what 3-bit CPU mover function is, since it looks like 4 bits.
+      extractBits(0 /* I/O mover function (TODO) */, 4, bits, 30, false /* parity */);
+
+      break;
+      extractBits(state["ROS"], 32, bits, 0, true /* parity */); // ROS 32-55
+      break;
+    case 3:
+      bits[0] = false; // ONE SYL OP (half-word instruction)
+      bits[1] = false; // Refetch
+      extractBits(state['ROAR'], 13, bits, 5, false /* parity */); // next ROS addr
+      extractBits(0 /* external interrupt register */, 6, bits, 36, false /* parity */);
+      const PSW4 = (state['ILC'] << 6) | (state['CR'] << 4) | state['PROGMASK'];
+      extractBits(PSW4, 8, bits, 42, false /* parity */); // PSW 32-39
+      break;
+    case 4:
+      bits[0] = false; // I/O mode
+      extractBits(0 /* IO register */, 2, bits, 1, true /* parity */);
+      bits[4] = false; // Timer interrupt
+      bits[5] = false; // Console interrupt
+      extractBits(state['LB'], 2, bits, 6, true /* parity */); // L Byte counter
+      extractBits(state['MB'], 2, bits, 9, true /* parity */); // M Byte counter
+      extractBits(state['F'], 4, bits, 12, true /* parity */); // F reg
+      bits[17] = state['Q'];
+      extractBits(0, 2, bits, 18, false /* parity */); // Edit stats during edit instruction (TODO)
+      for (let i = 0; i < 8; i++) {
+        bits[20 + i] = (state['S'][i] == "1"); // General purpose stats 
+      }
+      bits[28] = (state['LSGNS'] == 1); // On for positive
+      bits[29] = (state['RSGNS'] == 1); // On for positive
+      bits[30] = (state['CSTAT'] == "1"); // carry stat;
+      bits[31] = false; // Retry threshold latch
+      bits[32] = false; // Storage Ring R1;
+      bits[33] = false; // Storage Ring R2;
+      bits[34] = false; // Storage Ring R3;
+      bits[35] = false; // Storage Ring W1;
+      break;
+    case 5:
+      extractBits(state['LSAR'], 6, bits, 1, false /* parity */); // LSAR
+      extractBits(0 /* LSFN TODO */, 2, bits, 7, false /* parity */); // LSFN
+      extractBits(state['J'], 4, bits, 9, true /* parity */); // J register
+      extractBits(state['MB'], 4, bits, 14, true /* parity */); // J register
+      bits[20] = (state['G1NEG'] == 0);
+      extractBits(state['G1'], 4, bits, 21, true /* parity */); // J register
+      bits[26] = (state['G2NEG'] == 0);
+      extractBits(state['G2'], 4, bits, 27, true /* parity */); // J register
+      break;
+    case 6:
+      // Adder, counters, mover, etc. These indicate faults with those components maybe? Leave them as 0.
+      break;
+    case 7:
+      extractBits(state['ROAR'], 13, bits, 5, false /* parity */); // next ROS addr. May be an off-by-one, unclear what "next" means.
+      break;
+    case 8:
+      extractBits(state['PREVROAR'], 13, bits, 5, false /* parity */); // Same as roller 3.
+      break;
+  }
+  drawRollerLights(3, bits);
 }
 
 /**
@@ -142,17 +235,18 @@ function consoleDrawLights() {
  * Note that System/360 numbers bits with 1 on the left and 32 on the right,
  * but that's not the case here.
  */
-function extractBits(value, nBits, bits, offset, useParity) {
+function extractBits(value: number, nBits: number, bits: boolean[], offset: number, useParity: boolean) {
+  assert(value != undefined);
 
   // Extract bit i (i==0 for leftmost bit)
-  function bitValue(i) {
-    return (value & (1 << (nBits - i - 1))) ? 1 : 0;
+  function bitValue(i: number): boolean {
+    return !!(value & (1 << (nBits - i - 1)));
   }
   // Compute odd parity of 8 bits starting at the given index
-  function byteParity(start) {
-    let parity = 1; // Odd parity
+  function byteParity(start: number): boolean {
+    let parity = true; // Odd parity
     for (let j = start; j < start + 8; j++) { // Loop over byte to compute parity
-      parity ^= bitValue(j);
+      parity !== bitValue(j);
     }
     return parity
   }
@@ -167,20 +261,20 @@ function extractBits(value, nBits, bits, offset, useParity) {
 /**
  * Draws the lights for the appropriate roller.
  */
-function drawRollerLights(row: number, bits: number[]) {
+function drawRollerLights(row: number, bits: boolean[]) {
   for (let pos = 0; pos < 36; pos++) {
     const col = pos < 18 ? pos : pos + 1; // Account for the gap between the two groups
     let x = interp(427, 1282, 37, col);
     let y = interp(782, 1069, 4, row);
     ctx.beginPath();
-    if (bits[pos]) {
-      ctx.fillStyle = "#ee5555"; // on
-    } else {
-      ctx.fillStyle = "#444444"; // off
-    }
-    ctx.arc(x, y, 8, 0, 2 * Math.PI);
-    ctx.fill();
+    drawLight(x, y, bits[pos]);
   }
+}
+
+function drawLight(x: number, y: number, on: boolean) {
+  ctx.fillStyle = on ? "#ee5555" : "#444444";
+  ctx.arc(x, y, 8, 0, 2 * Math.PI);
+  ctx.fill();
 }
 
 const regions: [number, number, number, number, string][] = [
@@ -225,6 +319,17 @@ const regions: [number, number, number, number, string][] = [
   [476, 1403, 520, 1450, "dial-storage-select"],
 
   [407, 1267, 411, 1318, "toggle"],
+
+  [132, 1575, 141, 1630, "toggle-iar-address-compare"],
+  [177, 1575, 189, 1630, "toggle-iar-repeat-insn"],
+  [229, 1575, 238, 1630, "toggle-ros-address-compare"],
+  [275, 1575, 284, 1630, "toggle-ros-repeat-insn"],
+  [322, 1575, 332, 1630, "toggle-blank"],
+  [370, 1575, 379, 1630, "toggle-sar-compare"],
+  [418, 1575, 428, 1630, "toggle-disable-interval-timer"],
+  [466, 1575, 476, 1630, "toggle-lamp-test"],
+  [514, 1575, 524, 1630, "toggle-force-indicator"],
+  [561, 1575, 571, 1630, "toggle-flt-mode"],
 
   [669, 1578, 713, 1622, "dial-flt-control"],
   [856, 1578, 901, 1618, "dial-check-control"],
@@ -394,7 +499,7 @@ function consoleInit() {
  * Returns the unscaled [x, y] coordinates for the event.
  * Uses global imatrix, the inverted transformation matrix.
  */
- function coords(e) {
+function coords(e) {
   const rect = $("#canvas")[0].getBoundingClientRect();
   const xscaled = e.clientX - rect.left;
   const yscaled = e.clientY - rect.top;
@@ -426,6 +531,11 @@ function clicked(e) {
     const parts = result.split("-");
     if (parts[0] == "roller") {
       updateRoller(parseInt(parts[1], 10));
+    } else if (result == "epo") {
+      window.close();
+    } else if (result == "toggle-lamp-test") {
+      lampTest = !lampTest;
+      consoleDrawLights();
     }
   }
 }
