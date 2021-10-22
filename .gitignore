@@ -7,7 +7,6 @@ out/
 *.swp
 *.png
 *.pdf
-*.txt
 *.map
 js.old/*
 js/*.js
