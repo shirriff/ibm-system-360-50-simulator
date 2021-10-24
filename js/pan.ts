@@ -10,7 +10,8 @@
 let canvas;
 let ctx;
 
-let img_height = 1951;
+let img_height = 1951; // Original image height.
+const SCALE = 2; // Actual image is twice this.
 let cameraOffset;
 let cameraZoom;
 let MAX_ZOOM = 5
@@ -22,8 +23,8 @@ let ch;
 function initZoom() {
   canvas = <HTMLCanvasElement> document.getElementById("canvas")
   ctx = canvas.getContext('2d')
-  cameraOffset = { x: canvas.clientWidth/2, y: canvas.clientHeight/2 }
-  cameraZoom = canvas.clientHeight / img_height;
+  cameraOffset = { x: canvas.clientWidth/2, y: canvas.clientHeight/2 / SCALE }
+  cameraZoom = canvas.clientHeight / img_height / SCALE;
   cw = canvas.clientWidth;
   ch = canvas.clientHeight;
 
@@ -59,6 +60,7 @@ function draw()
     ctx.translate( cw / 2, ch / 2);
     ctx.scale(cameraZoom, cameraZoom) // Zoom around center of canvas
     ctx.translate( -cw / 2 + cameraOffset.x, -ch / 2 + cameraOffset.y);
+    console.log('cw ' + cw + ', ch ' + ch + ', zoom ' +  cameraZoom + ', offset x ' +  cameraOffset.x + ', offset y ' +  cameraOffset.y);
     consoleDraw();
 }
 

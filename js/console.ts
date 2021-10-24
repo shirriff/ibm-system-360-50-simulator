@@ -12,8 +12,8 @@ function resize() {
   canvasHeight = window.innerHeight - $("#nav").height();
   $("#sidebar").height(window.innerHeight - $("#nav").height());
   canvasWidth = window.innerWidth - $("#sidebar").width();
-  canvas.style.width = canvasWidth + "px";
-  canvas.style.height = canvasHeight + "px";
+  canvas.style.width = 2 * canvasWidth + "px";
+  canvas.style.height = 2 * canvasHeight + "px";
   console.log(canvasHeight, canvasWidth, canvas.style.width, canvas.style.height);
   draw();
 }
@@ -32,7 +32,11 @@ function consoleDraw() {
   ctx.translate(-imgWidth / 2, -imgHeight / 2);
   var matrix = ctx.getTransform();
   imatrix = matrix.invertSelf(); // Remember inverted transformation matrix.
+  ctx.save();
+  // ctx.scale(.5, .5); // Image is now double-sized
   ctx.drawImage(consoleImg, 0, 0);
+  ctx.restore();
+  ctx.scale(SCALE, SCALE); // Image is now double-sized
 
   // Draw rollers in their current positions. Each roller is drawn in two parts
   for (let r = 0; r < 4; r++) {
@@ -49,8 +53,8 @@ function consoleDraw() {
  */
 function consoleDrawLights() {
   // Initialize all lights to on or off based on the lampTest switch.
-  for (const [name, coord] of Object.entries(lights)) {
-    drawLight(coord[0], coord[1], lampTest);
+  for (const [name, [x, y, color]] of Object.entries(lights)) {
+    drawLight(x, y, lampTest, color);
   }
 
   if (lampTest) return;
@@ -269,8 +273,9 @@ function drawRollerLights(row: number, bits: boolean[]) {
   }
 }
 
-function drawLight(x: number, y: number, on: boolean) {
-  ctx.fillStyle = on ? "#ee5555" : "#444444";
+function drawLight(x: number, y: number, on: boolean, color?: string) {
+  const onColor = color ? color : white;
+  ctx.fillStyle = on ? onColor : black;
   ctx.beginPath();
   ctx.arc(x, y, 8, 0, 2 * Math.PI);
   ctx.fill();
@@ -353,28 +358,33 @@ const regions: [number, number, number, number, string][] = [
   [1312, 1811, 1369, 1847, "button-load"],
 ];
 
-const lights: { [name: string]: [number, number] } = {
-  "thermal-cpu": [214, 302],
-  "thermal-stor": [238, 302],
+const red = "#ff0000";
+const yellow = "#ffff00";
+const green = "#00ff00";
+const white = "#ffeecc";
+const black = "#444444";
+const lights: { [name: string]: [number, number, string?] } = {
+  "thermal-cpu": [214, 302, red],
+  "thermal-stor": [238, 302, red],
   "thermal-pdu": [262, 302],
-  "open-cb": [358, 302],
-  "power-check": [405, 302],
-  "dc-off": [217, 599],
-"6tc": [524, 253],
-"12ros2": [654, 253],
-"56xy1": [784, 253],
-"6var": [524, 349],
-"60z1": [784, 349],
-"6m2": [524, 444],
-"56xy2": [784, 444],
-"6m1": [524, 539],
-"12ros1": [654, 539],
-"60z2": [784, 539],
-"56xy3": [923, 444],
-"aux-power-check": [1041, 444],
-"56xy4": [1159, 444],
-"60z3": [923, 541],
-"60z4": [1159, 541],
+  "open-cb": [358, 302, yellow],
+  "power-check": [405, 302, red],
+  "dc-off": [217, 599, red],
+"6tc": [524, 253, red],
+"12ros2": [654, 253, red],
+"56xy1": [784, 253, red],
+"6var": [524, 349, red],
+"60z1": [784, 349, red],
+"6m2": [524, 444, red],
+"56xy2": [784, 444, red],
+"6m1": [524, 539, red],
+"12ros1": [654, 539, red],
+"60z2": [784, 539, red],
+"56xy3": [923, 444, red],
+"aux-power-check": [1041, 444, red],
+"56xy4": [1159, 444, red],
+"60z3": [923, 541, red],
+"60z4": [1159, 541, red],
 };
 
 let rollerImgs = [];
@@ -412,7 +422,6 @@ function consoleInit() {
   });
   consoleImg.src = "imgs/console.jpg";
   initRollers();
-  ctx.fillStyle = "green";
 
   // Roller lights
   for (let row = 0; row < 4; row++) {
@@ -420,26 +429,7 @@ function consoleInit() {
       if (col == 18) continue;
       let x = (1282 - 427) / 36 * col + 427;
       let y = (1069 - 782) / 3 * row + 782;
-      ctx.beginPath();
-      ctx.arc(x, y, 8, 0, 2 * Math.PI);
-      ctx.fill();
       lights["roller-" + row + "-" + col] = [x, y];
-    }
-  }
-
-  // Lights below
-  ctx.fillStyle = "yellow";
-  for (let i = 0; i < 2; i++) {
-    for (let col = 0; col <= 39; col++) {
-      if (col == 18) continue;
-      if (col == 37 || col == 38 || (col == 39 && i == 1)) continue;
-      let x = (1282 - 427) / 36 * col + 427;
-      let y = [1181, 1230][i];
-      ctx.beginPath();
-      ctx.arc(x, y, 8, 0, 2 * Math.PI);
-      ctx.fill();
-      const name = ["lights", "sdr"][i];
-      lights[name + col] = [x, y];
     }
   }
 
@@ -449,8 +439,29 @@ function consoleInit() {
     return (x1 - x0) / (n - 1) * i + x0;
   }
 
+  // Lights below, FLT, etc.
+  for (let col = 0; col <= 39; col++) {
+    if (col == 18 || col == 37 || col == 38) continue;
+    let x = interp(427, 1282, 37, col);
+    let y = 1181;
+    let color;
+    if (col == 1 || col == 3 || col == 17 || col == 24 || col == 26 || col == 28 || col == 30 || col == 34 || col == 36 ||  col == 39) {
+      color = red;
+    } else {
+      color = white;
+    }
+    lights["flt" + col] = [x, y];
+  }
+
+  // SDR lights
+  for (let col = 0; col <= 36; col++) {
+    if (col == 18) continue;
+    let x = interp(427, 1282, 37, col);
+    let y = 1230;
+    lights["sdr" + col] = [x, y];
+  }
+
   // SDR switches
-  ctx.fillStyle = "red";
   for (let col = -1; col <= 36; col++) {
     if (col == 9 || col == 18 || col == 19 || col == 28 || col == 37) continue;
     let x = interp(427, 1282, 37, col);
@@ -459,15 +470,11 @@ function consoleInit() {
   }
 
   // Instruction address register lights
-  ctx.fillStyle = "red";
   for (let col = 9; col <= 36; col++) {
     if (col == 18) continue;
     if (col == 37 || col == 38 || col == 39) continue;
     let x = interp(427, 1282, 37, col);
     let y = 1359
-    ctx.beginPath();
-    ctx.arc(x, y, 8, 0, 2 * Math.PI);
-    ctx.fill();
     lights["iar-" + col] = [x, y];
   }
 
@@ -476,29 +483,15 @@ function consoleInit() {
     if (col == 18 || col == 19 || col == 28 || col == 37) continue;
     let x = interp(427, 1282, 37, col);
     let y = 1424;
-    ctx.beginPath();
-    ctx.arc(x, y, 8, 0, 2 * Math.PI);
-    ctx.fill();
     regions.push([x - 5, y - 25, x + 5, y + 25, "switch-iar-" + col]);
   }
 
   // IPL lights
   for (let col = 0; col <= 4; col++) {
-    let x = interp(1197, 1294, 5, col);
-    let y = 1819;
-    ctx.beginPath();
-    ctx.arc(x, y, 8, 0, 2 * Math.PI);
-    ctx.fill();
-    lights["ipl-" + col] = [x, y];
-  }
-
-  // Misc toggles
-  for (let col = 0; col < 10; col++) {
-    let x = interp(135, 567, 10, col);
-    let y = 1598;
-    ctx.beginPath();
-    ctx.arc(x, y, 8, 0, 2 * Math.PI);
-    ctx.fill();
+    let x = interp(1203, 1301, 5, col);
+    let y = 1830;
+    const color = [red, green, yellow, red, white][col];
+    lights["ipl-" + col] = [x, y, color];
   }
 
   /**
@@ -526,7 +519,7 @@ function coords(e) {
   const yscaled = e.clientY - rect.top;
   const x = xscaled * imatrix.a + yscaled * imatrix.c + imatrix.e;
   const y = xscaled * imatrix.b + yscaled * imatrix.d + imatrix.f;
-  return [Math.round(x), Math.round(y)];
+  return [Math.round(x / SCALE), Math.round(y / SCALE)];
 }
 
 /**
