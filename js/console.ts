@@ -45,6 +45,7 @@ function consoleDraw() {
   }
 
   consoleDrawLights();
+  drawLoadDials();
 }
 
 /**
@@ -227,6 +228,37 @@ function consoleDrawLights() {
   drawRollerLights(3, bits);
 }
 
+const dialPos = [5, 6, 8]; // Positions of the three dials
+
+// Draw the labels on the three Load Unit dials
+function drawLoadDials() {
+  ctx.fillStyle = "#998b82";
+  ctx.font = "9px arial";
+  for (let dial = 0; dial < 3; dial++) {
+    const [x0, y0] = [[2288, 3429], [2491, 3429], [2697, 3429]][dial];
+    const dialSize = [8, 16, 16][dial]; // First dial has 8 positions
+    for (let n = 0; n < dialSize; n++) {
+      const char = "0123456789ABCDEF"[n];
+      const ang = (-4.8 - 360 / 16 * (dialPos[dial] - n)) * Math.PI / 180;
+      ctx.save();
+      ctx.translate(x0 / 2, y0 / 2);
+      ctx.scale(.93, 1);
+      ctx.rotate(ang);
+      ctx.fillText(char, 0, -75 / 2);
+      ctx.restore();
+    }
+  }
+}
+
+function updateLoadDial(dial: number) {
+  if (dial == 0) {
+    dialPos[dial] = (dialPos[dial] + 1) % 8; // First dial is only 0 through 7
+  } else {
+    dialPos[dial] = (dialPos[dial] + 1) % 16;
+  }
+  draw(); // Redraw everything
+}
+
 /**
  * Extracts bits from value, putting them into the array bits.
  * This is the key function to convert a value into the bits displayed on the lights.
@@ -351,9 +383,9 @@ const regions: [number, number, number, number, string][] = [
 
   [1099, 1583, 1156, 1630, "button-power-on"],
   [1303, 1585, 1363, 1623, "button-power-off"],
-  [1110, 1692, 1156, 1734, "dial-load-1"],
-  [1212, 1692, 1258, 1734, "dial-load-2"],
-  [1307, 1694, 1356, 1734, "dial-load-3"],
+  [1110, 1672, 1190, 1768, "dial-load-0"],
+  [1204, 1672, 1297, 1768, "dial-load-1"],
+  [1312, 1672, 1392, 1768, "dial-load-2"],
   [1108, 1809, 1163, 1842, "button-interrupt"],
   [1312, 1811, 1369, 1847, "button-load"],
 ];
@@ -522,6 +554,7 @@ function coords(e) {
   return [Math.round(x / SCALE), Math.round(y / SCALE)];
 }
 
+
 /**
  * Tests if the event e is inside a region.
  * Returns the region or undefined.
@@ -545,6 +578,8 @@ function clicked(e) {
     const parts = result.split("-");
     if (parts[0] == "roller") {
       updateRoller(parseInt(parts[1], 10));
+    } else if (parts[0] == "dial" && parts[1] == "load") {
+      updateLoadDial(parseInt(parts[2], 10));
     } else if (result == "epo") {
       window.close();
     } else if (result == "toggle-lamp-test") {
