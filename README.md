@@ -7,9 +7,7 @@ This is under development.
 
 Directory structure:
 
-js: The code, in TypeScript.
-
-model50:
+js: The main code, in TypeScript.
 
 ocr: Code used for OCR on the [microcode listings](http://www.bitsavers.org/pdf/ibm/360/fe/2050/).
 
