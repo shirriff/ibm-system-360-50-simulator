@@ -1,0 +1,50 @@
+50Maint:
+page 173: roller descriptions, explains many registers
+p14: index to CAS logic diagrams.
+p21: E->SCANCTL sets 2's complement of SDR into sequence counter indicators
+p22: HA->A microorder selects main storage.
+p28: ROS debug kernels
+SCAN*E,00 sets FLT register, used with general purpose stats
+p32: EMIT 1000 + E->SCANCTL sets SS (supervisory stat) to SDR(6), SESS to SDR(4)
+STD=0 branches on and increments scan test counter.
+Pass/Fail triggers set by E->SCANCTL with EMIT 0001, reset by E->SCANCTL + EMIT 0101
+pass trigger test and branch: SCPS
+fail trigger test and branch: SCFS
+FLT: fault location test
+p158: discusses IPL theory
+
+Power-on reset forces to 242: QU100, 50Maint p183
+IPL: starts at 240: QU100
+IPL: S3=1, MD=3
+Flow chart on 50Maint page 186
+PSW restart at 2c2: S3=1, MD=0
+
+LS addressing:
+Emit(2-3) to SLFR, R(24-27) to J
+Bump addressing:
+R to mover U, W(0,1) to SAR 14-15, Emit(2-3) to SAR 16-17, W(2-7) to SAR 24-29
+
+
+Microcode:
+QA: instructions
+QB: fixed point RR load instructions
+QC: inverse move op instructions
+QE: RX control-load insert/store instructions
+QF: fixed point RX load/store
+QG: floating point operations
+QJ: RS,SI instructions
+QK: SI move and logical ops
+QM: invalid ops
+QP: VFL instructions
+QS: decimal arithmetic instrucdtions
+QT: instruction fetch
+QU: reset
+QV: I/O
+QW: maintenance loops
+QY: diagnose, test kernel
+
+
+50Maint p186 describes console pushbuttons, addr controls
+
+50 operating procedures p28: list of initial memory allocation, instructions, ,interrupts, channel codes, lots of interesting info.
+p36: bit meaning of displays

@@ -1,19 +1,16 @@
-Microcode in 2050_vol18/19/20_Sep72.pdf
+The js directory holds the Javascript source code.
 
-Volume 20 QZ_000_1 etc has mapping from address to e.g. QT100 page.
-
-Microcode overview in Z22-2833-R_2050_Processing_Unit_Field_Engineering_Diagram_Manual_Jul66.pdf
-Page 14 has instruction table
-
-Warning: edit .ts files not .js!
 
 Compile typescript with "tsc"
 
-start web server:
-python3 -m http.server
+(Warning: edit .ts files not .js!)
 
-Open tests in browser, e.g. tests/instructions.html
-Tests don't all pass currently
+In `js/out`, start web server:
+```
+python3 -m http.server
+```
+
+Load http://localhost:8000
 
 decode.js: generates the microcode expression box
 disasm.js: disassembles a System/360 instruction
@@ -27,5 +24,6 @@ display.html: displays microcode
 sim.html: main simulator
 viewer.html: search/diff
 
-
+Open tests in browser, e.g. tests/instructions.html
+Tests don't all pass currently.
 
