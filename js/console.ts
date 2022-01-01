@@ -30,8 +30,10 @@ function resize() {
 
 let oldCameraZoom = undefined;
 let oldCameraOffset = undefined;
-// Avoid zoom/pan going too wild.
+// Avoid zoom/pan from zooming the image out of the screen.
+// If one of the edges of the image will go past the center, pull it back.
 function validateCamera() {
+  // Figure out where the edge is going to be
   if (oldCameraZoom != undefined) {
     if (0) {
       cameraZoom = oldCameraZoom;
@@ -65,11 +67,9 @@ function draw()
   ctx.scale(cameraZoom, cameraZoom) // Zoom around center of canvas
   ctx.translate( cameraOffset.x - canvasWidth / 2, cameraOffset.y - canvasHeight / 2);
 
+  // window is centered on 0, 0.
   // Coordinate system: drawing origin = screen center + (camera - screen center) * zoom
   // So drawing coordinate at center of screen is constant regardless of zoom
-
-  // window is centered on 0, 0. Translate to center image.
-  ctx.translate(-consoleImg.width / 2, -consoleImg.height / 2);
   var matrix = ctx.getTransform();
   imatrix = matrix.invertSelf(); // Remember inverted transformation matrix.
 
@@ -81,9 +81,13 @@ function draw()
  * This function does the actual drawing; draw() sets up the transform.
  */
 function consoleDraw() {
-  ctx.drawImage(consoleImg, 0, 0);
+  // Coordinate system centered on (0,0) so shift image to be centered
+  ctx.drawImage(consoleImg, -consoleImg.width / 2, -consoleImg.height / 2);
 
-  ctx.scale(SCALE, SCALE); // Account for double-resolution canvas
+  // Lights and rollers coordinates need to be scaled to account for double-resolution canvas.
+  // (For historical reasons, these numbers are half of the console image pixel values.)
+  ctx.translate(-consoleImg.width / 2, -consoleImg.height / 2);
+  ctx.scale(SCALE, SCALE);
 
   // Draw rollers in their current positions. Each roller is drawn in two parts
   for (let r = 0; r < 4; r++) {
@@ -617,7 +621,10 @@ function coords(e) {
   const yscaled = (e.clientY - rect.top) * SCALE;
   const x = xscaled * imatrix.a + yscaled * imatrix.c + imatrix.e;
   const y = xscaled * imatrix.b + yscaled * imatrix.d + imatrix.f;
-  return [Math.round(x / SCALE), Math.round(y / SCALE)];
+  console.log("click", x, y, "scaled", Math.round(x / SCALE), Math.round(y / SCALE));
+  console.log(consoleImg.width, consoleImg.height);
+  // Convert from coordinates with 0 in screen center to coordinates relative to the image
+  return [Math.round((x + consoleImg.width / 2) / SCALE), Math.round((y + consoleImg.height / 2) / SCALE)];
 }
 
 
