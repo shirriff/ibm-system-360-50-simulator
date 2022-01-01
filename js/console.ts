@@ -22,7 +22,7 @@ function resize() {
   // Scale to fit the image: Initialize cameraOffset, cameraZoom
   cameraOffset = { x: canvas.clientWidth/2, y: canvas.clientHeight/2 }
   console.log('cameraOffset', cameraOffset);
-  cameraZoom = Math.min(canvas.clientHeight / consoleImg.height, canvas.clientWidth / consoleImg.width) * 1;
+  cameraZoom = Math.min(canvas.clientHeight / consoleImg.height, canvas.clientWidth / consoleImg.width);
   MIN_ZOOM = cameraZoom; // Don't zoom too small
 
   draw();
@@ -87,7 +87,7 @@ function draw()
  */
 function consoleDraw() {
   ctx.save();
-  ctx.scale(0.5, 0.5); // Image is at double-resolution, inconveniently
+  // ctx.scale(0.5, 0.5); // Image is at double-resolution, inconveniently
   ctx.drawImage(consoleImg, 0, 0);
   ctx.restore();
 
