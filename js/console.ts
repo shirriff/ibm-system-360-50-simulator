@@ -54,11 +54,8 @@ function draw()
   validateCamera();
 
   // Clear
-  // ctx.save();
-  // ctx.setTransform(1, 0, 0, 1, 0, 0); // Identity
+  ctx.setTransform(1, 0, 0, 1, 0, 0); // Identity
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  // ctx.restore();
-
 
   // First, set up the transform based on the camera position
   ctx.setTransform(1, 0, 0, 1, 0, 0); // Identity
@@ -66,7 +63,7 @@ function draw()
   ctx.scale(SCALE, SCALE);
   ctx.translate( canvasWidth / 2, canvasHeight / 2);
   ctx.scale(cameraZoom, cameraZoom) // Zoom around center of canvas
-  ctx.translate( -canvasWidth / 2 + cameraOffset.x, -canvasHeight / 2 + cameraOffset.y);
+  ctx.translate( cameraOffset.x - canvasWidth / 2, cameraOffset.y - canvasHeight / 2);
 
   // Coordinate system: drawing origin = screen center + (camera - screen center) * zoom
   // So drawing coordinate at center of screen is constant regardless of zoom
@@ -77,8 +74,6 @@ function draw()
   imatrix = matrix.invertSelf(); // Remember inverted transformation matrix.
 
   consoleDraw();
-
-  ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset the transform
 }
 
 /**
@@ -86,10 +81,9 @@ function draw()
  * This function does the actual drawing; draw() sets up the transform.
  */
 function consoleDraw() {
-  ctx.save();
-  // ctx.scale(0.5, 0.5); // Image is at double-resolution, inconveniently
   ctx.drawImage(consoleImg, 0, 0);
-  ctx.restore();
+
+  ctx.scale(SCALE, SCALE); // Account for double-resolution canvas
 
   // Draw rollers in their current positions. Each roller is drawn in two parts
   for (let r = 0; r < 4; r++) {
@@ -619,8 +613,8 @@ function initConsole() {
  */
 function coords(e) {
   const rect = $("#canvas")[0].getBoundingClientRect();
-  const xscaled = e.clientX - rect.left;
-  const yscaled = e.clientY - rect.top;
+  const xscaled = (e.clientX - rect.left) * SCALE;
+  const yscaled = (e.clientY - rect.top) * SCALE;
   const x = xscaled * imatrix.a + yscaled * imatrix.c + imatrix.e;
   const y = xscaled * imatrix.b + yscaled * imatrix.d + imatrix.f;
   return [Math.round(x / SCALE), Math.round(y / SCALE)];
