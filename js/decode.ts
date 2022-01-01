@@ -436,7 +436,7 @@ var labels = {
 10: ['CSTAT', 'Set A bit to value of carry stat.'],    // test saved carry stat (e.g. BC8 in prev instruction) QP800:064E
 // 11 undefined
 12: ['1SYLS', 'Set A bit to value of One Syllable Op in buffer stat.'], // QT115/0189. One syllable instruction
-// QT110: [(X=0) -> S0, (B=0)->S1, set ILC,1SYL
+// QT110: (X=0) -> S0, (B=0)->S1, set ILC,1SYL
 13: ['LSGNS', 'Set A bit to value of L sign stat.'],
 14: ['⩝SGNS', 'Set A bit to exclusive OR of L sign stat and R sign stat.'],
 // 15 undefined
@@ -598,14 +598,14 @@ var nextaddr = 0;
 // Generates the info box for the given entry at addr.
 // Returns array of strings.
 // Addr is a 4-digit hex string.
-function decode(addr, entry) {
-  function get(label) {
+function decode(addr : string, entry) : [string[], string[]] {
+  function get(label, field=0) {
     if (!(label in labels)) {
       alert('Missing label ' + label);
       return;
     }
     if (label in entry) {
-      var l = labels[label][entry[label]][0];
+      var l = labels[label][entry[label]][field];
       if (l == undefined) {
         return 'UNDEF_' + label + "_" + entry[label];
       } else {
@@ -615,15 +615,20 @@ function decode(addr, entry) {
       return 'undef!!!' + label;
     }
   }
+  function getDesc(label) {
+    return get(label, 1);
+  }
 
   if (entry == undefined) {
     throw('Missing microcode for addr ' + addr);
   }
 
   var result = [];
+  var description = [];
   result.push('---------- ' + addr.toUpperCase());
   if (entry['CE']) {
     padbox(result, 'E', bin(entry['CE'], 4));
+    description.push('Emit value ' + bin(entry['CE'], 4));
   }
 
   if (entry['AL'] == 28 || entry['AL'] == 30 || entry['AL'] == 31 || entry['TR'] == 12 || entry['TR'] == 22 || entry['TR'] == 13) {
@@ -637,15 +642,24 @@ function decode(addr, entry) {
         lx = '1'; // -0 turns into -1 for some reason, 1's complement?
       }
       padbox(result, 'A', (get('RY') + get('TC') + lx + '→' + get('TR')).replace('0+', '').replace('+0', '').replace('0-', '-'));
+      if (entry['TC'] == 0) {
+        description.push('Adder: ' + getDesc('RY') + ', complemented');
+      } else {
+        description.push('Adder: ' + getDesc('RY'));
+      }
+      description.push(getDesc('LX'));
+      description.push(getDesc('TR'));
     }
     var l = undefined, r = undefined;
     if (entry['AL'] == 6) {
       // Handled by D
     } else if (entry['AL']) {
       r = get('AL');
+      description.push(getDesc('AL'));
     }
     if (entry['AD'] != 1) {
       l = get('AD');
+      description.push(getDesc('AD'));
     }
     if (l || r) {
       padbox(result, 'A', l, r);
@@ -655,6 +669,7 @@ function decode(addr, entry) {
   // B entry
   if (entry['RY'] == 5) {
       padbox(result, 'B', undefined, get('RY'));
+      description.push(getDesc('RY'));
   }
   var lu = undefined;
   if (entry['LU']) {
@@ -667,28 +682,41 @@ function decode(addr, entry) {
   if (lu || lv) {
     padbox(result, 'B', lu, lv);
   }
+  if (lu) {
+    description.push(getDesc('LU'));
+  }
+  if (lv) {
+    description.push(getDesc('LV'));
+  }
 
   if ((lu || entry['UL'] != 1) && entry['UL'] == entry['UR']) {
     padbox(result, 'B', get('UL') + '→W');
+    description.push(getDesc('UL'));
   } else if (entry['UL'] != 1 || entry['UR'] != 1) {
     var ul = '      ';
     var ur = '      ';
     if (entry['UL'] != 1 || entry['UR'] == 3) {
       ul = ( get('UL') + 'L→WL').replace('EL', 'E').padEnd(6, ' ');
+      description.push(getDesc('UL'));
     }
     if (entry['UR'] != 1 || entry['UL'] == 0) {
       ur = ( get('UR') + 'R→WR').replace('ER', 'E').replace('?R', '?').padEnd(6, ' ');
+      description.push(getDesc('UR'));
     }
     result.push('B ' + ul + ur + '|');
   }
   if (entry['WM']) {
     padbox(result, 'B', get('WM'));
+    description.push(getDesc('WM'));
   }
 
   if (entry['AL'] == 6) {
     padbox(result, 'D', get('AL'));
+    description.push(getDesc('AL'));
   } else if (entry['AL'] == 28 || entry['AL'] == 30 || entry['AL'] == 31) {
     padbox(result, 'D', get('AL') + get('TR'));
+    description.push(getDesc('AL'));
+    description.push(getDesc('TR'));
   }
   // Combine LB, MB, MD into 1
   var n = undefined;
@@ -704,6 +732,7 @@ function decode(addr, entry) {
     }
   }
   if (n != undefined) {
+    description.push(getDesc('UP'));
     if (entry['UP'] == 0 || entry['UP'] == 1) {
       padbox(result, 'D', get('UP') + names.join(','));
     } else {
@@ -713,20 +742,25 @@ function decode(addr, entry) {
 
   if (entry['DG']) {
     padbox(result, 'D', get('DG'));
+    description.push(getDesc('DG'));
   }
   if (entry['TR'] == 12 || entry['TR'] == 13 || entry['TR'] == 22) {
     padbox(result, 'D', get('TR'));
+    description.push(getDesc('TR'));
   }
 
   if (entry['WS'] != 4 || entry['SF'] != 7) {
     padbox(result, 'L', get('WS'));
+    description.push(getDesc('WS'));
   }
   if (entry['SF'] != 7) {
     padbox(result, 'L', get('SF'));
+    description.push(getDesc('SF'));
   }
 
   if (entry['TR'] == 8) {
     padbox(result, 'S', get('TR'));
+    description.push(getDesc('TR'));
   }
   var iv;
   if (entry['IV']) {
@@ -734,6 +768,7 @@ function decode(addr, entry) {
     if (iv.indexOf('→') >= 0) {
       // Assignments go into S
       padbox(result, 'S', get('IV'));
+      description.push(getDesc('IV'));
       iv = undefined;
     }
   }
@@ -741,6 +776,7 @@ function decode(addr, entry) {
   var ss;
   if (entry['SS']) {
     ss = get('SS');
+    description.push(getDesc('SS'));
   }
   if (iv) {
     padbox(result, 'C', iv, ss);
@@ -758,9 +794,11 @@ function decode(addr, entry) {
   var addr03;
   if (entry['ZN'] == 0) {
     padbox(result, 'R', get('ZF'));
+    description.push(getDesc('ZF'));
     addr03 = '****';
   } else if (entry['ZN'] != 4) {
     padbox(result, 'R', get('ZN'));
+    description.push(getDesc('ZN'));
     nextaddr |= parseInt(entry['ZF'], 10) << 2
     addr03 = '    ';
   } else {
@@ -786,6 +824,12 @@ function decode(addr, entry) {
     if (entry['AB'] == 1 && (entry['BB'] == 2 || entry['BB'] == 23 || entry['BB'] == 30)) {
         ab = '';
     } 
+    if (ab != '') {
+      description.push(getDesc('AB'));
+    }
+    if (bb != '') {
+      description.push(getDesc('BB'));
+    }
     padbox(result, 'R', ab + bb.padStart(11 - ab.length, ' '));
   }
 
@@ -808,7 +852,7 @@ function decode(addr, entry) {
   var nextaddr_pad = nextaddr.toString(16).padStart(4, '0');
     
   result.push(nextlabel + nextaddr_pad);
-  return result;
+  return [result, description];
 }
 
 // Pad s1 on the right to make a box
