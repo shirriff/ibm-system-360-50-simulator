@@ -1,4 +1,4 @@
-// Somewhat based on Smple Pan and Zoom Canvas:
+// Somewhat based on Simple Pan and Zoom Canvas:
 // Copyright (c) 2021 by Chengarda (https://codepen.io/chengarda/pen/wRxoyB)
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
@@ -7,30 +7,18 @@
 // 
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 // 
-let canvas;
-let ctx;
 
-let img_height = 1951; // Original image height.
-const SCALE = 2; // Actual image is twice this.
+const SCALE = 1; // Number of canvas pixels per screen pixel. (Use double-resolution for Retina or something.)
 let cameraOffset;
 let cameraZoom;
-let MAX_ZOOM = 5
-let MIN_ZOOM = 0.1
-let SCROLL_SENSITIVITY = 0.0005
-let cw;
-let ch;
+let MAX_ZOOM = 4;
+let MIN_ZOOM = 0.1;
+let SCROLL_SENSITIVITY = 0.0005;
 
 function initZoom() {
-  canvas = <HTMLCanvasElement> document.getElementById("canvas")
-  ctx = canvas.getContext('2d')
-  cameraOffset = { x: canvas.clientWidth/2, y: canvas.clientHeight/2 / SCALE }
-  cameraZoom = canvas.clientHeight / img_height / SCALE;
-  cw = canvas.clientWidth;
-  ch = canvas.clientHeight;
-
-  $(window).resize(resize); // Set handler
 
   // Events for zooming
+  canvas = <HTMLCanvasElement> document.getElementById("canvas")
   canvas.addEventListener('resize', resize);
   canvas.addEventListener('click', (e) => console.log(e));
   canvas.addEventListener('mousedown', onPointerDown);
@@ -48,20 +36,6 @@ function initZoom() {
       adjustZoomAmount(-e.deltaY * SCROLL_SENSITIVITY);
     }
   });
-}
-
-function draw()
-{
-    ctx.setTransform(1, 0, 0, 1, 0, 0); // Identity
-    cw = canvas.clientWidth;
-    ch = canvas.clientHeight;
-    canvas.width = cw;
-    canvas.height = ch;
-    ctx.translate( cw / 2, ch / 2);
-    ctx.scale(cameraZoom, cameraZoom) // Zoom around center of canvas
-    ctx.translate( -cw / 2 + cameraOffset.x, -ch / 2 + cameraOffset.y);
-    console.log('cw ' + cw + ', ch ' + ch + ', zoom ' +  cameraZoom + ', offset x ' +  cameraOffset.x + ', offset y ' +  cameraOffset.y);
-    consoleDraw();
 }
 
 // Gets the relevant location from a mouse or single touch event

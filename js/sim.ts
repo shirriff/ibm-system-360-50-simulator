@@ -2,7 +2,7 @@ var running = 0;
 var skipping: number;
 var state = {};
 var then;
-var memactive;
+var memactive = false;
 var speed;
 var seenInstructions;
 // Override alert so simulator will stop if an error is hit.
@@ -24,44 +24,76 @@ window.onerror = function err(errMsg, url, lineNumber) {
 
 let data = undefined;
 
-$(document).ready(function () {
-    memactive = false;
-    // Load data and then start up
-    $.getJSON("data.json", function (indata) {
-        data = indata;
-        // Actions
-        $("#mem").on("click", function (e) {
-            mem();
-        });
-        $("#step").on("click", function (e) {
-            stopAnimate();
-            step();
-        });
-        $("#skip").on("click", function (e) {
-            stopAnimate();
-            skip();
-        });
-        $("#control").on("click", function (e) {
-            if ($("#control").text() == 'Stop') {
-                stopAnimate();
-            }
-            else {
-                startAnimate();
-            }
-        });
-        $("#addr").keypress(function (e) {
-            if (e.which == 13) {
-                step();
-            }
-        });
-        // Wait for microcode file to get loaded before initializing everything.
-        init();
-        initZoom();
-        consoleInit();
-        resize(); // Trigger a redraw
-    }).fail(function () { alert('failed to load JSON data.'); });
+// Load images and microcode data. This is the main entry point.
+function loadStuff() {
+  // Fetch the microcode data, store in data.
+  let dataPromise = new Promise((resolve, reject) => {
+      $.getJSON("data.json", function (indata) {
+          data = indata;
+          console.log("loaded microcode data");
+          resolve(0);
+    }).fail(reject);
+  });
 
-});
+  // Fetch the console images
+  let consolePromise = loadConsole();
+
+  // Continue when everything is loaded
+  Promise.all([dataPromise, consolePromise]).then(() => {
+    console.log("loading complete");
+    initialize();
+  }).catch(x => alert('Initialization failed'));
+}
+
+// This is the main initialization routine, after the microcode data and images are loaded.
+// It sets up the handlers and the canvas and draws everything.
+function initialize() {
+    // Actions
+    $("#mem").on("click", function (e) {
+        mem();
+    });
+    $("#step").on("click", function (e) {
+        stopAnimate();
+        step();
+    });
+    $("#skip").on("click", function (e) {
+        stopAnimate();
+        skip();
+    });
+    $("#control").on("click", function (e) {
+        if ($("#control").text() == 'Stop') {
+            stopAnimate();
+        }
+        else {
+            startAnimate();
+        }
+    });
+    $("#addr").keypress(function (e) {
+        if (e.which == 13) {
+            step();
+        }
+    });
+    // Close tooltip for click outside
+    $(document).on("click", function(e) {
+        $("#topinfotext")[0].removeAttribute('data-show');
+    });
+    // Close tooltip
+    $("#topclose").on("click", function (e) {
+        $("#topinfotext")[0].setAttribute('data-show', '');
+    });
+    count = 0;
+    speed = 500; // ms
+    skipping = 0;
+    stopAnimate();
+    seenInstructions = {};
+    state = createState();
+    resetState(state);
+    console.log('XXX display divop1', getAddrFromField());
+    displayState(state);
+    initZoom();
+    initConsole();
+    resize();
+}
 
 function mem() {
     memactive = true;
@@ -83,17 +115,7 @@ function mem() {
     }
     $('#divmem').html(result.join('\n'));
 }
-function init() {
-    count = 0;
-    speed = 500; // ms
-    skipping = 0;
-    stopAnimate();
-    seenInstructions = {};
-    state = createState();
-    resetState(state);
-    console.log('XXX display divop1', getAddrFromField());
-    displayState(state);
-}
+
 function stopAnimate() {
     running = 0;
     skipping = 0;
@@ -177,7 +199,7 @@ function step() {
     count += 1;
     $("#count").text(count);
     seenInstructions[iaddr] = 1;
-    const microcode1 = decode(saddr, data[saddr]);
+    const microcode1 : [string[], string[]] = decode(saddr, data[saddr]);
     var msg1 = cycle(state, data[saddr]);
     var msg2 = doio(state, data[saddr]);
     draw();
@@ -185,10 +207,10 @@ function step() {
     saddr = fmtAddress(state['ROAR']);
     $("#addr").val(saddr);
     const microcode2 = decode(saddr, data[saddr]);
-    function fmt(uc) {
+    function fmt(uc : string[]) : string {
         return '<pre style="">' + uc.join('\n') + '</pre>';
     }
-    $("#microcode").html('Current micro-instruction:' + fmt(microcode1) + 'Next micro-instruction:' + fmt(microcode2));
+    $("#microcode").html('Current micro-instruction:' + fmt(microcode1[0]) + 'Next micro-instruction:' + fmt(microcode2[0]));
     displayState(state);
     $("#divmsg").html(msg1 || msg2 || '');
     if ([0x148, 0x149, 0x14a, 0x14c, 0x14e, 0x184, 0x185, 0x187, 0x188, 0x189, 0x19b].includes(state['ROAR'])) {
@@ -357,3 +379,6 @@ function displayState(state) {
     }
     $("#registers").html(misc.join(', '));
 }
+
+// Calling loadStuff starts loading the images. This is the entry point.
+loadStuff();

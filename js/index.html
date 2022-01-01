@@ -12,10 +12,39 @@
 
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 
     <title>System/360 simulator</title>
   </head>
-  <body>
+  <body style="overflow-y:hidden">
+<style>
+  #topinfotext {
+    background: #eee;
+    color: black;
+    padding: 4px 8px;
+    font-size: 13px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    display: none;
+  }
+
+  #topinfotext[data-show] {
+    display: block;
+  }
+</style>
+
+
+
+<script src="https://unpkg.com/@popperjs/core@2"></script>
+  <div id="topinfotext" data-showx>The IBM System/360 Model 50 was a popular mainframe introduced in 1964. This web page simulates the mainframe by running the original microcode.
+    The console lights are illuminated as they would be on an real Model 50.
+    <br/>
+    To start the simulator, click on the <b>Run</b> button below. 
+    The console lights are controlled by rollers; click on the roller knob to change the display function.
+    You can zoom in on the console display for more detail.
+    <br/>
+    For background, see the <a href="https://righto.com">Model 50 blog post</a>.
+    <span class="material-icons" style="font-size:100%; cursor: pointer" id="topclose">cancel</span></div>
    <nav class="navbar navbar-light sticky-top bg-primary flex-md-nowrap p-0" id="nav">
      <span>
       <button id="mem">Mem</button>
@@ -90,14 +119,14 @@ Op count: <span style="margin-left: 20px;font-family:sans-serif;font-size:80%;" 
           </div>
             
         </div>
-        <canvas id="canvas" class="col-8"></canvas>
+        <canvas id="canvas" class="col-8" style="padding:0;"></canvas>
       </div>
     </div>
 
     <!-- Optional JavaScript -->
     <!-- jQuery first, then Popper.js, then Bootstrap JS -->
     <script src="https://code.jquery.com/jquery-3.3.1.min.js" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
 
     <script src="pan.js" type="text/javascript"></script>

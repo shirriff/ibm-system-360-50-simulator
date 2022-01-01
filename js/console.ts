@@ -1,42 +1,95 @@
+let canvas;
+let ctx;
 let set = 0;
 var canvasWidth = 0, canvasHeight = 0;
-var imgWidth = 0, imgHeight = 0;
 let rollerPos = [1, 1, 1, 1]; // Positions of the four rollers
 let consoleImg = undefined; // The image of the console
 let imatrix = null; // Inverted transformation matrix.
 
 let lampTest: boolean = false;
 
-// Resize isn't really working
+// Handle a window resize: adjust the canvas size and then redraw
 function resize() {
-  canvasHeight = window.innerHeight - $("#nav").height();
   $("#sidebar").height(window.innerHeight - $("#nav").height());
-  canvasWidth = window.innerWidth - $("#sidebar").width();
-  canvas.style.width = 2 * canvasWidth + "px";
-  canvas.style.height = 2 * canvasHeight + "px";
-  console.log(canvasHeight, canvasWidth, canvas.style.width, canvas.style.height);
+  // canvas width is the number of logical pixels, clientWidth is the number of pixels occupied by the canvas.
+  canvasWidth = $("#canvas").width();
+  canvasHeight = $("#canvas").height();
+  // canvas.style.width =  canvasWidth + "px"; // Physical size
+  // canvas.style.height = canvasHeight + "px";
+  canvas.width = canvas.clientWidth * SCALE; // Number of logical pixels in canvas
+  canvas.height = canvas.clientHeight * SCALE;
+
+  // Scale to fit the image: Initialize cameraOffset, cameraZoom
+  cameraOffset = { x: canvas.clientWidth/2, y: canvas.clientHeight/2 }
+  console.log('cameraOffset', cameraOffset);
+  cameraZoom = Math.min(canvas.clientHeight / consoleImg.height, canvas.clientWidth / consoleImg.width) * 1;
+  MIN_ZOOM = cameraZoom; // Don't zoom too small
+
   draw();
+}
+
+let oldCameraZoom = undefined;
+let oldCameraOffset = undefined;
+// Avoid zoom/pan going too wild.
+function validateCamera() {
+  if (oldCameraZoom != undefined) {
+    if (0) {
+      cameraZoom = oldCameraZoom;
+      cameraOffset = oldCameraOffset;
+    }
+  }
+  oldCameraOffset = cameraOffset;
+  oldCameraZoom = cameraZoom;
+  // Figure out where edges of image are going to appear on the screen
+  // console.log('cameraZoom', cameraZoom, 'canvasWidth', canvasWidth, 'canvasHeight', canvasHeight, 'cameraOffset', cameraOffset.x, cameraOffset.y, 'img', consoleImg.width, consoleImg.height);
+  
+}
+
+// Assume canvas.style.width, canvas.style.height are set to the desired physical dimensions.
+// Coordinates: 
+//   cameraOffset is set to the x,y offset values in screen coordinates. So (clientWidth/2, clientHeight/2) for centered drawing origin. (0, 0) for origin in the upper left.
+// cameraZoom is set to the zoom factor.
+function draw()
+{
+  validateCamera();
+
+  // Clear
+  // ctx.save();
+  // ctx.setTransform(1, 0, 0, 1, 0, 0); // Identity
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  // ctx.restore();
+
+
+  // First, set up the transform based on the camera position
+  ctx.setTransform(1, 0, 0, 1, 0, 0); // Identity
+  // canvas width is the number of logical pixels, clientWidth is the number of pixels occupied by the canvas.
+  ctx.scale(SCALE, SCALE);
+  ctx.translate( canvasWidth / 2, canvasHeight / 2);
+  ctx.scale(cameraZoom, cameraZoom) // Zoom around center of canvas
+  ctx.translate( -canvasWidth / 2 + cameraOffset.x, -canvasHeight / 2 + cameraOffset.y);
+
+  // Coordinate system: drawing origin = screen center + (camera - screen center) * zoom
+  // So drawing coordinate at center of screen is constant regardless of zoom
+
+  // window is centered on 0, 0. Translate to center image.
+  ctx.translate(-consoleImg.width / 2, -consoleImg.height / 2);
+  var matrix = ctx.getTransform();
+  imatrix = matrix.invertSelf(); // Remember inverted transformation matrix.
+
+  consoleDraw();
+
+  ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset the transform
 }
 
 /**
  * Draws the display.
+ * This function does the actual drawing; draw() sets up the transform.
  */
 function consoleDraw() {
-  // Clear
-  console.log('drawInt');
   ctx.save();
-  ctx.setTransform(1, 0, 0, 1, 0, 0); // Identity
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.restore();
-  // window is centered on 0, 0. Translate to center image.
-  ctx.translate(-imgWidth / 2, -imgHeight / 2);
-  var matrix = ctx.getTransform();
-  imatrix = matrix.invertSelf(); // Remember inverted transformation matrix.
-  ctx.save();
-  // ctx.scale(.5, .5); // Image is now double-sized
+  ctx.scale(0.5, 0.5); // Image is at double-resolution, inconveniently
   ctx.drawImage(consoleImg, 0, 0);
   ctx.restore();
-  ctx.scale(SCALE, SCALE); // Image is now double-sized
 
   // Draw rollers in their current positions. Each roller is drawn in two parts
   for (let r = 0; r < 4; r++) {
@@ -419,21 +472,29 @@ const lights: { [name: string]: [number, number, string?] } = {
 "60z4": [1159, 541, red],
 };
 
-let rollerImgs = [];
+let rollerImgs = []; // Array of Array of images
 /**
  * Loads all the roller images: 8 positions for 8 half-rollers.
  * The images are stored in rollerImgs.
+ * Returns a Promise, resolved when the images are loaded.
  */
-function initRollers() {
+async function initRollers() : Promise<void> {
+  let promises = [];
   for (let roller = 1; roller <= 8; roller++) {
     let imgs = [];
     for (let pos = 1; pos <= 8; pos++) {
-      let img = new Image;
-      img.src = "imgs/roller-" + roller + "-" + pos + ".jpg";
-      imgs.push(img);
+      let promise = new Promise((resolve, reject) => {
+        let img = new Image();
+        imgs.push(img);
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = "imgs/roller-" + roller + "-" + pos + ".jpg";
+      });
+      promises.push(promise);
     }
     rollerImgs.push(imgs);
   }
+  return Promise.all(promises).then(x => {console.log("initRollers complete");});
 }
 
 // Linearly interpolates between x0 and x1. Assume n points in total and we select point i.
@@ -444,16 +505,26 @@ function interp(x0: number, x1: number, n: number, i: number) {
 
 /**
  * Configures the lights and switch positions.
+ * Returns a Promise, resolved when everything is loaded.
  */
-function consoleInit() {
-  consoleImg = new Image;
-  consoleImg.addEventListener("load", function () {
-    imgWidth = consoleImg.width;
-    imgHeight = consoleImg.height;
-    draw();
+async function loadConsole() : Promise<void> {
+  let consolePromise = new Promise((resolve, reject) => {
+    consoleImg = new Image;
+    consoleImg.onload = resolve;
+    consoleImg.onerror = reject;
+    consoleImg.src = "imgs/console.jpg";
   });
-  consoleImg.src = "imgs/console.jpg";
-  initRollers();
+
+  let rollerPromise = initRollers();
+
+  await rollerPromise;
+  await consolePromise;
+}
+
+// Initialize the console variables and handlers.
+function initConsole() {
+  canvas = <HTMLCanvasElement> document.getElementById("canvas")
+  ctx = canvas.getContext('2d')
 
   // Roller lights
   for (let row = 0; row < 4; row++) {
@@ -539,6 +610,7 @@ function consoleInit() {
       $('#canvas').css('cursor', 'default');
     }
   });
+  $(window).resize(resize); // resize handle
 }
 
 /**
