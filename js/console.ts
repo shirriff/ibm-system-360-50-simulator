@@ -28,23 +28,25 @@ function resize() {
   draw();
 }
 
-let oldCameraZoom = undefined;
-let oldCameraOffset = undefined;
 // Avoid zoom/pan from zooming the image out of the screen.
 // If one of the edges of the image will go past the center, pull it back.
 function validateCamera() {
-  // Figure out where the edge is going to be
-  if (oldCameraZoom != undefined) {
-    if (0) {
-      cameraZoom = oldCameraZoom;
-      cameraOffset = oldCameraOffset;
-    }
+  // Want to make sure that the edge of the image doesn't go past the center (as an arbitrary limit)
+  // (canvasCoord + (cameraOffset - center)) * zoom + center = screen pixel
+  const minXoffset = canvasWidth / 2 - consoleImg.width / 2;
+  const maxXoffset = canvasWidth / 2 + consoleImg.width / 2;
+  const minYoffset = canvasHeight / 2 - consoleImg.height / 2;
+  const maxYoffset = canvasHeight / 2 + consoleImg.height / 2;
+  if (cameraOffset.x > maxXoffset) {
+    cameraOffset.x = maxXoffset;
+  } else if (cameraOffset.x < minXoffset) {
+    cameraOffset.x = minXoffset;
   }
-  oldCameraOffset = cameraOffset;
-  oldCameraZoom = cameraZoom;
-  // Figure out where edges of image are going to appear on the screen
-  // console.log('cameraZoom', cameraZoom, 'canvasWidth', canvasWidth, 'canvasHeight', canvasHeight, 'cameraOffset', cameraOffset.x, cameraOffset.y, 'img', consoleImg.width, consoleImg.height);
-  
+  if (cameraOffset.y > maxYoffset) {
+    cameraOffset.y = maxYoffset;
+  } else if (cameraOffset.y < minYoffset) {
+    cameraOffset.y = minYoffset;
+  }
 }
 
 // Assume canvas.style.width, canvas.style.height are set to the desired physical dimensions.
@@ -73,7 +75,9 @@ function draw()
   var matrix = ctx.getTransform();
   imatrix = matrix.invertSelf(); // Remember inverted transformation matrix.
 
+  ctx.save();
   consoleDraw();
+  ctx.restore();
 }
 
 /**
@@ -621,8 +625,6 @@ function coords(e) {
   const yscaled = (e.clientY - rect.top) * SCALE;
   const x = xscaled * imatrix.a + yscaled * imatrix.c + imatrix.e;
   const y = xscaled * imatrix.b + yscaled * imatrix.d + imatrix.f;
-  console.log("click", x, y, "scaled", Math.round(x / SCALE), Math.round(y / SCALE));
-  console.log(consoleImg.width, consoleImg.height);
   // Convert from coordinates with 0 in screen center to coordinates relative to the image
   return [Math.round((x + consoleImg.width / 2) / SCALE), Math.round((y + consoleImg.height / 2) / SCALE)];
 }
