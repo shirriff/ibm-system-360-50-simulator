@@ -1,16 +1,16 @@
-var running = 0;
-var skipping: number;
-var state = {};
-var then;
-var memactive = false;
-var speed;
-var seenInstructions;
+var running: boolean = false;
+var skipping: boolean;
+var state: {[key: string]: any} = {};
+var then: number; // Time value
+var memactive: boolean = false;
+var speed: number;
+var seenInstructions: {[key: string]: number};
 // Override alert so simulator will stop if an error is hit.
 // https://stackoverflow.com/questions/1729501/javascript-overriding-alert
 let alerts = 0;
 (function (proxied) {
     window.alert = function () {
-        running = 0; // Stop the simulator
+        running = false; // Stop the simulator
         console.log('stopping');
         return proxied.apply(this, arguments);
     };
@@ -22,7 +22,7 @@ window.onerror = function err(errMsg, url, lineNumber) {
     }
 };
 
-let data = undefined;
+let data: {} = undefined; // The microcode data
 
 // Load images and microcode data. This is the main entry point.
 function loadStuff() {
@@ -87,7 +87,7 @@ function initialize() {
     });
     count = 0;
     speed = 500; // ms
-    skipping = 0;
+    skipping = false;
     stopAnimate();
     seenInstructions = {};
     state = createState();
@@ -125,29 +125,20 @@ function mem() {
     $('#divmem').html(result.join('\n'));
 }
 
-function stopAnimate() {
-    running = 0;
-    skipping = 0;
+function stopAnimate(): void {
+    running = false;
+    skipping = false;
     $("#control").text('Run');
 }
-function startAnimate() {
+function startAnimate(): void {
     $("#control").text('Stop');
     powerOff = false;
-    running = 1;
+    running = true;
     then = 0;
     animate();
 }
-// Positioning dst xoff pixels right of src
-function posx(src, dst, xoff) {
-    $(dst).css("top", $(src).css("top"));
-    $(dst).css("left", $(src).css("left"));
-    $(dst).css("left", "+=" + xoff);
-}
-function posy(src, dst, xoff) {
-    $(dst).css("top", $(src).css("top"));
-    $(dst).css("top", "+=" + xoff);
-}
-function animate() {
+
+function animate(): void{
     if (!running) {
         return;
     }
@@ -168,7 +159,7 @@ function animate() {
                 var breakpoint = parseInt(breakpoint_s, 10);
                 if ((breakpoint && state['ROAR'] == breakpoint) ||
                     (!breakpoint && !(state['ROAR'] in seenInstructions))) {
-                    skipping = 0;
+                    skipping = false;
                     speed = 500;
                     stopAnimate();
                     return;
@@ -238,7 +229,7 @@ function step() {
 // Run at high speed until a new instruction is encountered
 function skip() {
     speed = 0;
-    skipping = 1;
+    skipping = true;
     startAnimate();
 }
 

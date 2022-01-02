@@ -1,16 +1,16 @@
-let canvas;
-let ctx;
-let set = 0;
+let canvas: HTMLCanvasElement;
+let ctx: CanvasRenderingContext2D;
+let set: number = 0;
 var canvasWidth = 0, canvasHeight = 0;
 let rollerPos = [1, 1, 6, 1]; // Positions of the four rollers
-let consoleImg = undefined; // The image of the console
+let consoleImg: InstanceType<typeof Image> = undefined; // The image of the console
 let imatrix = null; // Inverted transformation matrix.
 
 let lampTest: boolean = false;
 let powerOff: boolean = false;
 
 // Handle a window resize: adjust the canvas size and then redraw
-function resize() {
+function resize() : void {
   $("#sidebar").height(window.innerHeight - $("#nav").height());
   // canvas width is the number of logical pixels, clientWidth is the number of pixels occupied by the canvas.
   canvasWidth = $("#canvas").width();
@@ -31,7 +31,7 @@ function resize() {
 
 // Avoid zoom/pan from zooming the image out of the screen.
 // If one of the edges of the image will go past the center, pull it back.
-function validateCamera() {
+function validateCamera() : void {
   // Want to make sure that the edge of the image doesn't go past the center (as an arbitrary limit)
   // (canvasCoord + (cameraOffset - center)) * zoom + center = screen pixel
   const minXoffset = canvasWidth / 2 - consoleImg.width / 2;
@@ -54,8 +54,7 @@ function validateCamera() {
 // Coordinates: 
 //   cameraOffset is set to the x,y offset values in screen coordinates. So (clientWidth/2, clientHeight/2) for centered drawing origin. (0, 0) for origin in the upper left.
 // cameraZoom is set to the zoom factor.
-function draw()
-{
+function draw() : void {
   validateCamera();
 
   // Clear
@@ -83,7 +82,7 @@ function draw()
  * Draws the display.
  * This function does the actual drawing; draw() sets up the transform.
  */
-function consoleDraw() {
+function consoleDraw() : void {
   ctx.save();
   // Coordinate system centered on (0,0) so shift image to be centered
   ctx.drawImage(consoleImg, -consoleImg.width / 2, -consoleImg.height / 2);
@@ -108,7 +107,7 @@ function consoleDraw() {
  *  Draws the various console lights.
  *  See SY22-2832-4_360-50Maint.pdf Appendix B for details.
  */
-function consoleDrawLights() {
+function consoleDrawLights() : void {
   // Initialize all lights to on or off based on the lampTest switch.
   if (powerOff) {
     lampTest = false;
@@ -257,7 +256,7 @@ function consoleDrawLights() {
       }
       bits[28] = (state['LSGNS'] == 1); // On for positive
       bits[29] = (state['RSGNS'] == 1); // On for positive
-      bits[30] = (state['CSTAT'] == "1"); // carry stat;
+      bits[30] = (state['CSTAT'] == 1); // carry stat; 
       bits[31] = false; // Retry threshold latch
       bits[32] = false; // Storage Ring R1;
       bits[33] = false; // Storage Ring R2;
@@ -290,7 +289,7 @@ function consoleDrawLights() {
 const dialPos = [5, 6, 8]; // Positions of the three dials
 
 // Draw the labels on the three Load Unit dials
-function drawLoadDials() {
+function drawLoadDials() : void {
   ctx.fillStyle = "#998b82";
   ctx.font = "9px arial";
   for (let dial = 0; dial < 3; dial++) {
@@ -309,7 +308,7 @@ function drawLoadDials() {
   }
 }
 
-function updateLoadDial(dial: number) {
+function updateLoadDial(dial: number) : void {
   if (dial == 0) {
     dialPos[dial] = (dialPos[dial] + 1) % 8; // First dial is only 0 through 7
   } else {
@@ -327,7 +326,7 @@ function updateLoadDial(dial: number) {
  * Note that System/360 numbers bits with 1 on the left and 32 on the right,
  * but that's not the case here.
  */
-function extractBits(value: number, nBits: number, bits: boolean[], offset: number, useParity: boolean) {
+function extractBits(value: number, nBits: number, bits: boolean[], offset: number, useParity: boolean) : void {
   if (value == undefined) {
     throw("bad value " + value);
   }
@@ -528,7 +527,7 @@ async function loadConsole() : Promise<void> {
 }
 
 // Initialize the console variables and handlers.
-function initConsole() {
+function initConsole() : void {
   canvas = <HTMLCanvasElement> document.getElementById("canvas")
   ctx = canvas.getContext('2d')
 
@@ -544,7 +543,7 @@ function initConsole() {
 
   // Linearly interpolates between x0 and x1. Assume n points in total and we select point i.
   // That is, for i=0, output x0; for i=N, output x1.
-  function interp(x0, x1, n, i) {
+  function interp(x0: number, x1: number, n: number, i: number): number {
     return (x1 - x0) / (n - 1) * i + x0;
   }
 
@@ -623,7 +622,7 @@ function initConsole() {
  * Returns the unscaled [x, y] coordinates for the event.
  * Uses global imatrix, the inverted transformation matrix.
  */
-function coords(e) {
+function coords(e: JQuery.Event) : [number, number] {
   const rect = $("#canvas")[0].getBoundingClientRect();
   const xscaled = (e.clientX - rect.left) * SCALE;
   const yscaled = (e.clientY - rect.top) * SCALE;
@@ -638,7 +637,7 @@ function coords(e) {
  * Tests if the event e is inside a region.
  * Returns the region or undefined.
  */
-function testLocation(e): (string | undefined) {
+function testLocation(e: JQuery.Event): (string | undefined) {
   // Need to translate mouse position from scaled coordinates to original coordinates
   const [x, y] = coords(e);
   for (let i = 0; i < regions.length; i++) {
@@ -651,7 +650,7 @@ function testLocation(e): (string | undefined) {
 
 // Called on click without drag
 // Need to distinguish dragging the image from clicking on it.
-function clicked(e) {
+function clicked(e: JQuery.Event) : void {
   const result = testLocation(e);
   if (result) {
     const parts = result.split("-");
@@ -677,7 +676,7 @@ function clicked(e) {
   }
 }
 
-function updateRoller(n: number) {
+function updateRoller(n: number) : void {
   rollerPos[n - 1] = (rollerPos[n - 1] % 8) + 1; // increment value 1-8, wrapping 8 to 1.
   draw();
 }
