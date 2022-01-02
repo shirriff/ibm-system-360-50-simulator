@@ -75,9 +75,7 @@ function draw()
   var matrix = ctx.getTransform();
   imatrix = matrix.invertSelf(); // Remember inverted transformation matrix.
 
-  ctx.save();
   consoleDraw();
-  ctx.restore();
 }
 
 /**
@@ -85,6 +83,7 @@ function draw()
  * This function does the actual drawing; draw() sets up the transform.
  */
 function consoleDraw() {
+  ctx.save();
   // Coordinate system centered on (0,0) so shift image to be centered
   ctx.drawImage(consoleImg, -consoleImg.width / 2, -consoleImg.height / 2);
 
@@ -101,6 +100,7 @@ function consoleDraw() {
 
   consoleDrawLights();
   drawLoadDials();
+  ctx.restore();
 }
 
 /**
@@ -418,7 +418,7 @@ const regions: [number, number, number, number, string][] = [
   [322, 1575, 332, 1630, "toggle-blank"],
   [370, 1575, 379, 1630, "toggle-sar-compare"],
   [418, 1575, 428, 1630, "toggle-disable-interval-timer"],
-  [466, 1575, 476, 1630, "toggle-lamp-test"],
+  [460, 1575, 476, 1630, "toggle-lamp-test"],
   [514, 1575, 524, 1630, "toggle-force-indicator"],
   [561, 1575, 571, 1630, "toggle-flt-mode"],
 
@@ -659,7 +659,7 @@ function clicked(e) {
       window.close();
     } else if (result == "toggle-lamp-test") {
       lampTest = !lampTest;
-      consoleDrawLights();
+      consoleDraw();
     }
   }
 }
