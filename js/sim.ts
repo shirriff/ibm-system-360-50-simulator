@@ -132,6 +132,7 @@ function stopAnimate() {
 }
 function startAnimate() {
     $("#control").text('Stop');
+    powerOff = false;
     running = 1;
     then = 0;
     animate();

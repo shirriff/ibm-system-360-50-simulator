@@ -2,11 +2,12 @@ let canvas;
 let ctx;
 let set = 0;
 var canvasWidth = 0, canvasHeight = 0;
-let rollerPos = [1, 1, 1, 1]; // Positions of the four rollers
+let rollerPos = [1, 1, 6, 1]; // Positions of the four rollers
 let consoleImg = undefined; // The image of the console
 let imatrix = null; // Inverted transformation matrix.
 
 let lampTest: boolean = false;
+let powerOff: boolean = false;
 
 // Handle a window resize: adjust the canvas size and then redraw
 function resize() {
@@ -109,11 +110,14 @@ function consoleDraw() {
  */
 function consoleDrawLights() {
   // Initialize all lights to on or off based on the lampTest switch.
+  if (powerOff) {
+    lampTest = false;
+  }
   for (const [name, [x, y, color]] of Object.entries(lights)) {
     drawLight(x, y, lampTest, color);
   }
 
-  if (lampTest) return;
+  if (lampTest || powerOff) return;
 
   let bits: boolean[] = new Array(36).fill(false);
   switch (rollerPos[0]) {
@@ -655,8 +659,17 @@ function clicked(e) {
       updateRoller(parseInt(parts[1], 10));
     } else if (parts[0] == "dial" && parts[1] == "load") {
       updateLoadDial(parseInt(parts[2], 10));
-    } else if (result == "epo") {
-      window.close();
+    } else if (result == "button-start") {
+      startAnimate();
+    } else if (result == "button-power-on") {
+      powerOff = false;
+      consoleDraw();
+    } else if (result == "epo" || result == "button-power-off") {
+      stopAnimate();
+      powerOff = true;
+      consoleDraw();
+    } else if (result == "button-stop") {
+      stopAnimate();
     } else if (result == "toggle-lamp-test") {
       lampTest = !lampTest;
       consoleDraw();
