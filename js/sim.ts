@@ -81,6 +81,10 @@ function initialize() {
     $("#topclose").on("click", function (e) {
         $("#topinfotext")[0].setAttribute('data-show', '');
     });
+    // Microcode info tooltip
+    $("#microinfo").on("click", function (e) {
+        microinfo();
+    });
     count = 0;
     speed = 500; // ms
     skipping = 0;
@@ -93,6 +97,11 @@ function initialize() {
     initZoom();
     initConsole();
     resize();
+}
+
+function microinfo() {
+  stopAnimate();
+  ($("#microcodeModal") as any).modal('show');
 }
 
 function mem() {
@@ -210,6 +219,8 @@ function step() {
     function fmt(uc : string[]) : string {
         return '<pre style="">' + uc.join('\n') + '</pre>';
     }
+    $("#microcodeModalBody").html(microcode1[1].join('<br/>'));
+    $("#microinfo").show();
     $("#microcode").html('Current micro-instruction:' + fmt(microcode1[0]) + 'Next micro-instruction:' + fmt(microcode2[0]));
     displayState(state);
     $("#divmsg").html(msg1 || msg2 || '');
