@@ -686,7 +686,7 @@ function decode(addr : string, entry) : [string[], string[]] {
     description.push(getDesc('LU'));
   }
   if (lv) {
-    description.push(getDesc('LV'));
+    description.push(getDesc('MV'));
   }
 
   if ((lu || entry['UL'] != 1) && entry['UL'] == entry['UR']) {
