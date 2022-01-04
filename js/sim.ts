@@ -42,7 +42,8 @@ function loadStuff() {
   Promise.all([dataPromise, consolePromise]).then(() => {
     console.log("loading complete");
     initialize();
-  }).catch(x => alert('Initialization failed'));
+  });
+  // }).catch(x => alert('Initialization failed ' + x));
 }
 
 // This is the main initialization routine, after the microcode data and images are loaded.
@@ -88,15 +89,14 @@ function initialize() {
     count = 0;
     speed = 500; // ms
     skipping = false;
-    stopAnimate();
     seenInstructions = {};
     state = createState();
     resetState(state);
-    console.log('XXX display divop1', getAddrFromField());
     displayState(state);
     initZoom();
     initConsole();
     resize();
+    stopAnimate();
 }
 
 function microinfo() {
@@ -127,13 +127,20 @@ function mem() {
 
 function stopAnimate(): void {
     running = false;
+    systemLight = false;
+    manualLight = true;
+    waitLight = false;
     skipping = false;
     $("#control").text('Run');
+    draw();
 }
 function startAnimate(): void {
     $("#control").text('Stop');
     powerOff = false;
     running = true;
+    systemLight = true;
+    manualLight = false;
+    waitLight = false;
     then = 0;
     animate();
 }

@@ -4,10 +4,18 @@ let set: number = 0;
 var canvasWidth = 0, canvasHeight = 0;
 let rollerPos = [1, 1, 6, 1]; // Positions of the four rollers
 let consoleImg: InstanceType<typeof Image> = undefined; // The image of the console
+let powerOnImg: InstanceType<typeof Image> = undefined; // The image of the power-on button illuminated
 let imatrix = null; // Inverted transformation matrix.
 
 let lampTest: boolean = false;
 let powerOff: boolean = false;
+
+// Operator control light statuses
+let systemLight: boolean = false;
+let manualLight: boolean = false;
+let waitLight: boolean = false;
+let testLight: boolean = false;
+let loadLight: boolean = false;
 
 // Handle a window resize: adjust the canvas size and then redraw
 function resize() : void {
@@ -114,6 +122,10 @@ function consoleDrawLights() : void {
   }
   for (const [name, [x, y, color]] of Object.entries(lights)) {
     drawLight(x, y, lampTest, color);
+  }
+
+  if (lampTest || !powerOff) {
+    ctx.drawImage(powerOnImg, 2220 / SCALE, 3160 / SCALE, powerOnImg.width / SCALE, powerOnImg.height / SCALE);
   }
 
   if (lampTest || powerOff) return;
@@ -284,6 +296,13 @@ function consoleDrawLights() : void {
       break;
   }
   drawRollerLights(3, bits);
+
+  // Handle the operator control lights.
+  for (let i = 0; i < 5; i++) {
+    const [x, y, color] = lights['ipl-' + i];
+    const value = [systemLight, manualLight, waitLight, testLight, loadLight][i];
+    drawLight(x, y, value, color);
+  }
 }
 
 const dialPos = [5, 6, 8]; // Positions of the three dials
@@ -353,12 +372,11 @@ function extractBits(value: number, nBits: number, bits: boolean[], offset: numb
 
 /**
  * Draws the lights for the appropriate roller.
+ * The bits array contains the 36 light values.
  */
 function drawRollerLights(row: number, bits: boolean[]) {
   for (let pos = 0; pos < 36; pos++) {
-    const col = pos < 18 ? pos : pos + 1; // Account for the gap between the two groups
-    let x = interp(427, 1282, 37, col);
-    let y = interp(782, 1069, 4, row);
+    const [x, y, color] = lights["roller-" + row + "-" + pos];
     drawLight(x, y, bits[pos]);
   }
 }
@@ -421,7 +439,7 @@ const regions: [number, number, number, number, string][] = [
   [322, 1575, 332, 1630, "toggle-blank"],
   [370, 1575, 379, 1630, "toggle-sar-compare"],
   [418, 1575, 428, 1630, "toggle-disable-interval-timer"],
-  [460, 1575, 476, 1630, "toggle-lamp-test"],
+  [455, 1575, 476, 1630, "toggle-lamp-test"],
   [514, 1575, 524, 1630, "toggle-force-indicator"],
   [561, 1575, 571, 1630, "toggle-flt-mode"],
 
@@ -448,11 +466,11 @@ const regions: [number, number, number, number, string][] = [
   [1312, 1811, 1369, 1847, "button-load"],
 ];
 
-const red = "#ff0000";
-const yellow = "#ffff00";
-const green = "#00ff00";
-const white = "#ffeecc";
-const black = "#444444";
+const red = "#b6120a";
+const yellow = "#d1c722";
+const green = "#138978";
+const white = "#d3c7a1";
+const black = "#2d2415";
 const lights: { [name: string]: [number, number, string?] } = {
   "thermal-cpu": [214, 302, red],
   "thermal-stor": [238, 302, red],
@@ -520,10 +538,18 @@ async function loadConsole() : Promise<void> {
     consoleImg.src = "imgs/console.jpg";
   });
 
+  let powerOnPromise = new Promise((resolve, reject) => {
+    powerOnImg = new Image;
+    powerOnImg.onload = resolve;
+    powerOnImg.onerror = reject;
+    powerOnImg.src = "imgs/power-on.jpg";
+  });
+
   let rollerPromise = initRollers();
 
   await rollerPromise;
   await consolePromise;
+  await powerOnPromise;
 }
 
 // Initialize the console variables and handlers.
@@ -531,40 +557,41 @@ function initConsole() : void {
   canvas = <HTMLCanvasElement> document.getElementById("canvas")
   ctx = canvas.getContext('2d')
 
-  // Roller lights
-  for (let row = 0; row < 4; row++) {
-    for (let col = 0; col <= 36; col++) {
-      if (col == 18) continue;
-      let x = (1282 - 427) / 36 * col + 427;
-      let y = (1069 - 782) / 3 * row + 782;
-      lights["roller-" + row + "-" + col] = [x, y];
-    }
-  }
-
   // Linearly interpolates between x0 and x1. Assume n points in total and we select point i.
   // That is, for i=0, output x0; for i=N, output x1.
   function interp(x0: number, x1: number, n: number, i: number): number {
     return (x1 - x0) / (n - 1) * i + x0;
   }
 
+  // Roller lights
+  for (let row = 0; row < 4; row++) {
+    for (let col = 0; col < 36; col++) {
+      let xpos = col < 18 ? col : col + 1; // Account for the gap between the two groups
+      let x = interp(427, 1289, 37, xpos);
+      let y = interp(780, 1067, 4, row);
+      lights["roller-" + row + "-" + col] = [x, y];
+    }
+  }
+
   // Lights below, FLT, etc.
-  for (let col = 0; col <= 39; col++) {
-    if (col == 18 || col == 37 || col == 38) continue;
-    let x = interp(427, 1282, 37, col);
+  for (let col = 0; col <= 36; col++) {
+    if (col == 18) continue;
+    let x = interp(427, 1289, 37, col);
     let y = 1181;
     let color;
-    if (col == 1 || col == 3 || col == 17 || col == 24 || col == 26 || col == 28 || col == 30 || col == 34 || col == 36 ||  col == 39) {
+    if (col == 1 || col == 3 || col == 17 || col == 24 || col == 26 || col == 28 || col == 30 || col == 34 || col == 36) {
       color = red;
     } else {
       color = white;
     }
-    lights["flt" + col] = [x, y];
+    lights["flt" + col] = [x, y, color];
   }
+  lights["master-chk"] = [1358, 1179, red];
 
   // SDR lights
   for (let col = 0; col <= 36; col++) {
     if (col == 18) continue;
-    let x = interp(427, 1282, 37, col);
+    let x = interp(427, 1285, 37, col);
     let y = 1230;
     lights["sdr" + col] = [x, y];
   }
@@ -572,8 +599,8 @@ function initConsole() : void {
   // SDR switches
   for (let col = -1; col <= 36; col++) {
     if (col == 9 || col == 18 || col == 19 || col == 28 || col == 37) continue;
-    let x = interp(427, 1282, 37, col);
-    let y = 1293;
+    let x = interp(427, 1285, 37, col);
+    let y = 1292;
     regions.push([x - 5, y - 25, x + 5, y + 25, "switch-sdr-" + col]);
   }
 
@@ -581,7 +608,7 @@ function initConsole() : void {
   for (let col = 9; col <= 36; col++) {
     if (col == 18) continue;
     if (col == 37 || col == 38 || col == 39) continue;
-    let x = interp(427, 1282, 37, col);
+    let x = interp(427, 1285, 37, col);
     let y = 1359
     lights["iar-" + col] = [x, y];
   }
@@ -589,7 +616,7 @@ function initConsole() : void {
   // IAR switches
   for (let col = 10; col <= 36; col++) {
     if (col == 18 || col == 19 || col == 28 || col == 37) continue;
-    let x = interp(427, 1282, 37, col);
+    let x = interp(427, 1285, 37, col);
     let y = 1424;
     regions.push([x - 5, y - 25, x + 5, y + 25, "switch-iar-" + col]);
   }
@@ -598,7 +625,7 @@ function initConsole() : void {
   for (let col = 0; col <= 4; col++) {
     let x = interp(1203, 1301, 5, col);
     let y = 1830;
-    const color = [red, green, yellow, red, white][col];
+    const color = [white, white, white, red, white][col];
     lights["ipl-" + col] = [x, y, color];
   }
 
@@ -658,6 +685,8 @@ function clicked(e: JQuery.Event) : void {
       updateRoller(parseInt(parts[1], 10));
     } else if (parts[0] == "dial" && parts[1] == "load") {
       updateLoadDial(parseInt(parts[2], 10));
+    } else if (result == "button-load") {
+      ipl();
     } else if (result == "button-start") {
       startAnimate();
     } else if (result == "button-power-on") {
@@ -674,6 +703,20 @@ function clicked(e: JQuery.Event) : void {
       consoleDraw();
     }
   }
+  if (lampTest && result != "toggle-lamp-test") {
+    lampTest = false; // Clear lamp test if anything clicked. (real behavior is spring-loaded).
+    consoleDraw();
+  }
+}
+
+// Initial Program Load
+function ipl() {
+  stopAnimate();
+  // Should select program based on dialPos values.
+  // Should turn off manual light, turn on load light. If load is successful, turn off load light and start CPU. (Principles of Operation p118)
+  // We'll just reset and start up for now.
+  resetState(state);
+  startAnimate();
 }
 
 function updateRoller(n: number) : void {
