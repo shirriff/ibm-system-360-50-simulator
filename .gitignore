@@ -10,7 +10,6 @@ out/
 *.map
 js.old/*
 js/*.js
-js/data.json
 js/display.html
 js/jquery.min.js
 js/node_modules/
