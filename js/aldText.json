@@ -1,0 +1,802 @@
+{
+    "QA110": [
+        "RR,RX control (0-,4-) ",
+        "2nd level I-fetch"
+    ],
+    "QA111": [
+        "RR,RX fixed point (1-,5-)",
+        "2nd level I-fetch"
+    ],
+    "QA400": [
+        "SVC and SPM \u2013 RR control ops",
+        ""
+    ],
+    "QA500": [
+        "Branch And Link RR, RX",
+        ""
+    ],
+    "QA700": [
+        "Branch On Condition (BC,BCR)",
+        "Branch On Count (BCT,BCTR)"
+    ],
+    "QA800": [
+        "Storage Protect Instrs SSK,ISK",
+        "Set Key, Insert Key"
+    ],
+    "QB100": [
+        "Fxd Pt RR Loads",
+        "LPR LNR LTR LCR LR"
+    ],
+    "QB400": [
+        "RR,RX AND,OR,EXCL OR.",
+        ""
+    ],
+    "QB500": [
+        "Compares \u2013 Algebraic/Logical",
+        "RR,RX (CR,C CLR,CL)"
+    ],
+    "QB730": [
+        "Add/Subtract RR/RX (A,AR,S,SR)",
+        "Also common masked trap sens."
+    ],
+    "QB750": [
+        "Logical Add/Subtract RR/RX",
+        "(AL,SL ALR,SLR)"
+    ],
+    "QB800": [
+        "Fixed Point Multiply",
+        "Half word RR and RX format"
+    ],
+    "QB801": [
+        "Fixed Point Multiply",
+        "Post-loop routine"
+    ],
+    "QB900": [
+        "Fixed Point Divide (DR,D)",
+        "Pre-loop complementing"
+    ],
+    "QB901": [
+        "Fixed Point Divide (DR,D)",
+        "Divide loop"
+    ],
+    "QB902": [
+        "Fixed Point Divide (DR,D)",
+        "Post loop complementing"
+    ],
+    "QC030": [
+        "Second level I-Fetch",
+        "Inverse move op decode E8(SS)"
+    ],
+    "QC031": [
+        "Second level I-Fetch",
+        "Inverse move data address decode"
+    ],
+    "QC032": [
+        "Inverse move instruction (SS)",
+        "Data handling"
+    ],
+    "QE100": [
+        "RX control-load address",
+        "Insert/store character"
+    ],
+    "QE400": [
+        "Execute instruction",
+        "Inverse move"
+    ],
+    "QE555": [
+        "Half-word store (STH)",
+        ""
+    ],
+    "QE580": [
+        "Halfword ops \u2013 common setup",
+        "LH CH AH SH MH"
+    ],
+    "QE800": [
+        "Convert to decimal",
+        "from binary, CVD"
+    ],
+    "QE802": [
+        "Convert to decimal",
+        "from binary, CVD"
+    ],
+    "QE900": [
+        "Convert to binary (CVB)",
+        "from decimal"
+    ],
+    "QE901": [
+        "Convert to binary (CVB)",
+        "from decimal"
+    ],
+    "QF100": [
+        "Fixed point RX load/store",
+        ""
+    ],
+    "QG010": [
+        "Floating point operations",
+        "2nd level decode"
+    ],
+    "QG100": [
+        "Long/short floating point loads",
+        "that refer to sign"
+    ],
+    "QG200": [
+        "Floating point halve",
+        "RR long and short"
+    ],
+    "QG300": [
+        "Floating point load/store",
+        "RR/RX format, long/short"
+    ],
+    "QG400": [
+        "Floating point add/subtract/compare",
+        "RR and RX format, long/short"
+    ],
+    "QG401": [
+        "Floating point add/subtract/compare",
+        "Determine the exponent difference"
+    ],
+    "QG402": [
+        "Floating point add/subtract/compare",
+        "Calculate exponent difference-RR long"
+    ],
+    "QG403": [
+        "Floating point add/subtract/compare",
+        "Pre-shift 0 through 5"
+    ],
+    "QG404": [
+        "Floating point add/subtract/compare",
+        "Pre-shift 6 through 8"
+    ],
+    "QG405": [
+        "Floating point add/subtract/compare",
+        "Pre-shift 9 through 16"
+    ],
+    "QG406": [
+        "Floating point add/subtract/compare",
+        "Short add norm/complement of fraction"
+    ],
+    "QG407": [
+        "Long floating add of fraction",
+        "with tests for complement/norm"
+    ],
+    "QG408": [
+        "Long floating add/subtract/compare",
+        ""
+    ],
+    "QG409": [
+        "Floating point add/subtract",
+        "Zero test, check mask"
+    ],
+    "QG416": [
+        "Floating point add/subtract/compare",
+        "Recompute guard digit"
+    ],
+    "QG420": [
+        "Floating point add/subtract/compare",
+        "Recompute guard digit long"
+    ],
+    "QG500": [
+        "Floating point divide, short",
+        "RR and RX, prenormalize"
+    ],
+    "QG501": [
+        "Floating point divide (N DER,NDE)",
+        "Exponent subtraction"
+    ],
+    "QG502": [
+        "Floating point divide (N DER,NDE)",
+        "Divide loop for fraction"
+    ],
+    "QG503": [
+        "Floating point divide (N DER,NDE)",
+        "Post-normalize"
+    ],
+    "QG700": [
+        "Floating point multiply RR",
+        "and RX format, long/short"
+    ],
+    "QG701": [
+        "Floating point multiply",
+        "Multiply loop"
+    ],
+    "QG702": [
+        "Floating point multiply",
+        "Post-normalize/zero test"
+    ],
+    "QG800": [
+        "Floating point long multiply, divide",
+        "(MDR, MD, DDR, DD) \u2013 prenormalize"
+    ],
+    "QG801": [
+        "Floating point long multiply, divide",
+        "Multiplier, divider prenormalize, exponent arithmetic"
+    ],
+    "QG802": [
+        "Floating point long multiply MDR,MD",
+        "Multiply loop"
+    ],
+    "QG803": [
+        "Floating point long multiply MDR,MD",
+        "Multiply loop"
+    ],
+    "QG804": [
+        "Floating point long multiply MDR,MD",
+        "End routine \u2013 postnormalize"
+    ],
+    "QG805": [
+        "Floating point long multiply MDR,MD",
+        "Generate multiplicand multiples"
+    ],
+    "QG900": [
+        "Floating point long divide, DDR and DD",
+        "Exponent arithmetic, divide loop"
+    ],
+    "QG902": [
+        "Floating point long divide, DDR and DD",
+        "Divide loop, end routine"
+    ],
+    "QJ011": [
+        "RS,SI 2nd level fetch",
+        "(8-,9-)"
+    ],
+    "QJ080": [
+        "Shift Right Logical (SRL)",
+        ""
+    ],
+    "QJ090": [
+        "Shift Left Logical (SLL)",
+        ""
+    ],
+    "QJ100": [
+        "Shift Right Algebraic (SRA)",
+        ""
+    ],
+    "QJ110": [
+        "Shift Left Algebraic (SLA)",
+        ""
+    ],
+    "QJ120": [
+        "Shift Right Double Logical (SRDL)",
+        ""
+    ],
+    "QJ130": [
+        "Shift Left Double Logical (SLDL)",
+        ""
+    ],
+    "QJ140": [
+        "Shift Right Double Algebraic (SRDA)",
+        ""
+    ],
+    "QJ150": [
+        "Shift Left Double Algebraic (SLDA)",
+        ""
+    ],
+    "QJ200": [
+        "Load PSW (LPSW)",
+        "Set System Mask (SSM)"
+    ],
+    "QJ600": [
+        "Branch On Index (BXH, BXLE)",
+        ""
+    ],
+    "QK222": [
+        "SI Move and logical ops",
+        "MVI NI OI XI"
+    ],
+    "QK300": [
+        "Test And Set",
+        ""
+    ],
+    "QK555": [
+        "SI Compare (CLI)",
+        "Test Under Mask (TUM)"
+    ],
+    "QK666": [
+        "Load, Store Multiple",
+        "(LM, STM)"
+    ],
+    "QK700": [
+        "Start I/O, Halt I/O, Test I/O",
+        "Test Channel, Proc with interrupt"
+    ],
+    "QK701": [
+        "I/O op countdown loop and",
+        "responses"
+    ],
+    "QK702": [
+        "Time out check loop",
+        "IB Test on Start I/O"
+    ],
+    "QK703": [
+        "Multiplex channel interrupt handling",
+        ""
+    ],
+    "QK704": [
+        "Multiplex channel interrupt handling",
+        ""
+    ],
+    "QK705": [
+        "Load 64 \u2013 CPU mode",
+        ""
+    ],
+    "QK800": [
+        "IPL",
+        ""
+    ],
+    "QK801": [
+        "IPL status analysis",
+        ""
+    ],
+    "QM111": [
+        "Invalid ops",
+        ""
+    ],
+    "QM112": [
+        "Invalid ops",
+        ""
+    ],
+    "QN111": [
+        "Invalid op groups-inverse move",
+        "(A- B- C- E-)"
+    ],
+    "QP010": [
+        "2nd Level I-Fetch for VFL",
+        "character ops"
+    ],
+    "QP100": [
+        "Compare Logical (SS)",
+        ""
+    ],
+    "QP102": [
+        "Compare Logical (SS)",
+        ""
+    ],
+    "QP200": [
+        "Edit, Edit And Mark (init)",
+        "Left digit. S off, inv, move"
+    ],
+    "QP202": [
+        "Edit, Edit And Mark (ED, EDMK)",
+        "Left source digit. S on"
+    ],
+    "QP203": [
+        "Edit, Edit And Mark (ED, EDMK)",
+        "Right source digit. S off"
+    ],
+    "QP204": [
+        "Edit, Edit And Mark (ED, EDMK)",
+        "Right source digit. S on"
+    ],
+    "QP205": [
+        "Edit, Edit And Mark (ED, EDMK)",
+        "Store, Fetch pattern, source"
+    ],
+    "QP206": [
+        "Edit, Edit And Mark (ED, EDMK)",
+        "Shift cond register. Gen reg 1"
+    ],
+    "QP800": [
+        "Logical and move instruction (SS)",
+        "Address tests. Initialization"
+    ],
+    "QP810": [
+        "Logical and move instruction (SS)",
+        "Main loop"
+    ],
+    "QP820": [
+        "Logical and move instruction (SS)",
+        "Overlap routine"
+    ],
+    "QP830": [
+        "Logical and move instruction (SS)",
+        "End routine"
+    ],
+    "QP900": [
+        "Translate, Translate And Test",
+        "(TR, TRT)"
+    ],
+    "QS010": [
+        "Decimal arithmetic",
+        "Second level I Fetch"
+    ],
+    "QS110": [
+        "Decimal Add, AP, Subtract, AP",
+        "First word assembly"
+    ],
+    "QS112": [
+        "Decimal Add, Subtract. OP2 assembly",
+        "Begin OP1 validity check"
+    ],
+    "QS114": [
+        "Decimal Add, AP, Subtract, SP",
+        "Add, Subtract inner loop"
+    ],
+    "QS116": [
+        "Decimal Add, AP, Subtract, SP",
+        "G2 counter less than four"
+    ],
+    "QS118": [
+        "Decimal Add, AP, Subtract, SP",
+        "G1 counter less than zero, check overflow"
+    ],
+    "QS120": [
+        "Decimal Add, AP, Subtract, SP",
+        "Recomplement and end routine"
+    ],
+    "QS200": [
+        "Compare Decimal (CP)",
+        "Comparison of first word operand 1"
+    ],
+    "QS202": [
+        "Compare Decimal (CP)",
+        "Comparison of first word operand 1"
+    ],
+    "QS300": [
+        "Divide Decimal (DP)",
+        "Dividend assembly"
+    ],
+    "QS302": [
+        "Divide Decimal (DP) sign insertion",
+        "Single word divisor routine"
+    ],
+    "QS304": [
+        "Divide Decimal (DP)",
+        "Double word divisor routine"
+    ],
+    "QS308": [
+        "Divide Decimal (DP)",
+        "Quotient store. Dividend fetch"
+    ],
+    "QS400": [
+        "Divide Decimal (DP)",
+        "Remainder assembly"
+    ],
+    "QS402": [
+        "Multiply, Divide Decimal (MP, DP)",
+        "Operand 2 assembly (multiplicand/divisor)"
+    ],
+    "QS404": [
+        "Multiply, Divide Decimal-multiplicand doubling, set",
+        "quotient sign, select multiplier digit"
+    ],
+    "QS406": [
+        "Multiply Decimal (MP)",
+        "Final product assembly"
+    ],
+    "QS500": [
+        "Pack, Move With Offset",
+        ""
+    ],
+    "QS502": [
+        "Pack, Move With Offset",
+        ""
+    ],
+    "QS600": [
+        "Unpack",
+        "Non-overlapped fields"
+    ],
+    "QS601": [
+        "Unpack-operand1 storage",
+        "Operand2 fetch, zero insertion"
+    ],
+    "QS602": [
+        "Unpack",
+        "Overlapped fields"
+    ],
+    "QS705": [
+        "Zero And Add",
+        ""
+    ],
+    "QS706": [
+        "Zero And Add",
+        ""
+    ],
+    "QT100": [
+        "Instruction fetch 1st cycle",
+        ""
+    ],
+    "QT105": [
+        "Instruction fetch",
+        "Free entry"
+    ],
+    "QT110": [
+        "Instruction fetch",
+        "Second cycle"
+    ],
+    "QT115": [
+        "Instruction fetch-Inverse move",
+        "Completion of first level"
+    ],
+    "QT120": [
+        "Branch entry to I-Fetch",
+        ""
+    ],
+    "QT200": [
+        "Halt loop and exception sensing",
+        ""
+    ],
+    "QT210": [
+        "Timer update and external",
+        "interrupt"
+    ],
+    "QT220": [
+        "Store and display",
+        ""
+    ],
+    "QT300": [
+        "ROS forced addresses for prog",
+        "traps \u2013 addr, data, spec, prot"
+    ],
+    "QT310": [
+        "Trap sequence-store PSW",
+        "Inverse move"
+    ],
+    "QU100": [
+        "System reset, IPL, PSW restart",
+        ""
+    ],
+    "QV100": [
+        "Start I/O rutine",
+        "Selector channel"
+    ],
+    "QV101": [
+        "Trans in channel routine",
+        "Selector channel"
+    ],
+    "QV102": [
+        "CCW1 routine",
+        "Selector channel"
+    ],
+    "QV103": [
+        "CCW2 routine",
+        "Selector channel"
+    ],
+    "QV104": [
+        "Write fetch routine",
+        "Selector channel"
+    ],
+    "QV105": [
+        "Read store routine",
+        "Selector channel"
+    ],
+    "QV106": [
+        "End update routine",
+        "Selector channel"
+    ],
+    "QV107": [
+        "Interrupt routine",
+        "Selector channel"
+    ],
+    "QV108": [
+        "Local store write routine",
+        "Selector channel"
+    ],
+    "QV109": [
+        "Local store read routine",
+        "Selector channel"
+    ],
+    "QV110": [
+        "Unit address fetch routine",
+        "Selector channel"
+    ],
+    "QV111": [
+        "Compare routine",
+        "Selector channel"
+    ],
+    "QV112": [
+        "Restore CPU mode",
+        "Selector and multiplex channel"
+    ],
+    "QV113": [
+        "Read store routine",
+        "Selector channel"
+    ],
+    "QV210": [
+        "Multiplex channel routine-A0",
+        "Count fetch and update"
+    ],
+    "QV220": [
+        "Multiplex channel routine-A1 data",
+        "Address fetch and update"
+    ],
+    "QV230": [
+        "Multiplex channel data handling",
+        "(Output) A2"
+    ],
+    "QV231": [
+        "Multiplex channel routine-A2 data",
+        "Handling 1(input)"
+    ],
+    "QV240": [
+        "Multiplex channel data handling 2",
+        "(Output) A3"
+    ],
+    "QV241": [
+        "Multiplex channel routine-A3 data",
+        "Handling 2(Read Forward)"
+    ],
+    "QV242": [
+        "Multiplex channel routine-A3 data",
+        "Handling 2(Stop or Skip)"
+    ],
+    "QV243": [
+        "Multiplex channel routine-A3 data",
+        "Handling 2(Read Backward)"
+    ],
+    "QV250": [
+        "Multiplex channel routine-A4end",
+        "Status analysis"
+    ],
+    "QV260": [
+        "Multiplex channel routine C0 PCI",
+        ""
+    ],
+    "QV270": [
+        "Multiplex channel routine 7 count",
+        "Equals zero analysis"
+    ],
+    "QV310": [
+        "Multiplex channel routine D1 channel",
+        "Control word 1 fetch"
+    ],
+    "QV320": [
+        "Multiplex channel routine D4/fetch",
+        "2nd half of channel control word"
+    ],
+    "QV321": [
+        "Multiplex channel routine D4 channel",
+        "control word 2 fetch"
+    ],
+    "QV330": [
+        "Command Chain Unit address",
+        "compare-D2-MPX"
+    ],
+    "QV340": [
+        "Multiplex channel routine D3 Command",
+        "Chain intial status analysis"
+    ],
+    "QV350": [
+        "Multiplex channel routine A5 Command Chain",
+        "end status analysis"
+    ],
+    "QV351": [
+        "Multiplex channel routine A5 Command",
+        "Chain end status analysis"
+    ],
+    "QV352": [
+        "Multiplex channel routine A5 Command",
+        "Chain end status analysis"
+    ],
+    "QV360": [
+        "Multiplex channel routine D0 command",
+        "Address fetch/store"
+    ],
+    "QV370": [
+        "Multiplex channel routine D7 data",
+        "chaining"
+    ],
+    "QV410": [
+        "Multiplex channel routine B0",
+        "Sequence control fetch"
+    ],
+    "QV420": [
+        "Multiplex channel start I/O unit",
+        "Select B1"
+    ],
+    "QV430": [
+        "Multiplex channel routine B2 start",
+        "I/O unit address compare"
+    ],
+    "QV440": [
+        "Multiplex channel routine B3 start",
+        "I/O status analysis"
+    ],
+    "QV460": [
+        "Multiplex channel routine B5 count",
+        "store"
+    ],
+    "QV470": [
+        "Multiplex channel routine B6 DA store",
+        ""
+    ],
+    "QV520": [
+        "Multiplex channel routine C1 test",
+        "I/O unit select 1"
+    ],
+    "QV530": [
+        "Multiplex channel routine C7 test",
+        "I/O unit select 2"
+    ],
+    "QV540": [
+        "Multiplex channel routine C2 test",
+        "I/O unit address compare"
+    ],
+    "QV550": [
+        "Multiplex channel routine C3 test",
+        "to accept status"
+    ],
+    "QV620": [
+        "Multiplex channel halt I/O unit select",
+        "Routine C6"
+    ],
+    "QV810": [
+        "Multiplex channel control unit busy",
+        "C5"
+    ],
+    "QV820": [
+        "Multiplex channel interrupt",
+        "Preparation routine A6"
+    ],
+    "QV830": [
+        "Multiplex channel load 64 prep (From Start ",
+        "I/O or Test I/O end QED) D5"
+    ],
+    "QV831": [
+        "Multiplex channel load 64 prep (From ",
+        "Test I/O no end QED) D5"
+    ],
+    "QV832": [
+        "Multiplex channel load 64 prep (From CU",
+        "busy or Halt I/O) D5"
+    ],
+    "QV840": [
+        "Multiplex channel check handling routine",
+        "B7"
+    ],
+    "QV850": [
+        "Multiplex channel routine C4",
+        "Control check"
+    ],
+    "QW111": [
+        "Bringing aids, keys to regs,",
+        "clear memory loops"
+    ],
+    "QW222": [
+        "All-ones and all-zeros words",
+        "Maintenance ID"
+    ],
+    "QY110": [
+        "Diagnose instruction",
+        ""
+    ],
+    "QY130": [
+        "Local store diagnostics",
+        ""
+    ],
+    "QY140": [
+        "Bump store, Invert SAR, reset",
+        "ERR register, FLT load call kernels"
+    ],
+    "QY150": [
+        "Force machine check",
+        "kernels"
+    ],
+    "QY310": [
+        "Scan In, Short Scan In, I/O",
+        "int scan in kernels"
+    ],
+    "QY410": [
+        "Log Out, Scan Out",
+        ""
+    ],
+    "QY420": [
+        "Log Out or Scan Out",
+        ""
+    ],
+    "QY430": [
+        "Log Out, Scan Out",
+        ""
+    ],
+    "QY440": [
+        "Reset multiplex UCW",
+        ""
+    ],
+    "QY450": [
+        "Log local store kernel",
+        ""
+    ],
+    "QY510": [
+        "FTL compare and branch",
+        ""
+    ]
+}

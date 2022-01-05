@@ -23,6 +23,7 @@ window.onerror = function err(errMsg, url, lineNumber) {
 };
 
 let data: {} = undefined; // The microcode data
+let aldText: {} = undefined; // Mapping from a microcode ALD sheet name (e.g. "QV220") to a textual description.
 
 // Load images and microcode data. This is the main entry point.
 function loadStuff() {
@@ -35,11 +36,20 @@ function loadStuff() {
     }).fail(reject);
   });
 
+  // Fetch the ALD data, store in aldText.
+  let aldPromise = new Promise((resolve, reject) => {
+      $.getJSON("aldText.json", function (indata) {
+          aldText = indata;
+          console.log("loaded ALD data");
+          resolve(0);
+    }).fail(reject);
+  });
+
   // Fetch the console images
   let consolePromise = loadConsole();
 
   // Continue when everything is loaded
-  Promise.all([dataPromise, consolePromise]).then(() => {
+  Promise.all([dataPromise, aldPromise, consolePromise]).then(() => {
     console.log("loading complete");
     initialize();
   });
@@ -211,8 +221,8 @@ function getHW(state, addr) {
 }
 // Perform a single microinstruction step
 function step(): void {
-    var saddr: string = getROARaddr();
-    var iaddr: number = parseInt(saddr, 16);
+    var saddr: string = getROARaddr(); // string ROAR address
+    var iaddr: number = parseInt(saddr, 16); // integer ROAR address
     state['ROAR'] = iaddr;
     count += 1;
     $("#count").text(count);
@@ -230,7 +240,16 @@ function step(): void {
     }
     $("#microcodeModalBody").html(microcode1[1].join('<br/>'));
     $("#microinfo").show();
-    $("#microcode").html('Current micro-instruction:' + fmt(microcode1[0]) + 'Next micro-instruction:' + fmt(microcode2[0]));
+    // Get the text description for the current ALD sheet
+    let desc = "";
+    const sheet = data[saddr]['sheet'];
+      if (sheet) {
+      const text = aldText[sheet];
+      if (text) {
+        desc = text.join('<br/>') + '<br/>';
+      }
+    }
+    $("#microcode").html(desc + fmt(microcode1[0]));
     displayState(state);
     $("#divmsg").html(msg1 || msg2 || '');
     if ([0x148, 0x149, 0x14a, 0x14c, 0x14e, 0x184, 0x185, 0x187, 0x188, 0x189, 0x19b].includes(state['ROAR'])) {
