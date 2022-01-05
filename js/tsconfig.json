@@ -4,6 +4,7 @@
         "outDir": "out"
     },
     "files": [
+        "code.ts",
         "console.ts",
         "decode.ts",
         "disasm.ts",

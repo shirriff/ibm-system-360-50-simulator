@@ -687,6 +687,13 @@ function clicked(e: JQuery.Event) : void {
       updateLoadDial(parseInt(parts[2], 10));
     } else if (result == "button-load") {
       ipl();
+      displayState(state);
+      consoleDraw();
+    } else if (result == "button-system-reset") {
+      // Reset to run some code. Not the true reset action, but for demo.
+      resetStateCode(state);
+      displayState(state);
+      consoleDraw();
     } else if (result == "button-start") {
       startAnimate();
     } else if (result == "button-power-on") {
@@ -715,7 +722,7 @@ function ipl() {
   // Should select program based on dialPos values.
   // Should turn off manual light, turn on load light. If load is successful, turn off load light and start CPU. (Principles of Operation p118)
   // We'll just reset and start up for now.
-  resetState(state);
+  resetStateIPL(state);
   startAnimate();
 }
 

@@ -91,7 +91,11 @@ function initialize() {
     skipping = false;
     seenInstructions = {};
     state = createState();
-    resetState(state);
+    if (0) {
+      resetStateIPL(state);
+    } else {
+      resetStateCode(state);
+    }
     displayState(state);
     initZoom();
     initConsole();
@@ -175,8 +179,14 @@ function animate(): void{
         }
     }
 }
+
+function getROARaddr(): string {
+  return fmt2(state['ROAR']);
+}
+
 // Return the addr in the addr UI field as a string. Also reformats field.
-function getAddrFromField() {
+// This can replace getROARaddr to get the address from #addr
+function getAddrFromUIField(): string {
     const addr = $("#addr").val();
     if (typeof addr === "string") {
         var iaddr = parseInt(addr, 16);
@@ -200,9 +210,9 @@ function getHW(state, addr) {
     }
 }
 // Perform a single microinstruction step
-function step() {
-    var saddr = getAddrFromField();
-    var iaddr = parseInt(saddr, 16);
+function step(): void {
+    var saddr: string = getROARaddr();
+    var iaddr: number = parseInt(saddr, 16);
     state['ROAR'] = iaddr;
     count += 1;
     $("#count").text(count);
@@ -240,14 +250,26 @@ function skip() {
     startAnimate();
 }
 
-function resetState(state) {
-    // Initialize to state after memory reset loop for IPL, entering 0243
+// Initialize to state after memory reset loop for IPL, entering 0243
+function resetStateIPL(state) {
     state['S'] = [0, 0, 0, 1, 0, 0, 0, 0]; // For IPL
     state['MD'] = 3; // For IPL
     state['H'] = 0;
-    state['ROAR'] = parseInt(getAddrFromField(), 16);
+    state['ROAR'] = 0x0243;
     state['SAR'] = 0x10000004; // Fake bump addr, used by 243
 }
+
+// Initialize to start running code.
+// Want to jump into instruction fetch, rather than lots of reset code.
+function resetStateCode(state) {
+    const addr = initCode(state['MS']); // Load memory with instructions, get address for branch
+    state['SAR'] = addr;
+    state['R'] = addr;
+    state['S'] = [0, 0, 0, 0, 0, 0, 0, 0]; // S3 = address bit 30 (alignment?)
+    state['ROAR'] = 0x102; // QT120: branch to address
+}
+
+
 // Fmt d as PSW
 function fmtPsw(d) {
     var psw0 = d[0];
