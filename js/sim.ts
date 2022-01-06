@@ -240,9 +240,8 @@ function step(): void {
     // Update address
     saddr = fmtAddress(state['ROAR']);
     $("#addr").val(saddr);
-    const microcode2 = decode(saddr, data[saddr]);
     function fmt(uc : string[]) : string {
-        return '<pre style="">' + uc.join('\n') + '</pre>';
+        return '<pre style="margin-bottom:0">' + uc.join('\n') + '</pre>';
     }
     $("#microcodeModalBody").html(microcode1[1].join('<br/>'));
     $("#microinfo").show();
@@ -252,10 +251,10 @@ function step(): void {
       if (sheet) {
       const text = aldText[sheet];
       if (text) {
-        desc = text.join('<br/>') + '<br/>';
+        desc = text.join('<br/>');
       }
     }
-    $("#microcode").html(desc + fmt(microcode1[0]));
+    $("#microcode").html(fmt(microcode1[0]) + desc);
     displayState(state);
     $("#divmsg").html(msg1 || msg2 || '');
     if ([0x148, 0x149, 0x14a, 0x14c, 0x14e, 0x184, 0x185, 0x187, 0x188, 0x189, 0x19b].includes(state['ROAR'])) {
@@ -389,9 +388,9 @@ const tooltips = {
     'SCFS': 'Fault scan fail stat',
     'SCPS': 'Fault scan pass stat',
     'SAR': 'Storage address register',
-    'BS': undefined,
+    'BS': 'Byte stats',
     'WFN': 'Mover function',
-    'CR': undefined,
+    'CR': 'Condition register',
     'SDR': 'Storage data register',
 };
 function displayState(state) {
@@ -413,7 +412,7 @@ function displayState(state) {
             // Local storage
             const lines: string[] = [];
             let idx = 0;
-            const COLS = 8; // Number of columns for the LSAR display
+            const COLS = 16; // Number of columns for the LSAR display
             for (let row = 0; row < 64 / COLS; row++) {
               const lineEntries: string[] = [];
               for (let col = 0; col < COLS; col++) {
@@ -428,16 +427,8 @@ function displayState(state) {
             }
             $("#LS").html(lines.join('</br>'));
         }
-        else if (key == 'S') {
-            var line = state['S'].join(' ');
-            $("#S").html(line);
-        }
         else if (key in formatters) {
-            if (tooltips[key]) {
-                misc.push('<span data-toggle="tooltip" title="' + tooltips[key] + '">' + key + ': ' + formatters[key](state[key]) + '</span>');
-            } else {
-                misc.push(key + ': ' + formatters[key](state[key]));
-            }
+            misc.push('<span class="hastip" data-toggle="tooltip" title="' + tooltips[key] + '">' + key + ':&nbsp' + formatters[key](state[key]) + '</span>');
         }
         else {
             // console.log("No formatter for " + key);

@@ -625,7 +625,9 @@ function decode(addr : string, entry) : [string[], string[]] {
 
   var result = [];
   var description = [];
-  result.push('---------- ' + addr.toUpperCase());
+  result.push('---------- ' +
+            '<span class="hastip" data-toggle="tooltip" title="ALD page: ' + entry['sheet'] + '">' + addr.toUpperCase() + '</span>');
+  
   if (entry['CE']) {
     padbox(result, 'E', bin(entry['CE'], 4));
     description.push('Emit value ' + bin(entry['CE'], 4));
@@ -851,7 +853,7 @@ function decode(addr : string, entry) : [string[], string[]] {
   result.push('----' + addr03 + achar + bchar + ' ----');
   var nextaddr_pad = nextaddr.toString(16).padStart(4, '0');
     
-  result.push(nextlabel + nextaddr_pad);
+  // result.push(nextlabel + nextaddr_pad);
   return [result, description];
 }
 

@@ -31,6 +31,10 @@
   #topinfotext[data-show] {
     display: block;
   }
+
+  .hastip {
+    cursor: pointer;
+  }
 </style>
 
 
@@ -57,10 +61,13 @@
     <div class="container-fluid">
       <div class="row">
         <div class="col-4 border-right" id="sidebar" style="overflow-y:scroll">
+
           <div class="card">
             <div class="card-header" role="tab">
             </div>
             <div class="card-body">
+              <h5 class="card-title">Instruction</h5>
+              <p class="card-text" id="divinstr"></p>
               <h5 class="card-title">Micro-instruction <span class="material-icons" style="font-size:100%; cursor: pointer; display:none" id="microinfo">info</span> </h5>
               <p class="card-text" id="microcode"></p>
             </div>
@@ -73,12 +80,6 @@
             </div>
           </div>
 
-          <div class="card">
-            <div class="card-body">
-              <h5 class="card-title">Memory</h5>
-              <p class="card-text"></p>
-            </div>
-          </div>
           <div class="card">
             <div class="card-header" role="tab">
             </div>
@@ -94,24 +95,6 @@
             <div class="card-body">
               <h5 class="card-title">msg</h5>
               <p class="card-text" id="divmsg"></p>
-            </div>
-          </div>
-            
-          <div class="card">
-            <div class="card-header" role="tab">
-            </div>
-            <div class="card-body">
-              <h5 class="card-title">divinstr</h5>
-              <p class="card-text" id="divinstr"></p>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-header" role="tab">
-            </div>
-            <div class="card-body">
-              <h5 class="card-title">S card</h5>
-              <p class="card-text" id="S"></p>
             </div>
           </div>
             
