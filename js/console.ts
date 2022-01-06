@@ -26,15 +26,14 @@ function resize() : void {
   // canvas width is the number of logical pixels, clientWidth is the number of pixels occupied by the canvas.
   canvasWidth = $("#canvas").width();
   canvasHeight = $("#canvas").height();
-  console.log('canvas height', canvasHeight);
-  // canvas.style.width =  canvasWidth + "px"; // Physical size
-  // canvas.style.height = canvasHeight + "px";
-  canvas.width = canvas.clientWidth * SCALE; // Number of logical pixels in canvas
-  canvas.height = canvas.clientHeight * SCALE;
+  canvas.style.width =  canvasWidth + "px"; // Physical size
+  canvas.style.height = canvasHeight + "px";
+  canvas.width = canvasWidth * SCALE; // Number of logical pixels in canvas
+  canvas.height = canvasHeight * SCALE;
 
   // Scale to fit the image: Initialize cameraOffset, cameraZoom
-  cameraOffset = { x: canvas.clientWidth/2, y: canvas.clientHeight/2 }
-  cameraZoom = Math.min(canvas.clientHeight / consoleImg.height, canvas.clientWidth / consoleImg.width);
+  cameraOffset = { x: canvasWidth / 2, y: canvasHeight / 2 }
+  cameraZoom = Math.min(canvasWidth / consoleImg.width, canvasHeight / consoleImg.height);
   MIN_ZOOM = cameraZoom; // Don't zoom too small
 
   draw();
