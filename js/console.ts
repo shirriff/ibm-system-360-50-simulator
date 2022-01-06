@@ -19,10 +19,14 @@ let loadLight: boolean = false;
 
 // Handle a window resize: adjust the canvas size and then redraw
 function resize() : void {
-  $("#sidebar").height(window.innerHeight - $("#nav").height());
+  // Determine available vertical space
+  const h = window.innerHeight - $("#nav").height();
+  $("#sidebar").height(h);
+  $("#canvas").height(h)
   // canvas width is the number of logical pixels, clientWidth is the number of pixels occupied by the canvas.
   canvasWidth = $("#canvas").width();
   canvasHeight = $("#canvas").height();
+  console.log('canvas height', canvasHeight);
   // canvas.style.width =  canvasWidth + "px"; // Physical size
   // canvas.style.height = canvasHeight + "px";
   canvas.width = canvas.clientWidth * SCALE; // Number of logical pixels in canvas
@@ -30,7 +34,6 @@ function resize() : void {
 
   // Scale to fit the image: Initialize cameraOffset, cameraZoom
   cameraOffset = { x: canvas.clientWidth/2, y: canvas.clientHeight/2 }
-  console.log('cameraOffset', cameraOffset);
   cameraZoom = Math.min(canvas.clientHeight / consoleImg.height, canvas.clientWidth / consoleImg.width);
   MIN_ZOOM = cameraZoom; // Don't zoom too small
 
