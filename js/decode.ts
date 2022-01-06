@@ -70,8 +70,8 @@ var labels = {
 19: ['R,IO', 'Gate adder latch to R reg. Gate adder latch bits 30-31 to I/O reg.'],
 20: ['H', 'Gate adder latch to H reg.'],
 21: ['IA', 'Gate adder ltch bits 8-31 to IAR.'],
-22: ['FOLD', 'Gate scan bus bits 28-31 to SDR bits 24-27. Gate zeros to SDR bits 0-23 and 28-31. Good parity is inserted into SDR.'], // under D // 50Maint p32. FLT reg bit 0 specifies fold; maps 36 bit registers (i.e. with 4 parity) onto two 32 bit storage. Accesses folded part of SCAN QY410
-// 23 undefine
+22: ['FOLD→D', 'Gate scan bus bits 28-31 to SDR bits 24-27. Gate zeros to SDR bits 0-23 and 28-31. Good parity is inserted into SDR.'], // under D // 50Maint p32. FLT reg bit 0 specifies fold; maps 36 bit registers (i.e. with 4 parity) onto two 32 bit storage. Accesses folded part of SCAN QY410
+// 23 undefined
 24: ['L,M', 'Gate adder latch to L reg and M reg.'],
 25: ['MLJK', 'Gate adder latch to L reg an M reg. J reg and MD counter, stats, ILC updated in complex ways.'],     // store to L, M, 12-15 to J, 16-19 to MD  QY310, QT110. 
 // 0 -> REFETCH, (X=0)->S0, (B=0)->S1, set ILC,1SYL: [QT110, QT115
@@ -110,7 +110,7 @@ var labels = {
 19: ['R,IO', 'Gate adder latch to R reg. Gate adder latch bits 30-31 to I/O reg.'],
 20: ['H', 'Gate adder latch to H reg.'],
 21: ['IA', 'Gate adder ltch bits 8-31 to IAR.'],
-22: ['FOLD', 'Gate scan bus bits 28-31 to SDR bits 24-27. Gate zeros to SDR bits 0-23 and 28-31. Good parity is inserted into SDR.'], // under D // 50Maint p32. FLT reg bit 0 specifies fold; maps 36 bit registers (i.e. with 4 parity) onto two 32 bit storage. Accesses folded part of SCAN QY410
+22: ['FOLD→D', 'Gate scan bus bits 28-31 to SDR bits 24-27. Gate zeros to SDR bits 0-23 and 28-31. Good parity is inserted into SDR.'], // under D // 50Maint p32. FLT reg bit 0 specifies fold; maps 36 bit registers (i.e. with 4 parity) onto two 32 bit storage. Accesses folded part of SCAN QY410
 // 23 undefine
 24: ['L,M', 'Gate adder latch to L reg and M reg.'],
 25: ['MLJK', 'Gate adder latch to L reg an M reg. J reg and MD counter, stats, ILC updated in complex ways.'],     // store to L, M, 12-15 to J, 16-19 to MD  QY310, QT110. 
@@ -716,7 +716,7 @@ function decode(addr : string, entry) : [string[], string[]] {
     padbox(result, 'D', get('AL'));
     description.push(getDesc('AL'));
   } else if (entry['AL'] == 28 || entry['AL'] == 30 || entry['AL'] == 31) {
-    padbox(result, 'D', get('AL') + get('TR'));
+    padbox(result, 'D', get('AL') + "→" + get('TR'));
     description.push(getDesc('AL'));
     description.push(getDesc('TR'));
   }
