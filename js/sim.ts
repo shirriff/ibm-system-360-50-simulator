@@ -1,3 +1,6 @@
+// This is the top-level code for the simulator. 
+// It manages the overall running and control, as well as the information sidebar.
+
 var running: boolean = false;
 var skipping: boolean;
 var state: {[key: string]: any} = {};
@@ -5,6 +8,9 @@ var then: number; // Time value
 var memactive: boolean = false;
 var speed: number;
 var seenInstructions: {[key: string]: number};
+var lsHilitePos: number = -1; // Highlights the selected LSAR word.
+var lsHiliteColor: string = ""; // Specifies the color for the LSAR highlight (to indicate read vs write).
+
 // Override alert so simulator will stop if an error is hit.
 // https://stackoverflow.com/questions/1729501/javascript-overriding-alert
 let alerts = 0;
@@ -391,7 +397,7 @@ const tooltips = {
 function displayState(state) {
     var keys = Object.keys(state);
     keys = keys.sort();
-    var misc = [];
+    var misc: string[] = [];
     for (var i = 0; i < keys.length; i++) {
         var key = keys[i];
         if (state[key] == undefined) {
@@ -405,11 +411,20 @@ function displayState(state) {
         }
         else if (key == 'LS') {
             // Local storage
-            const lines = [];
-            const ROWS = 8;
-            for (let ls = 0; ls < ROWS; ls++) {
-                let line = state['LS'].slice(ls * 64 / ROWS, (ls + 1) * 64 / ROWS).map(fmt4).join(' ');
-                lines.push(line);
+            const lines: string[] = [];
+            let idx = 0;
+            const COLS = 8; // Number of columns for the LSAR display
+            for (let row = 0; row < 64 / COLS; row++) {
+              const lineEntries: string[] = [];
+              for (let col = 0; col < COLS; col++) {
+                if (col + row * COLS == lsHilitePos) {
+                  lineEntries.push('<span style="background:' + lsHiliteColor + '">' + fmt4(state['LS'][idx]) + '</span>');
+                } else {
+                  lineEntries.push(fmt4(state['LS'][idx]));
+                }
+                idx++;
+              }
+              lines.push(lineEntries.join(' '));
             }
             $("#LS").html(lines.join('</br>'));
         }

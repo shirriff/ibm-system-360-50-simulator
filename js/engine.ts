@@ -5,6 +5,7 @@
 // Returns message if any
 function cycle(state, entry) {
   try {
+    lsHilitePos = -1; // Reset the LS highlight
     state['ROS'] = entry['ROS'] // The raw ROS bits
     adderLX(state, entry);
     adderRY(state, entry);
@@ -1123,31 +1124,49 @@ function localStorageLSAR(state, entry) {
   }
 }
 
+/*
+ * Helper to write value to local store (at address LSAR)
+ */
+function writeLS(state, value: number) {
+  state['LS'][state['LSAR']] = value;
+  lsHilitePos = state['LSAR']; // Highlight this entry in the GUI
+  lsHiliteColor = "#ffcccc";
+}
+
+/*
+ * Helper to read value from local store (at address LSAR)
+ */
+function readLS(state): number {
+  lsHilitePos = state['LSAR']; // Highlight this entry in the GUI
+  lsHiliteColor = "#ccccff";
+  return state['LS'][state['LSAR']];
+}
+
 function localStore(state, entry) {
   // Local storage function
   switch (entry['SF']) {
     case 0: // R→LS // QT210/1A3
-      state['LS'][state['LSAR']] = state['R'];
+      writeLS(state, state['R']);
       break;
     case 1: // LS→L,R→LS
       state['L'] = state['LS'][state['LSAR']];
-      state['LS'][state['LSAR']] = state['R'];
+      writeLS(state, state['R']);
       break;
     case 2: // LS→R→LS 
-      state['R'] = state['LS'][state['LSAR']];
+      state['R'] = readLS(state);
       break;
     case 3:
       alert('Unexpected SF ' + entry['SF'] + " " + labels['SF'][entry['SF']]);
       break;
     case 4: // L→LS // QP206/D95
-      state['LS'][state['LSAR']] = state['L'];
+      writeLS(state, state['L']);
       break;
     case 5: // LS→R,L→LS
       state['R'] = state['LS'][state['LSAR']];
-      state['LS'][state['LSAR']] = state['L'];
+      writeLS(state, state['L']);
       break;
     case 6: // LS→L→LS // QP206/D94
-      state['L'] = state['LS'][state['LSAR']];
+      state['L'] = readLS(state);
       break;
     case 7: // No storage function
       if (entry['WS'] != 4) {
