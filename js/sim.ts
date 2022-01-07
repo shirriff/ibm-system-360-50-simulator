@@ -37,7 +37,6 @@ function loadStuff() {
   let dataPromise = new Promise((resolve, reject) => {
       $.getJSON("data.json", function (indata) {
           data = indata;
-          console.log("loaded microcode data");
           resolve(0);
     }).fail(reject);
   });
@@ -46,7 +45,6 @@ function loadStuff() {
   let aldPromise = new Promise((resolve, reject) => {
       $.getJSON("aldText.json", function (indata) {
           aldText = indata;
-          console.log("loaded ALD data");
           resolve(0);
     }).fail(reject);
   });
@@ -56,7 +54,6 @@ function loadStuff() {
 
   // Continue when everything is loaded
   Promise.all([dataPromise, aldPromise, consolePromise]).then(() => {
-    console.log("loading complete");
     initialize();
   });
   // }).catch(x => alert('Initialization failed ' + x));
@@ -233,7 +230,7 @@ function step(): void {
     count += 1;
     $("#count").text(count);
     seenInstructions[iaddr] = 1;
-    const microcode1 : [string[], string[]] = decode(saddr, data[saddr]);
+    const microcode : [string[], string[]] = decode(saddr, data[saddr]);
     var msg1 = cycle(state, data[saddr]);
     var msg2 = doio(state, data[saddr]);
     draw();
@@ -243,7 +240,8 @@ function step(): void {
     function fmt(uc : string[]) : string {
         return '<pre style="margin-bottom:0">' + uc.join('\n') + '</pre>';
     }
-    $("#microcodeModalBody").html(microcode1[1].join('<br/>'));
+    console.log(microcode[1].join('\n'));
+    $("#microcodeModalBody").html(microcode[1].join('<br/>'));
     $("#microinfo").show();
     // Get the text description for the current ALD sheet
     let desc = "";
@@ -254,7 +252,7 @@ function step(): void {
         desc = text.join('<br/>');
       }
     }
-    $("#microcode").html(fmt(microcode1[0]) + desc);
+    $("#microcode").html(fmt(microcode[0]) + desc);
     displayState(state);
     $("#divmsg").html(msg1 || msg2 || '');
     if ([0x148, 0x149, 0x14a, 0x14c, 0x14e, 0x184, 0x185, 0x187, 0x188, 0x189, 0x19b].includes(state['ROAR'])) {
@@ -436,6 +434,3 @@ function displayState(state) {
     }
     $("#registers").html(misc.join(', '));
 }
-
-// Calling loadStuff starts loading the images. This is the entry point.
-loadStuff();
