@@ -348,7 +348,7 @@ const formatters = {
     'SDR': fmt4,
 };
 
-const tooltips = {
+const tooltips: {[key: string]: string} = {
     'FN': 'Function',
     'J': " J register; local store addressing",
     'LSAR': 'Local store address register',
@@ -385,6 +385,27 @@ const tooltips = {
     'CR': 'Condition register',
     'SDR': 'Storage data register',
 };
+
+// Labels for the local storage assignments
+const LSlabels: string[] = [
+    "Channel 1 - command addr", "Channel 1 - data addr", "Channel 1 - unit addr count", "Channel 1 - data buffer A",
+    "Channel 2 - command addr", "Channel 2 - data addr", "Channel 2 - unit addr count", "Channel 2 - data buffer A",
+    "Channel 3 - command addr", "Channel 3 - data addr", "Channel 3 - unit addr count", "Channel 3 - data buffer A",
+    "MPX channel - command addr", "MPX channel - data addr", "MPX channel - count", "MPX channel - unit addr",
+    "Working storage 0", "Working storage 1", "Working storage 2", "Working storage 3",
+    "Working storage 4", "Working storage 5", "Working storage 6", "PSW backup (bits 0-15)",
+    "Working storage 8", "Working storage 9", "Working storage 10", "Working storage 11",
+    "Working storage 12", "Working storage 13", "Instruction buffer", "Working storage 15",
+    "Floating-point register 0 - high order", "Floating-point register 0 - low order", "Floating-point register 2 - high order", "Floating-point register 2 - low order",
+    "Floating-point register 4 - high order", "Floating-point register 4 - low order", "Floating-point register 6 - high order", "Floating-point register 6 - low order",
+    "Spare", "Spare", "Spare", "Spare",
+    "R register break-in buffer", "MPX channel L-register buffer", "MPX channel interrupt buffer", "MPX channel working storage",
+    "General register 0", "General register 1", "General register 2", "General register 3", 
+    "General register 4", "General register 5", "General register 6", "General register 7", 
+    "General register 8", "General register 9", "General register 10", "General register 11", 
+    "General register 12", "General register 13", "General register 14", "General register 15" 
+];
+
 function displayState(state) {
     var keys = Object.keys(state);
     keys = keys.sort();
@@ -409,11 +430,11 @@ function displayState(state) {
             for (let row = 0; row < 64 / COLS; row++) {
               const lineEntries: string[] = [];
               for (let col = 0; col < COLS; col++) {
+                let style = "";
                 if (col + row * COLS == lsHilitePos) {
-                  lineEntries.push('<span style="background:' + lsHiliteColor + '">' + fmt4(state['LS'][idx]) + '</span>');
-                } else {
-                  lineEntries.push(fmt4(state['LS'][idx]));
+                  style = ' style="background:' + lsHiliteColor + '">'
                 }
+                lineEntries.push('<span class="hastip" data-toggle="tooltip" title="' + LSlabels[idx]+ '"' + style + '">' + fmt4(state['LS'][idx]) + '</span>');
                 idx++;
               }
               lines.push(lineEntries.join(' '));
