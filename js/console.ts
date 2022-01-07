@@ -360,7 +360,7 @@ function extractBits(value: number, nBits: number, bits: boolean[], offset: numb
   function byteParity(start: number): boolean {
     let parity = true; // Odd parity
     for (let j = start; j < start + 8; j++) { // Loop over byte to compute parity
-      parity !== bitValue(j);
+      parity = parity != bitValue(j);
     }
     return parity
   }
