@@ -760,7 +760,8 @@ function adderLatch(state, entry) {
         state['ILC'] = 3;
       }
       break;
-    case 26: // MHL  T(0-3)→MD, T(0-15)→M(16,31) QC301/003F
+    case 26: // MHL  Gate adder latch to L reg. Gate adder latch bits 0-15 to M reg bits 16-31. Gate adder latch bits 0-3 to MD counter.
+      state['L'] = state['T'];
       state['MD'] = (state['T'] >> 28) & 0xf;
       state['M'] = ((state['M'] & 0xffff0000) | ((state['T'] >>> 16) & 0xfffff)) >>> 0;
       break;
