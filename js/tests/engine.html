@@ -18,6 +18,11 @@ This file holds unittests for engine.js, using qunit
   <script src="qunit-2.9.2.js"></script>
   <script>
 
+// Format d as 3 hex bytes
+function fmt3(d) {
+  return d.toString(16).padStart(6, '0');
+}
+
 // Format d as 4 hex bytes
 function fmt4(d) {
   return d.toString(16).padStart(8, '0');
@@ -645,7 +650,7 @@ QUnit.test( "latch tr 6 R,A", function(assert) {
   var state = {'T': 0x12345678, 'R': 0x56781234};
   adderLatch(state, {'TR': 6 /* R,A */});
   assert.equal(state['R'], 0x12345678);
-  assert.equal(state['SAR'], 0x12345678);
+  assert.equal(state['SAR'], 0x345678);
 });
 
 QUnit.test( "latch tr 7 L", function(assert) {
@@ -661,7 +666,7 @@ QUnit.test( "latch tr 9 R,AN", function(assert) {
   var state = {'T': 0x12345679};
   adderLatch(state, {'TR': 9 /* R,AN */});
   assert.equal(state['R'], 0x12345679);
-  assert.equal(state['SAR'], 0x12345679);
+  assert.equal(state['SAR'], 0x345679);
   assert.equal(state['TRAP'], undefined);
 });
 
@@ -669,7 +674,7 @@ QUnit.test( "latch tr 10 R,AW", function(assert) {
   var state = {'T': 0x12345678};
   adderLatch(state, {'TR': 10 /* R,AW */});
   assert.equal(state['R'], 0x12345678);
-  assert.equal(state['SAR'], 0x12345678);
+  assert.equal(state['SAR'], 0x345678);
   assert.equal(state['TRAP'], undefined);
   state = {'T': 0x12345672}; // Halfword
   });
@@ -678,7 +683,7 @@ QUnit.test( "latch tr 11 R,AD", function(assert) {
   var state = {'T': 0x12345678};
   adderLatch(state, {'TR': 11 /* R,AD */});
   assert.equal(state['R'], 0x12345678);
-  assert.equal(state['SAR'], 0x12345678);
+  assert.equal(state['SAR'], 0x345678);
   state = {'T': 0x12345674}; // Word
 });
 
@@ -702,14 +707,14 @@ QUnit.test( "latch tr 14 R13", function(assert) {
 QUnit.test( "latch tr 15 A", function(assert) {
   var state = {'T': 0x12345678};
   adderLatch(state, {'TR': 15});
-  assert.equal(state['SAR'], 0x12345678);
+  assert.equal(state['SAR'], 0x345678);
 });
 
 QUnit.test( "latch tr 16 L,A", function(assert) {
   var state = {'T': 0x12345678};
   adderLatch(state, {'TR': 16});
   assert.equal(state['L'], 0x12345678);
-  assert.equal(state['SAR'], 0x12345678);
+  assert.equal(state['SAR'], 0x345678);
 });
 
 // 17: I/O
