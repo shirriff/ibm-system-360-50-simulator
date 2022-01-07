@@ -51,6 +51,11 @@ function fmt2(d: number): string {
   return d.toString(16).padStart(4, '0');
 }
 
+// Format d as 3 hex bytes
+function fmt3(d: number): string {
+  return d.toString(16).padStart(6, '0');
+}
+
 // Format d as 4 hex bytes
 function fmt4(d: number): string {
   return d.toString(16).padStart(8, '0');

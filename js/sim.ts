@@ -234,13 +234,10 @@ function step(): void {
     var msg1 = cycle(state, data[saddr]);
     var msg2 = doio(state, data[saddr]);
     draw();
-    // Update address
-    saddr = fmtAddress(state['ROAR']);
-    $("#addr").val(saddr);
     function fmt(uc : string[]) : string {
         return '<pre style="margin-bottom:0">' + uc.join('\n') + '</pre>';
     }
-    console.log(microcode[1].join('\n'));
+    console.log(microcode[0].join('\n'));
     $("#microcodeModalBody").html(microcode[1].join('<br/>'));
     $("#microinfo").show();
     // Get the text description for the current ALD sheet
@@ -345,10 +342,11 @@ const formatters = {
     'IBFULL': fmtB,
     'SCFS': fmtB,
     'SCPS': fmtB,
-    'SAR': fmt4,
+    'SAR': fmt3,
     'BS': fmtN,
     'WFN': fmtN,
     'CR': fmtN,
+    'S': fmtN,
     'SDR': fmt4,
 };
 
@@ -395,6 +393,7 @@ function displayState(state) {
     var keys = Object.keys(state);
     keys = keys.sort();
     var misc: string[] = [];
+    var raw: string[] = [];
     for (var i = 0; i < keys.length; i++) {
         var key = keys[i];
         if (state[key] == undefined) {
@@ -427,10 +426,12 @@ function displayState(state) {
         }
         else if (key in formatters) {
             misc.push('<span class="hastip" data-toggle="tooltip" title="' + tooltips[key] + '">' + key + ':&nbsp' + formatters[key](state[key]) + '</span>');
+            raw.push(key+':' + formatters[key](state[key]));
         }
         else {
             // console.log("No formatter for " + key);
         }
     }
     $("#registers").html(misc.join(', '));
+    console.log(raw.join(', '))
 }

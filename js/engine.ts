@@ -565,8 +565,8 @@ function trapInvalidOpndAddr(state) {
   rosTrap(state, 0x01c0, 'invalid operand addr');
 }
 
-function trapAddrSpecViolation(state) {
-  rosTrap(state, 0x01c2, 'addr spec violation');
+function trapAddrSpecViolation(state, text: string) {
+  rosTrap(state, 0x01c2, 'addr spec violation ' + text);
 }
 
 // Invalid decimal data or sign
@@ -578,7 +578,7 @@ function trapInvalidDecimal(state) {
 // Assume SAR and SDR set up
 function store(state) {
   state['MS'][state['SAR'] & ~3] = state['SDR'];
-  return 'Storing ' + fmt4(state['SDR']) + ' in ' + fmt4(state['SAR']);
+  return 'Storing ' + fmt4(state['SDR']) + ' in ' + fmt3(state['SAR']);
 }
 
 // Read memory: call before using SDR
@@ -589,12 +589,12 @@ function read(state) {
   if (state['SDR'] == undefined) {
     state['SDR'] = 0xdeadbeef; // Random value in uninitialized memory.
   }
-  return 'Read ' + fmt4(state['SDR']) + ' from ' + fmt4(state['SAR']);
+  return 'Read ' + fmt4(state['SDR']) + ' from ' + fmt3(state['SAR']);
 }
 
-function checkaddr(state, alignment) {
+function checkaddr(state, alignment: number) {
   if (state['SAR'] & (alignment-1)) {
-   trapAddrSpecViolation(state);
+   trapAddrSpecViolation(state, 'address ' + fmt3(state['SAR']) + ', alignment ' + alignment);
   }
 }
 
@@ -656,7 +656,7 @@ function adderLatch(state, entry) {
       break;
     case 6: // R,A       // stores to R and address reg.
       state['R'] = t;
-      state['SAR'] = t;
+      state['SAR'] = t & 0x00ffffff;
       checkaddr(state, 1);
       break;
     case 7: // L
@@ -678,19 +678,19 @@ function adderLatch(state, entry) {
     case 9: // R,AN // QT220/20d
       // AN means No IV addr trap 
       state['R'] = t;
-      state['SAR'] = t;
+      state['SAR'] = t & 0x00ffffff;
       checkaddr(state, 1);
       break;
     case 10: // R,AW
       // QA111: check word adr
       state['R'] = t;
-      state['SAR'] = t;
+      state['SAR'] = t & 0x00ffffff;
       checkaddr(state, 4);
       break;
     case 11: // R,AD
       // QG010: check double word adr
       state['R'] = t;
-      state['SAR'] = t;
+      state['SAR'] = t & 0x00ffffff;
       checkaddr(state, 8);
       break;
     case 12: // D→IAR // under D
@@ -704,12 +704,12 @@ function adderLatch(state, entry) {
       state['R'] = ((state['R'] & 0xff000000) | (state['T'] & 0x00ffffff)) >>> 0;
       break;
     case 15: // A // QP100/614
-      state['SAR'] = t;
+      state['SAR'] = t & 0x00ffffff;
       checkaddr(state, 1);
       break;
     case 16: // L,A
       state['L'] = t;
-      state['SAR'] = t;
+      state['SAR'] = t & 0x00ffffff;
       checkaddr(state, 1);
       break;
     case 17:
