@@ -73,7 +73,7 @@ var labels = {
 22: ['FOLD→D', 'Gate scan bus bits 28-31 to SDR bits 24-27. Gate zeros to SDR bits 0-23 and 28-31. Good parity is inserted into SDR.'], // under D // 50Maint p32. FLT reg bit 0 specifies fold; maps 36 bit registers (i.e. with 4 parity) onto two 32 bit storage. Accesses folded part of SCAN QY410
 // 23 undefined
 24: ['L,M', 'Gate adder latch to L reg and M reg.'],
-25: ['MLJK', 'Gate adder latch to L reg an M reg. J reg and MD counter, stats, ILC updated in complex ways.'],     // store to L, M, 12-15 to J, 16-19 to MD  QY310, QT110. 
+25: ['MLJK', 'Gate adder latch to L reg and M reg. J reg and MD counter, stats, ILC updated in complex ways.'],     // store to L, M, 12-15 to J, 16-19 to MD  QY310, QT110. 
 // 0 -> REFETCH, (X=0)->S0, (B=0)->S1, set ILC,1SYL: [QT110, QT115
 26: ['MHL', 'Gate adder latch to L reg. Gate adder latch bits 0-15 to M reg bits 16-31. Gate adder latch bits 0-3 to MD counter.'],
 // T->L, T(0-3)->MD, T(0-15)->M, (B=0)->S1, set 1SYL QT115/0184
@@ -143,38 +143,38 @@ var labels = {
 
 // Shift gate and adder latch control (gating into adder latches)
 'AL': {
-0: ['', 'Shift right one, spill to F, and enter from Q'],
-1: ['Q→SR1→F', 'Shift right one, spill to F, and enter from Q'],
-2: ['L0,¬S4→', 'Shift zero, insert inverted sign'],
-3: ['+SGN→', 'Shift zero, insert plus sign'],
-4: ['-SGN→', 'Shift zero, insert minus sign'],
-5: ['L0,S4→', 'Shift zero, insert normal sign'],
-6: ['IA→H', 'Shift zero and gate LAR to H directly'], // Handled by D
-7: ['Q→SL→-F', 'Shift left one, spill complement to F, and enter from Q'],
-8: ['Q→SL1→F', 'Shift left one, spill to F, and enter from Q'],
-9: ['F→SL1→F', 'Shift left one, spill to F, and enter from F'],
-10: ['SL1→Q', 'Shift left one, spill to Q, no enter'],
-11: ['Q→SL1', 'Shift left one, no spill, and enter from Q'],
-12: ['SR1→F', 'Shift right one, spill to F, no enter'],
-13: ['SR1→Q', 'Shift right one, spill to Q, no enter'],
-14: ['Q→SR1→Q', 'Shift right one, spill to Q, and enter from Q'],
-15: ['F→SL1→Q', 'Shift left one, spill to Q, and enter from F while shifting F'],
-16: ['SL4→F', 'Shift left four, spill to F, and no enter'],    // Shift adder output left by 4, also put in F.
+0: ['', 'Gate adder output to latch, no shift.'],
+1: ['Q→SR1→F', 'Gate adder output to latch, shifted right 1, entering Q. Spill bit enters F, which is shifted right.'],
+2: ['L0,¬S4→', 'Gate adder output bits 8-31 to latch bits 8-31. Gate L reg bits 1-7 to latch bits 1-7. Set latch bit 0 to the complement of stat 4.'],
+3: ['+SGN→', 'Gate adder output bits 1-31 to latch bits 1-31. Set latch bit 0 to zero.'],
+4: ['-SGN→', 'Gate adder output bits 1-31 to latch bits 1-31. Set latch bit 0 to one.'],
+5: ['L0,S4→', 'Gate adder output bits 8-31 to latch bits 8-31. Gate L reg bits 1-7 to latch bits 1-7. Gate stat 4 to latch bit 0.'],
+6: ['IA→H', 'Gate adder output to latch, no shift. Gate IAR to H reg bits 8-31. H reg bits 0-7 remain unchanged.'], // Handled by D
+7: ['Q→SL→-F', 'Gate adder output to latch, shifted left 1, entering Q. Complement of spill bit enters F, which is shifted left.'],
+8: ['Q→SL1→F', 'Gate adder output to latch, shifted left 1, entering Q. Spill bit enters F, which is shifted left.'],
+9: ['F→SL1→F', 'Gate adder output to latch, shifted left 1, entering bit 0 of F. Spill bit enters F, which is shifted left.'],
+10: ['SL1→Q', 'Gate adder output to latch, shifted left 1, entering 0. Spill bit enters Q.'],
+11: ['Q→SL1', 'Gate adder output to latch, shifted left 1, entering Q. Spill bit is discarded.'],
+12: ['SR1→F', 'Gate adder output to latch, shifted right 1, entering 0. Spill bit enters F, which is shifted right.'],
+13: ['SR1→Q', 'Gate adder output to latch, shifted right 1, entering zero. Spill bit enters Q.'],
+14: ['Q→SR1→Q', 'Gate adder output to latch, shifted right 1, entering Q. Spill bit enters Q.'],
+15: ['F→SL1→Q', 'Gate adder output to latch, shifted left 1, entering bit 0 of F. Spill bit enters Q. F is shifted left 1, entering 0.'],
+16: ['SL4→F', 'Gate adder output to latch, shifted left 4, entering zeros. Spill bits enter F.'],    // Shift adder output left by 4, also put in F.
 17: ['F→SL4→F', 'Gate adder output to latch, shifted left 4, entering F. Spill bits enter F.'],
-18: ['FPSL4', 'Floating point shift left four, no enter'],
-19: ['F→FPSL4', 'Floating point shift left four, and enter from F'],
-20: ['SR4→F', 'Shift right four, spill to F, and enter from F'],
+18: ['FPSL4', 'Gate adder output bits 0-7 to latch 0-7. Gate adder output bits 8-31 to latch bits 8-31, shifted left 4, entering zeros. Spill bits from adder output 8-11 are discarded.'],
+19: ['F→FPSL4', 'Gate adder output bits 0-7 to latch 0-7. Gate adder output bits 8-31 to latch bits 8-31, shifted left 4, entering F. Spill bits from adder output 8-11 are discarded.'],
+20: ['SR4→F', 'Gate adder output to latch, shifted right 4, entering zeros. Spill bits enter F.'],
 21: ['F→SR4→F', 'Gate adder output to latch, shifted right 4, entering F. Spill bits enter F.'],
-22: ['FPSR4→F', 'Floating point shift right four, and no enter'],
-23: ['1→FPSR4→F', 'Floating point right shift four, and enter 0001'],
-24: ['SR4→H', 'Shift right four, spill to H (0-3), and no enter'],
-25: ['F→SR4', 'Shift right four, no spill, and enter from F'],
-26: ['E→FPSL4', 'Floating-point shift left four, no spill, and enter from emit field'],
-27: ['F→SR1→Q', 'Shift right one, spill to Q, and enter from F'],
-28: ['DKEY', 'Data keys to adder latches, bits 28-31 to F'], // Handled by D, data keys
+22: ['FPSR4→F', 'Gate adder output bits 8-31 to latch bits 8-31, shifted right 4, entering zeros. Gate zeros to latch bits 0-7. Spill bits enter F.'],
+23: ['1→FPSR4→F', 'Gate adder output bits 0-7 to latch bits 0-7. Gate adder output bits 8-31 to latch bits 8-31, shifted right 4, entering 0001. Spill bits enter F. A hot carry is forced into position 7 of the adder.'],
+24: ['SR4→H', 'Gate adder output to latch, shifted right 4, entering zeros. Spill bits enter H reg bits 0-3. Gate latch bits 4-7 to R reg bits 0-3.'],
+25: ['F→SR4', 'Gate adder output to latch, shifted right 4, entering F. Spill bits are discarded. F is not altered.'],
+26: ['E→FPSL4', 'Gate adder output bits 0-7 to latch bits 0-7. Gate adder output bits 8-31 to latch bits 8-31, shifted left 4, entering the emit field. Spill bits from adder output 8-31 are discarded.'],
+27: ['F→SR1→Q', 'Gate adder output to latch, shifted right 1, entering bit 3 of F. Spill bit enters Q. F is not changed.'],
+28: ['DKEY', 'Gate data keys to latch. Gate bits 28-31 of data keys to F.'], // Handled by D, data keys
 29: ['CH', 'Gate bus from selector channels to latch.'], // Handled by D, data keys
-30: ['D', 'MDR to adder latches (read holdoff)'], // Handled by D
-31: ['AKEY', 'Address keys to adder latches'], // Handled by D, address keys
+30: ['D', 'Gate storage data reg to latch. Interlock with storage timing ring to cause possibile storage holdoff.'], // Handled by D
+31: ['AKEY', 'Gate address keys to latch bits 8-31. Gate zeros to latch bits 0-7.'], // Handled by D, address keys
 },
 
 // B
