@@ -78,9 +78,9 @@ function adderLX(state, entry) {
     case 6: // 4
       xg = 4;
       break;
-    case 7: // 64C  -- F2E QY310: carry
-      // QG700:0541 64 complement for excess-64 correct
-      alert('Unimplemented LX ' + entry['LX'] + " " + labels['LX'][entry['LX']]);
+    case 7: // 64C
+      // Gate ones to XG bits 0-1. Gate zeros to other bits.
+      xg = 0xc0000000;
       break;
     default:
       alert('Unexpected LX ' + entry['LX'] + " " + labels['LX'][entry['LX']]);
@@ -208,12 +208,8 @@ function adderDG(state, entry) {
       break;
   }
 
-  if (entry['AD'] == 9 || entry['AD'] == 12) { // DC0 or DCBS
-    // OR because carry can also be set by HOT1
-    carry |= state['S'][1]; // See QE900, 0848
-  }
 
-  state['CIN'] = carry;
+  state['CIN'] = carry; // CIN isn't "really" state; this is just to pass it to adderT
 }
 
 // Does the actual addition using XG, Y and CIN. Sets state['T']
@@ -228,7 +224,15 @@ function adderT(state, entry) {
     xg = (xg & bsmask(state)) >>> 0;
   }
   var y = state['Y'];
+
   var carry = state['CIN']
+  if (entry['AD'] == 2) {
+    // BCF0: If F reg equals zero, insert carry into position 31.
+    carry = (state['F'] == 0) ? 1 : 0;
+  } else if (entry['AD'] == 9 || entry['AD'] == 10 || entry['AD'] == 12) { // DC0, DDC0, or DCBS
+    carry = state['S'][1]; // Insert previous value of stat 1 as carry into position 31.
+  }
+
   t = xg + y + carry;
 
   var carries = t ^ (xg ^ y ^ carry); // A bit difference between sum and xor must be due to carry-in.
@@ -247,33 +251,35 @@ function adderT(state, entry) {
       // 1 is default
       break;
     case 2: // BCF0
-      // QA406: (F=0)→ADDER
-      state['CAR'] = (state['F'] == 0) ? 1 : 0;
+      // BCF0: No carry saved. If F reg equals zero, insert carry into position 31. (Carry implemented above.)
       break;
     case 3:
       alert('Unexpected AD ' + entry['AD'] + " " + labels['AD'][entry['AD']]);
       break;
     case 4: // BC0
-      // Carry from position 0.
+      // Add. Set carry stat to carry out of position 0.
       state['CAR'] = c0;
       break;
     case 5: // BC⩝C
-      // QB730:220: Save CAR(0) ⩝ CAR(1). Test overflow.
+      // Add. Set carry stat to exclusive or of carries out of positions 0 and 1.
+      // I.e. signed overflow.
       state['CAR'] = (c0 != c1) ? 1 : 0;
       break;
-    case 6: // BC1B // Block carry from 8, save carry from 1  QG700:503  i.e. MIER+MCND-64 CLF116
-      // Seems like it needs to introduce carry into position 7
-      t = xg + y + carry;
-      var sign = (xg & 0x80000000) + (y & 0x80000000) + 0x80000000; // Give it a carry-in so subtract works nicely
-      var charac = (xg & 0x7f000000) + (y & 0x7f000000) + (1-entry['TC']) * 0x01000000; // Give it a carry-in
-      var frac = (xg & 0x00ffffff) + (y & 0xffffff) + carry;
-      t = ((sign & 0x80000000) | (charac & 0x7f000000) | (frac & 0x00ffffff)) >>> 0;
-      state['CAR'] = (charac & 0x80000000) ? 1 : 0;
+    case 6: // BC1B
+      // Add. Set carry stat to carry out of position 1. Block carry from position 8 to position 7.
+      if (c8) {
+        t = (t - 0x01000000) >>> 0; // Undo the carry from position 8
+      }
+      state['CAR'] = c1;
       break;
-    case 7: // BC8 - carry from position 8
+    case 7: // BC8
+      // Add. Set carry stat to carry out of position 8.
       state['CAR'] = c8;
       break;
-    case 8: // DHL Decimal half correction low QE900. See DHH below.
+    case 8: // DHL
+      // Decimal halve (low order). Bit 2 of each digit of the sum is tested. If the bit is one,
+      // the next digit position to the right in the L reg is set to 0110. If the bit is zero, the
+      // digit in L reg is set to 0000. The leftmost digit in the L reg is set in the same way from the auxiliary trigger.
       var corr = state['AUX'] ? 0x60000000 : 0; // Top correction digit based on AUX
       for (var i = 1; i < 8; i++) {
         if (t & (1 << (i * 4 + 1))) {
@@ -281,9 +287,12 @@ function adderT(state, entry) {
         }
       }
       state['pending']['L'] = corr;
-      state['AUX'] = 0; // Clearing AUX seems like a sensible thing to do, but unclear if this is correct.
       break;
     case 9: // DC0
+      // Decimal add. Set stat 1 to carry out of position 0. Insert
+      // previous value of stat 1 as carry into position 31. Test
+      // carry out of each digit position. If carry, set corresponding
+      // digit position in L reg to 0000. If no carry, set digit in L reg to 0110.
       state['S'][1] = c0;
       // Correction digit is 6 unless there was a carry out of the position.
       // The idea is to add numbers excess-6. A carry out indicates the decimal sum was 10 (i.e. 16 with excess-6), so we
@@ -302,25 +311,47 @@ function adderT(state, entry) {
         (c0 ? 0 : 0x60000000);
       break;
     case 10: // DDC0
-      alert('Unimplemented AD ' + entry['AD'] + " " + labels['AD'][entry['AD']]);
+      // Decimal double. Set stat 1 to carry out of position 0. Insert previous value of stat 1
+      // as carry into position 1. Test each digit of sum. If 5 or greater, set corresponding digit
+      // position in L reg to 0110. If less than 5, set digit in L reg to 0000.
+      state['S'][1] = c0;
+      var corr = 0;
+      for (let i = 0; i < 8; i++) {
+        const digit = (t >> (i * 4)) & 0xf;
+        if (digit >= 5) {
+          corr |= 6 << (i * 4);
+        }
+      }
+      state['pending']['L'] = corr;
       break;
-    case 11: // DHH Decimal half correction high: QE900:83d
+    case 11: // DHH
+      // Decimal halve (high order). Bit 2 of each digit of the sum is tested. If the bit is one, the next
+      // digit position to the right in the L reg is set to 0110. If the bit is zero, the digit in L reg is set to 0000.
+      // The leftmost digit in L reg is set to 0000. The auxiliary trigger is set to bit 2 of the rightmost sum digit
+      // (sum bit 30).
+
       // The idea is if a BCD number is divided by 2, subtract 6 first if you have from 0x10, so it will represent 10 not 0x10.
       // Specifically, if the 1's bit is set in a BCD digit, subtract 6 from the lower digit.
       // However, this test is done one shift earlier, so the 2's bit is tested.
       // This correction value is put into L.
       // DHH/DHL are used for two-word corrections. DHH stores the 1's digit in "Aux" so DHL can use it for the top correction digit.
-      var corr = 0;
-      for (var i = 1; i < 8; i++) {
-        if (t & (1 << (i * 4 + 1))) {
-          corr |= 6 << ((i - 1) * 4);
-        }
-      }
-      state['pending']['L'] = corr;
-      state['AUX'] = (t & 2) ? 1 : 0;
+      // Note: bit 2 has the value 2 because bits are counted from the left: 0 1 2 3
+      state['pending']['L'] =
+        ((t & 0x00000020) ? 0x00000006 : 0) |
+        ((t & 0x00000200) ? 0x00000060 : 0) |
+        ((t & 0x00002000) ? 0x00000600 : 0) |
+        ((t & 0x00020000) ? 0x00006000 : 0) |
+        ((t & 0x00200000) ? 0x00060000 : 0) |
+        ((t & 0x02000000) ? 0x00600000 : 0) |
+        ((t & 0x20000000) ? 0x06000000 : 0);
+      state['AUX'] = (t & 0x00000002) ? 1 : 0;
       break;
     case 12: // DCBS
-      // QS114:C8A: S1→adder, carry*BS→S1, dec add corr→L
+      // Decimal add. Set stat 1 to carry out of leftmost byte position for which a byte stat is on.
+      // Insert previous value of stat 1 as carry into position 1[?]. Test carry out of each digit position.
+      // If carry, set corresponding digit position in L reg to 0000. If no carry, set digit in L reg to 0110.
+      // Note: The text says carry into position 1, but that doesn't make any sense so I'm assuming position 31.
+      // Carry is set at the top of the function.
       var c16 = (carries & 0x00010000) ? 1 : 0;
       var c24 = (carries & 0x00000100) ? 1 : 0;
       if (state['BS'][0]) {

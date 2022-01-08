@@ -93,6 +93,7 @@ QUnit.test( "adder lx 4 LRL", function(assert) {
   assert.equal(state['XG'], 0x56780000);
 });
 
+// Gate L reg to XG. OR ones into XG bits 30-31 and Y input bits 30-31.
 QUnit.test( "adder lx 5 LWA", function(assert) {
   var state = {'L': 0x12345678}
   adderLX(state, {'LX': 5});
@@ -107,43 +108,51 @@ QUnit.test( "adder lx 6 4", function(assert) {
   assert.equal(state['XG'], 4);
 });
 
-QUnit.skip( "adder lx 7 64C", function(assert) {
+QUnit.test( "adder lx 7 64C", function(assert) {
   var state = {};
   adderLX(state, {'LX': 7});
-  assert.equal(state['XG'], (~64) >>> 0); // Complement of 64
+  assert.equal(state['XG'], 0xc0000000); // Complement of 64
 });
 
+// No operation
 QUnit.test( "adder RY 0 0", function(assert) {
   var state = {};
   adderRY(state, {'RY': 0});
   assert.equal(state['Y'], 0);
 });
 
+// Gate R register to Y
 QUnit.test( "adder RY 1 R", function(assert) {
   var state = {'R': 0x12345678};
   adderRY(state, {'RY': 1});
   assert.equal(state['Y'], 0x12345678);
 });
 
+// Gate M register to Y
 QUnit.test( "adder RY 2 M", function(assert) {
   var state = {'M': 0x12345678};
   adderRY(state, {'RY': 2});
   assert.equal(state['Y'], 0x12345678);
 });
 
+// Get M reg bits 16-31 to Y bits 16-31. Gate zeros to bits 0-15.
 QUnit.test( "adder RY 3 M23", function(assert) {
   var state = {'M': 0x12345678};
   adderRY(state, {'RY': 3});
   assert.equal(state['Y'], 0x5678);
 });
 
+// Gate H register to Y.
 QUnit.test( "adder RY 4 H", function(assert) {
   var state = {'H': 0x12345678};
   adderRY(state, {'RY': 4});
   assert.equal(state['Y'], 0x12345678);
 });
 
+// OR the four SDR parity bits into the four emit field bits.
 QUnit.skip( "adder RY 5 SEMT", function(assert) {
+  var state = {'SDR': 0x00ff0110};
+  assert.deepEqual(state['E'], [1, 1, 0, 0]);
 });
 
   // Based on 02D3
@@ -160,7 +169,15 @@ QUnit.test( "adder-default", function(assert) {
   assert.equal(state['T0'], 0);
 });
 
-QUnit.skip( "adder ad 2 BCF0", function(assert) {
+// Add. No carry saved. If F reg equals zero, insert carry into position 31.
+QUnit.test( "adder ad 2 BCF0", function(assert) {
+  let state = {'XG': 0xffffffff, 'Y': 0x00000000, 'CIN': 0, 'F': 0};
+  adderT(state, {'AD': 2 /* BCF0 */});
+  assert.equal(state['T0'], 0x00000000, 'sum');
+
+  state = {'XG': 0xffffffff, 'Y': 0x00000000, 'CIN': 0, 'F': 1};
+  adderT(state, {'AD': 2 /* BCF0 */});
+  assert.equal(state['T0'], 0xffffffff, 'sum2');
 });
 
 QUnit.test( "adder-carry0 ad 4 BC0", function(assert) {
@@ -320,30 +337,32 @@ QUnit.test( "adder-subtract-overflow ad 5 BC⩝C", function(assert) {
 });
 
 // Block carry from 8, save carry from 1. Used for floating point exponent math.
+// Add. Set carry stat to carry out of position 1. Block carry from position 8 to position 7.
+
 QUnit.test( "adder ad 6 BC1B", function(assert) {
-  // Exponents equal
-  var state = {'XG': 0x12345678, 'AUX': 0, 'Y': (~(0x12345678)) >>> 0, 'CIN': 1};
+  // Make sure carry 8 is blocked
+  var state = {'XG': 0x12345678, 'AUX': 0, 'Y': 0x00f00000, 'CIN': 0};
   adderT(state, {'AD': 6});
-  assert.equal(state['T0'], 0x00000000);
-  assert.equal(state['CAR'], 1); // Carry
+  assert.equal(state['T0'], 0x12245678, 'sum');
+  assert.equal(state['CAR'], 0, 'carry');
 
-  // Exponents equal, sign different
-  var state = {'XG': 0x12345678, 'AUX': 0, 'Y': (~(0x92345678)) >>> 0, 'CIN': 1};
+  // Another test, generating carry
+  var state = {'XG': 0x12345678, 'AUX': 0, 'Y': 0xffffffff, 'CIN': 0};
   adderT(state, {'AD': 6});
-  assert.equal(state['T0'], 0x80000000);
-  assert.equal(state['CAR'], 1); // Carry
+  assert.equal(state['T0'], 0x11345677, 'sum2');
+  assert.equal(state['CAR'], 1, 'carry2'); // Carry
 
-  // First exponent smaller
-  var state = {'XG': 0x11345678, 'AUX': 0, 'Y': (~(0x12345678)) >>> 0, 'CIN': 1};
+  // Test carry-out from bit 0
+  var state = {'XG': 0xffffffff, 'AUX': 0, 'Y': 0x80000000, 'CIN': 0};
   adderT(state, {'AD': 6});
-  assert.equal(state['T0'], 0x7f000000);
-  assert.equal(state['CAR'], 0); // No carry
+  assert.equal(state['T0'], 0x7fffffff, 'sum3');
+  assert.equal(state['CAR'], 0, 'carry3');
 
-  // First exponent larger
-  var state = {'XG': 0x13345678, 'AUX': 0, 'Y': (~(0x92345678)) >>> 0, 'CIN': 1};
+  // Test carry-out from bit 1
+  var state = {'XG': 0xffffffff, 'AUX': 0, 'Y': 0x40000000, 'CIN': 0};
   adderT(state, {'AD': 6});
-  assert.equal(state['T0'], 0x81000000);
-  assert.equal(state['CAR'], 1); // Carry
+  assert.equal(state['T0'], 0x3fffffff, 'sum3');
+  assert.equal(state['CAR'], 1, 'carry3');
 });
 
 // Carry out of pos 8
@@ -361,6 +380,9 @@ QUnit.test( "adderT ad 7 BC8", function(assert) {
   assert.equal(state['CAR'], 1);
 });
 
+// Decimal halve (low order). Bit 2 of each digit of the sum is tested. If the bit is one,
+// the next digit position to the right in the L reg is set to 0110. If the bit is zero, the
+// digit in L reg is set to 0000. The leftmost digit in the L reg is set in the same way from the auxiliary trigger.
 QUnit.test( "adderT ad 8 DHL", function(assert) {
   var state = {'XG': 0xdddddddd, 'AUX': 0, 'Y': 0, 'CIN': 0};
   adderT(state, {'AD': 8});
@@ -377,7 +399,6 @@ QUnit.test( "adderT ad 8 DHL", function(assert) {
   var state = {'XG': 0xdddddddd, 'AUX': 1, 'Y': 0, 'CIN': 0};
   adderT(state, {'AD': 8});
   assert.equal(state['pending']['L'], 0x60000000, 'Aux correction');
-  assert.equal(state['AUX'], 0);
 
   state = {'XG': 0xdddddd22, 'AUX': 1, 'Y': 0, 'CIN': 0};
   adderT(state, {'AD': 8});
@@ -388,15 +409,58 @@ QUnit.test( "adderT ad 8 DHL", function(assert) {
   assert.equal(state['pending']['L'], 0x66666666, 'All correction, AUX');
 });
 
+// Decimal add. Set stat 1 to carry out of position 0. Insert
+// previous value of stat 1 as carry into position 31. Test
+// carry out of each digit position. If carry, set corresponding
+// digit position in L reg to 0000. If no carry, set digit in L reg to 0110.
 QUnit.test( "adder ad 9 DC0", function(assert) {
-  var state = {'S': [0, 1, 0, 0, 0, 0, 0, 0]};
-  adderDG(state, {'AD': 9, 'DG': 0}); // Note AD 9 implemented in adderDG
-  assert.equal(state['CIN'], 1);
+  var state = {'S': [0, 0, 0, 0, 0, 0, 0, 0], 'XG': 0xff00ff0f, 'Y': 0x01010100, 'CIN': 1};
+  adderT(state, {'AD': 9, 'DG': 0});
+  assert.equal(state['S'][1], 1, 'state');
+  assert.equal(state['pending']['L'], 0x00660066, 'Corrections');
+  assert.equal(state['T0'], 0x0002000f, 'sum');
+
+  var state = {'S': [0, 1, 0, 0, 0, 0, 0, 0], 'XG': 0xff00ff0f, 'Y': 0x01010100, 'CIN': 1};
+  adderT(state, {'AD': 9, 'DG': 0});
+  assert.equal(state['S'][1], 1, 'state 2');
+  assert.equal(state['pending']['L'], 0x00660060, 'Corrections 2');
+  assert.equal(state['T0'], 0x00020010, 'sum 2');
+
+  var state = {'S': [0, 1, 0, 0, 0, 0, 0, 0], 'XG': 0xef00ff0f, 'Y': 0x01010100, 'CIN': 1};
+  adderT(state, {'AD': 9, 'DG': 0});
+  assert.equal(state['S'][1], 0, 'state 3');
+  assert.equal(state['pending']['L'], 0x60660060, 'Corrections 3');
+  assert.equal(state['T0'], 0xf0020010, 'sum 3');
 });
 
-QUnit.skip( "adder ad 10 DDC0", function(assert) {
+// Decimal double. Set stat 1 to carry out of position 0. Insert previous value of stat 1
+// as carry into position 31. Test each digit of sum. If 5 or greater, set corresponding digit
+// position in L reg is set to 0000. If less than 5, set digit in L reg to 0000.
+QUnit.test( "adder ad 10 DDC0", function(assert) {
+  var state = {'S': [0, 1, 0, 0, 0, 0, 0, 0], 'XG': 0x98765431, 'Y': 0x00000000};
+  adderT(state, {'AD': 10, 'DG': 0});
+  assert.equal(state['T0'], 0x98765432, 'sum 1'); // Carry from stat
+  assert.equal(state['S'][1], 0, 'stat carry');
+  assert.equal(state['pending']['L'], 0x66666000, 'Corrections 1');
+
+  var state = {'S': [0, 0, 0, 0, 0, 0, 0, 0], 'XG': 0x44444444, 'Y': 0x01010101};
+  adderT(state, {'AD': 10, 'DG': 0});
+  assert.equal(state['T0'], 0x45454545, 'sum 2');
+  assert.equal(state['S'][1], 0, 'stat carry 2');
+  assert.equal(state['pending']['L'], 0x06060606, 'Corrections 2');
+
+  var state = {'S': [0, 1, 0, 0, 0, 0, 0, 0], 'XG': 0xfedc3210, 'Y': 0x10000000};
+  adderT(state, {'AD': 10, 'DG': 0});
+  assert.equal(state['T0'], 0x0edc3211, 'sum 3');
+  assert.equal(state['S'][1], 1, 'stat carry 3');
+  assert.equal(state['pending']['L'], 0x06660000, 'Corrections 3');
+
 });
 
+// Decimal halve (high order). Bit 2 of each digit of the sum is tested. If the bit is one, the next digit
+// position to the right in the L reg is set to 0110. If the bit is zero, the digit in
+// the L reg is set to 0000. The leftmost digit in L reg is set to 0000. The auxiliary trigger is set to bit
+// 2 of the rightmost sum digit (sum bit 30).
 QUnit.test( "adderT ad 11 DHH", function(assert) {
   var state = {'XG': 0xdddddddd, 'AUX': 0, 'Y': 0, 'CIN': 0};
   adderT(state, {'AD': 11});
@@ -424,7 +488,55 @@ QUnit.test( "adderT ad 11 DHH", function(assert) {
   assert.equal(state['AUX'], 1);
 });
 
-QUnit.skip( "adder ad 12 DCBS", function(assert) {
+// Decimal add. Set stat 1 to carry out of leftmost byte position for which a byte stat is on.
+// Insert previous value of stat 1 as carry into position 1[?]. Test carry out of each digit position.
+// If carry, set corresponding digit position in L reg to 0000. If no carry, set digit in L reg to 0110.
+// Note: The text says carry into position 1, but that doesn't make any sense so I'm assuming position 31.
+QUnit.test( "adder ad 12 DCBS", function(assert) {
+  // Carry-in
+  var state = {'XG': 0x0000ffff, 'Y': 0, 'BS': [0, 0, 1, 0], 'S': [0, 1, 0, 0, 0, 0, 0, 0]};
+  adderT(state, {'AD': 12});
+  assert.equal(state['T0'], 0x00010000, 'Sum with carry in');
+  assert.equal(state['pending']['L'], 0x66660000, 'Correction with carry-in');
+  assert.equal(state['S']['1'], 1, 'Carry out stat');
+
+  // No carry-in
+  var state = {'XG': 0x0000ffff, 'Y': 0, 'BS': [0, 0, 1, 0], 'S': [0, 0, 0, 0, 0, 0, 0, 0]};
+  adderT(state, {'AD': 12});
+  assert.equal(state['T0'], 0x00000ffff, 'Sum with no carry in');
+  assert.equal(state['pending']['L'], 0x66666666, 'Correction with no carry-in');
+  assert.equal(state['S']['1'], 0, 'Carry out stat, no carry in');
+
+  // No carry-out from byte stat
+  var state = {'XG': 0xffffefff, 'Y': 0x00010001, 'BS': [0, 0, 1, 0], 'S': [0, 0, 0, 0, 0, 0, 0, 0]};
+  adderT(state, {'AD': 12});
+  assert.equal(state['T0'], 0x0000f000, 'Sum 3');
+  assert.equal(state['pending']['L'], 0x00006000, 'Correction 3');
+  assert.equal(state['S']['1'], 0, 'Carry out stat');
+
+  // Test byte-stat 0
+  var state = {'XG': 0xffffffff, 'Y': 0x01000000, 'BS': [1, 0, 0, 0], 'S': [0, 0, 0, 0, 0, 0, 0, 0]};
+  adderT(state, {'AD': 12});
+  assert.equal(state['T0'], 0x00ffffff, 'sum, bs 0');
+  assert.equal(state['S']['1'], 1, 'Carry out stat, bs 0');
+
+  // Test byte-stat 1
+  var state = {'XG': 0xffffffff, 'Y': 0x00010000, 'BS': [0, 1, 0, 0], 'S': [0, 0, 0, 0, 0, 0, 0, 0]};
+  adderT(state, {'AD': 12});
+  assert.equal(state['T0'], 0x0000ffff, 'sum, bs 1');
+  assert.equal(state['S']['1'], 1, 'Carry out stat, bs 1');
+
+  // Test byte-stat 2
+  var state = {'XG': 0xffffffff, 'Y': 0x00000100, 'BS': [0, 0, 1, 0], 'S': [0, 0, 0, 0, 0, 0, 0, 0]};
+  adderT(state, {'AD': 12});
+  assert.equal(state['T0'], 0x000000ff, 'sum, bs 2');
+  assert.equal(state['S']['1'], 1, 'Carry out stat, bs 2');
+
+  // Test byte-stat 3
+  var state = {'XG': 0xffffffff, 'Y': 0x00000001, 'BS': [0, 0, 0, 1], 'S': [0, 0, 0, 0, 0, 0, 0, 0]};
+  adderT(state, {'AD': 12});
+  assert.equal(state['T0'], 0x00000000, 'sum, bs 3');
+  assert.equal(state['S']['1'], 1, 'Carry out stat, bs 3');
 });
 
 QUnit.test( "adder dg 1 CSTAT→ADDER", function(assert) {
