@@ -13,5 +13,8 @@ function initCode(mem: number[]) : number {
   for (let i = 0; i < code.length; i++) {
     mem[startAddr + 4 * i] = code[i];
   }
+  // Set up a PSW for SVC. This PSW has the Wait bit set.
+  mem[96] = 0x00020000;
+  mem[97] = 0x00000000
   return startAddr;
 }

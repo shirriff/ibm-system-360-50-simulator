@@ -627,7 +627,7 @@ function initConsole() : void {
   for (let col = 0; col <= 4; col++) {
     let x = interp(1203, 1301, 5, col);
     let y = 1830;
-    const color = [white, white, white, red, white][col];
+    const color = [white, white, red, red, white][col];
     lights["ipl-" + col] = [x, y, color];
   }
 
@@ -699,7 +699,12 @@ function clicked(e: JQuery.Event) : void {
     } else if (result == "button-start") {
       startAnimate();
     } else if (result == "button-power-on") {
-      powerOff = false;
+      if (powerOff) {
+        resetStateCode(state);
+        displayState(state);
+        consoleDraw();
+        powerOff = false;
+      }
       consoleDraw();
     } else if (result == "epo" || result == "button-power-off") {
       stopAnimate();

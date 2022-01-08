@@ -1,6 +1,7 @@
 // This is the top-level code for the simulator. 
 // It manages the overall running and control, as well as the information sidebar.
 
+const FRAME_RATE = 200; // milliseconds
 var running: boolean = false;
 var skipping: boolean;
 var state: {[key: string]: any} = {};
@@ -100,15 +101,11 @@ function initialize() {
         microinfo();
     });
     count = 0;
-    speed = 500; // ms
+    speed = FRAME_RATE; // ms
     skipping = false;
     seenInstructions = {};
-    state = createState();
-    if (0) {
-      resetStateIPL(state);
-    } else {
-      resetStateCode(state);
-    }
+    state = {};
+    resetStateCode(state);
     displayState(state);
     initZoom();
     initConsole();
@@ -151,6 +148,18 @@ function stopAnimate(): void {
     $("#control").text('Run');
     draw();
 }
+
+function waitAnimate(): void {
+    running = false;
+    systemLight = false;
+    manualLight = false;
+    waitLight = true;
+    skipping = false;
+    $("#control").text('Run');
+    $("#divinstr").text("Waiting");
+    draw();
+}
+
 function startAnimate(): void {
     $("#control").text('Stop');
     powerOff = false;
@@ -159,16 +168,17 @@ function startAnimate(): void {
     manualLight = false;
     waitLight = false;
     then = 0;
-    animate();
+    animate(0);
 }
 
-function animate(): void{
+function animate(time: DOMHighResTimeStamp): void{
     if (!running) {
         return;
     }
     requestAnimationFrame(animate);
-    var now = Date.now();
+    var now = time;
     var elapsed = now - then;
+    console.log(now, then, elapsed);
     if (elapsed < speed) {
         return;
     }
@@ -184,7 +194,7 @@ function animate(): void{
                 if ((breakpoint && state['ROAR'] == breakpoint) ||
                     (!breakpoint && !(state['ROAR'] in seenInstructions))) {
                     skipping = false;
-                    speed = 500;
+                    speed = FRAME_RATE;
                     stopAnimate();
                     return;
                 }
@@ -261,6 +271,10 @@ function step(): void {
     if (memactive) {
         mem();
     }
+    if (state['AMWP'] & 2) {
+      // Wait bit set
+      waitAnimate();
+    }
 }
 // Run at high speed until a new instruction is encountered
 function skip() {
@@ -281,34 +295,15 @@ function resetStateIPL(state) {
 // Initialize to start running code.
 // Want to jump into instruction fetch, rather than lots of reset code.
 function resetStateCode(state) {
+    initState(state);
     const addr = initCode(state['MS']); // Load memory with instructions, get address for branch
     state['SAR'] = addr;
     state['R'] = addr;
     state['S'] = [0, 0, 0, 0, 0, 0, 0, 0]; // S3 = address bit 30 (alignment?)
     state['ROAR'] = 0x102; // QT120: branch to address
+    return state;
 }
 
-
-// Fmt d as PSW
-function fmtPsw(d) {
-    var psw0 = d[0];
-    var psw1 = d[1];
-    var smask = (psw0 >>> 24) & 0xff;
-    var key = (psw0 >>> 20) & 0xf;
-    var amwp = (psw0 >>> 16) & 0xf;
-    var ilc = (psw1 >>> 30) & 0x3;
-    var cc = (psw1 >>> 28) & 0x3;
-    var pmask = (psw1 >>> 24) & 0xf;
-    var ia = psw1 & 0xffffff;
-    var psw = '[smask:' + smask.toString(16).padStart(2, '0') +
-        ' key:' + key.toString(16) +
-        ' amwp:' + amwp.toString(16) +
-        ' ilc:' + ilc.toString(16) +
-        ' cc:' + cc.toString(16) +
-        ' pmask:' + pmask.toString(16) +
-        ' ia:' + ia.toString(16) + ']';
-    return psw;
-}
 const formatters = {
     'FN': fmtN,
     'J': fmtN,
@@ -408,11 +403,25 @@ const LSlabels: string[] = [
 
 function displayState(state) {
     var keys = Object.keys(state);
+    keys.push('PSW'); // PSW isn't stored as an explicit key in state, but a collection of stuff.
     keys = keys.sort();
     var misc: string[] = [];
     var raw: string[] = [];
     for (var i = 0; i < keys.length; i++) {
         var key = keys[i];
+        if (key == 'PSW') {
+            // Display PSW only as tooltip. The PSW state is stored in several state variables, so it needs to be assembled.
+            const psw = 'smask:' + state['SYSMASK'].toString(16).padStart(2, '0') +
+                ', key:' + state['KEY'].toString(16) +
+                ', amwp:' + state['AMWP'].toString(2).padStart(4, '0') +
+                ', ilc:' + state['ILC'].toString(16) +
+                ', cc:' + state['CC'].toString(2).padStart(2, '0') +
+                ', pmask:' + state['PROGMASK'].toString(16) +
+                ', ia:' + fmt3(state['IAR']);
+            misc.push('<span class="hastip" data-toggle="tooltip" title="' + psw + '">' + key + '</span>');
+            raw.push(key + ':' + psw);
+            continue;
+        }
         if (state[key] == undefined) {
             throw ('Undefined state ' + key);
         }
@@ -432,16 +441,15 @@ function displayState(state) {
               for (let col = 0; col < COLS; col++) {
                 let style = "";
                 if (col + row * COLS == lsHilitePos) {
-                  style = ' style="background:' + lsHiliteColor + '">'
+                  style = ' style="background:' + lsHiliteColor + '"'
                 }
-                lineEntries.push('<span class="hastip" data-toggle="tooltip" title="' + LSlabels[idx]+ '"' + style + '">' + fmt4(state['LS'][idx]) + '</span>');
+                lineEntries.push('<span class="hastip" data-toggle="tooltip" title="' + LSlabels[idx]+ '"' + style + '>' + fmt4(state['LS'][idx]) + '</span>');
                 idx++;
               }
               lines.push(lineEntries.join(' '));
             }
             $("#LS").html(lines.join('</br>'));
-        }
-        else if (key in formatters) {
+        } else if (key in formatters) {
             misc.push('<span class="hastip" data-toggle="tooltip" title="' + tooltips[key] + '">' + key + ':&nbsp' + formatters[key](state[key]) + '</span>');
             raw.push(key+':' + formatters[key](state[key]));
         }

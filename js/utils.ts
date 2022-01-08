@@ -1,8 +1,8 @@
 // Share utility functions
 
-function createState(): {[key: string]: any} {
-  // Initialize arbitrarily
-  var state = {'FN': 0, 'J': 0, 'LSAR': 0,
+function initState(state: {[key: string]: any}): void {
+  // Initialize state variables
+  Object.assign(state, {'FN': 0, 'J': 0, 'LSAR': 0,
     'SYSMASK': 0, 'KEY': 0, 'AMWP': 0, 'IRUPT': 0, 'ILC': 0, 'CC': 0, 'PROGMASK': 0, 'IAR': 0, // PSW
     'L': 0, 'R': 0, 'MD': 0, 'F': 0, 'Q': 0,
     'M': 0, 'H': 0, 'T': 0,
@@ -17,14 +17,13 @@ function createState(): {[key: string]: any} {
     'CSTAT': 0,
     'ROS': 0,
     'IAS': 0, // Invalid address stat
-  };
+  });
   state['LS'] = new Array(64);
   for (var i = 0; i < 64; i++) {
     state['LS'][i] = 0;
   }
   state['MS'] = new Array(8192).fill(0); // Words
   state['S'] = new Array(8).fill(0); // Words
-  return state;
 }
 
 // Convert string to hex roar address string
