@@ -240,26 +240,10 @@ function step(): void {
     count += 1;
     $("#count").text(count);
     seenInstructions[iaddr] = 1;
-    const microcode : [string[], string[]] = decode(saddr, data[saddr]);
     var msg1 = cycle(state, data[saddr]);
     var msg2 = doio(state, data[saddr]);
     draw();
-    function fmt(uc : string[]) : string {
-        return '<pre style="margin-bottom:0">' + uc.join('\n') + '</pre>';
-    }
-    console.log(microcode[0].join('\n'));
-    $("#microcodeModalBody").html(microcode[1].join('<br/>'));
-    $("#microinfo").show();
-    // Get the text description for the current ALD sheet
-    let desc = "";
-    const sheet = data[saddr]['sheet'];
-      if (sheet) {
-      const text = aldText[sheet];
-      if (text) {
-        desc = text.join('<br/>');
-      }
-    }
-    $("#microcode").html(fmt(microcode[0]) + desc);
+    displayMicroOp(saddr);
     displayState(state);
     $("#divmsg").html(msg1 || msg2 || '');
     if ([0x148, 0x149, 0x14a, 0x14c, 0x14e, 0x184, 0x185, 0x187, 0x188, 0x189, 0x19b].includes(state['ROAR'])) {
@@ -276,6 +260,28 @@ function step(): void {
       waitAnimate();
     }
 }
+
+// Displays the formatted micro-instruction
+function displayMicroOp(saddr: string): void {
+    const microcode : [string[], string[]] = decode(saddr, data[saddr]);
+    console.log(microcode[0].join('\n'));
+    $("#microcodeModalBody").html(microcode[1].join('<br/>'));
+    $("#microinfo").show();
+    // Get the text description for the current ALD sheet
+    let desc = "";
+    const sheet = data[saddr]['sheet'];
+      if (sheet) {
+      const text = aldText[sheet];
+      if (text) {
+        desc = text.join('<br/>');
+      }
+    }
+    function fmt(uc : string[]) : string {
+        return '<pre style="margin-bottom:0">' + uc.join('\n') + '</pre>';
+    }
+    $("#microcode").html(fmt(microcode[0]) + desc);
+}
+
 // Run at high speed until a new instruction is encountered
 function skip() {
     speed = 0;
