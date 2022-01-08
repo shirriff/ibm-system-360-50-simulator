@@ -927,6 +927,7 @@ QUnit.test( "latch tr 26 MHL", function(assert) {
   var state = {'T': 0x12345678, 'M': 0x11223344};
   adderLatch(state, {'TR': 26});
   assert.equal(state['MD'], 0x1);
+  assert.equal(state['L'], 0x12345678);
   assert.equal(state['M'], 0x11221234);
 });
 
