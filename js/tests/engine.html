@@ -671,25 +671,35 @@ QUnit.test( "iar iv 4 IA/4→A,IA", function(assert) {
   iar(state, {'IV': 4});
   assert.equal(state['IAR'], 0x12340004);
   assert.equal(state['SAR'], 0x12340004);
+  assert.equal(state['IAS'], 0);
+
+  var state = {'IAR': 0x12340002};
+  iar(state, {'IV': 4});
+  assert.equal(state['IAR'], 0x12340006);
+  assert.equal(state['SAR'], 0x12340006);
+  assert.equal(state['IAS'], 1, "invalid address stat");
 });
 
 QUnit.test( "iar iv 5 IA+2/4", function(assert) {
-  // instruction length << 30
-  var state = {'ILC': 0, 'IAR': 0x12340000};
+  // ILC 0
+  var state = {'ILC': 0, 'IAR': 0x00123450};
   iar(state, {'IV': 5});
-  assert.equal(state['IAR'], 0x12340000);
+  assert.equal(state['IAR'], 0x00123452);
 
-  state = {'ILC': 1, 'IAR': 0x12340000};
+  // ILC 1
+  var state = {'ILC': 1, 'IAR': 0x00123450};
   iar(state, {'IV': 5});
-  assert.equal(state['IAR'], 0x12340002); // +2
+  assert.equal(state['IAR'], 0x00123452);
 
-  state = {'ILC': 2, 'IAR': 0x12340000};
+  // ILC 2
+  var state = {'ILC': 2, 'IAR': 0x00123450};
   iar(state, {'IV': 5});
-  assert.equal(state['IAR'], 0x12340004); // +4
+  assert.equal(state['IAR'], 0x00123454);
 
-  state = {'ILC': 3, 'IAR': 0x12340000};
-  iar(state, {'IV': 5})
-  assert.equal(state['IAR'], 0x12340004); // +4
+  // ILC 3
+  var state = {'ILC': 3, 'IAR': 0x00123450};
+  iar(state, {'IV': 5});
+  assert.equal(state['IAR'], 0x00123454);
 });
 
 QUnit.test( "iar iv 6 IA+2", function(assert) {
@@ -699,28 +709,53 @@ QUnit.test( "iar iv 6 IA+2", function(assert) {
 });
 
 QUnit.test( "iar iv 7 IA+0/2→A", function(assert) {
-  // No refetch: should increment
-  var state = {'SAR': 1, 'IAR': 0x12340002, 'REFETCH': 0};
-  iar(state, {'IV': 7, 'ZN': 0});
-  assert.equal(state['SAR'], 0x12340004);
-  // Refetch, no increment
-  state = {'SAR': 1, 'IAR': 0x12340002, 'REFETCH': 1};
-  iar(state, {'IV': 7, 'ZN': 0});
-  assert.equal(state['SAR'], 0x12340002);
+  // Refetch stat off cases, increment by 2
+  var state = {'IAR': 0x00123450, 'REFETCH': 0};
+  iar(state, {'IV': 7});
+  assert.equal(state['IAR'], 0x00123450);
+  assert.equal(state['SAR'], 0x00123452);
+  assert.equal(state['IAS'], 1, "invalid address stat");
 
-  // Even halfword, SMIF. Should increment. But rounded down? So no change?
-  // Unclear if this case should increment or not or if it matters.
-  state = {'SAR': 1, 'IAR': 0x12340000, 'REFETCH': 0};
+  var state = {'IAR': 0x00123452, 'REFETCH': 0};
+  iar(state, {'IV': 7});
+  assert.equal(state['IAR'], 0x00123452);
+  assert.equal(state['SAR'], 0x00123454);
+  assert.equal(state['IAS'], 0, "invalid address stat");
+
+  var state = {'IAR': 0x00123452, 'REFETCH': 0}; // with SMIF: skip fetch if off word boundary
+  iar(state, {'IV': 7, 'ZN': 1}); // ZN=1 for SMIF
+  assert.equal(state['IAR'], 0x00123452);
+  assert.equal(state['SAR'], undefined, "fetch skipped");
+
+  var state = {'IAR': 0x00123450, 'REFETCH': 0};
   iar(state, {'IV': 7, 'ZN': 1});
-  assert.equal(state['SAR'], 0x12340000);
-  // Odd halfword, no refetch, SMIF. Should skip access.
-  state = {'SAR': 1, 'IAR': 0x12340002, 'REFETCH': 0};
+  assert.equal(state['IAR'], 0x00123450);
+  assert.equal(state['SAR'], 0x00123452);
+
+  // Refetch stat on cases
+  var state = {'IAR': 0x00123450, 'REFETCH': 1};
+  iar(state, {'IV': 7});
+  assert.equal(state['IAR'], 0x00123450);
+  assert.equal(state['SAR'], 0x00123450);
+  assert.equal(state['IAS'], 0, "invalid address stat");
+
+  var state = {'IAR': 0x00123452, 'REFETCH': 1};
+  iar(state, {'IV': 7});
+  assert.equal(state['IAR'], 0x00123452);
+  assert.equal(state['SAR'], 0x00123452);
+  assert.equal(state['IAS'], 1, "invalid address stat");
+
+  var state = {'IAR': 0x00123450, 'REFETCH': 1}; // with SMIF: skip fetch if off word boundary
   iar(state, {'IV': 7, 'ZN': 1});
-  assert.equal(state['SAR'], 1);
-  // Odd halfword, refetch, SMIF. Should not increment
-  state = {'SAR': 1, 'IAR': 0x12340002, 'REFETCH': 1};
+  assert.equal(state['IAR'], 0x00123450);
+  assert.equal(state['SAR'], 0x00123450);
+  assert.equal(state['IAS'], 0, "invalid address stat");
+
+  var state = {'IAR': 0x00123452, 'REFETCH': 1};
   iar(state, {'IV': 7, 'ZN': 1});
-  assert.equal(state['SAR'], 0x12340002);
+  assert.equal(state['IAR'], 0x00123452);
+  assert.equal(state['SAR'], 0x00123452);
+  assert.equal(state['IAS'], 1, "invalid address stat");
 });
 
 QUnit.test( "latch tr 1 R", function(assert) {
@@ -1905,15 +1940,15 @@ QUnit.test("ab 49 W(67)→AB", function(assert) {
 // 50-53 unused?
 
 QUnit.test("ab 54 CANG", function(assert) {
-  state = {'ROAR': 0x49c, 'SAR': 0x100, 'T': 0xfffffff8};
+  state = {'ROAR': 0x49c, 'T': 0xfffffff8};
   roarAB(state, {'AB': 54, 'BB': 0});
-  assert.equal(state['ROAR'], 0x49c | 0);
+  assert.equal(state['ROAR'], 0x49c | 0, 'address bits 0');
 
-  state = {'ROAR': 0x49c, 'SAR': 0x101, 'T': 0xfffffff8}; // IVA
+  state = {'ROAR': 0x49c, 'T': 0xfffffff4};
   roarAB(state, {'AB': 54, 'BB': 0});
-  assert.equal(state['ROAR'], 0x49c | 2);
+  assert.equal(state['ROAR'], 0x49c | 2, 'address bit set');
 
-  state = {'ROAR': 0x49c, 'SAR': 0x100, 'T': 0xfffffffc}; // 29-31 bit set (CA)A
+  state = {'ROAR': 0x49c, 'T': 0xfffffff0, 'IAS': 1}; // Set invalid address stat
   roarAB(state, {'AB': 54, 'BB': 0});
   assert.equal(state['ROAR'], 0x49c | 2);
 });

@@ -16,6 +16,7 @@ function createState(): {[key: string]: any} {
     'CAR': 0,
     'CSTAT': 0,
     'ROS': 0,
+    'IAS': 0, // Invalid address stat
   };
   state['LS'] = new Array(64);
   for (var i = 0; i < 64; i++) {

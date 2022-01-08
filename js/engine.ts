@@ -3,7 +3,7 @@
 // state is the current processor state
 // entry is the ROS entry
 // Returns message if any
-function cycle(state, entry) {
+function cycle(state: {[key: number]: any}, entry: {[key: string]: number}) : string {
   try {
     lsHilitePos = -1; // Reset the LS highlight
     state['ROS'] = entry['ROS'] // The raw ROS bits
@@ -53,7 +53,7 @@ function cycle(state, entry) {
 // PSW = SYSMASK(8), KEY(4), AMWP(4), IRUPT(16);   ILC(2), CR(2), PROGMASK(4), IAR(24)
 
 // Sets state['XG'] based on entry['LX'] and TC
-function adderLX(state, entry) {
+function adderLX(state: {[key: string]: any}, entry: {[key: string]: number}): void {
   var xg = 0;
   switch (entry['LX']) { // left input to adder [XG]
     case 0: // No adder input
@@ -1212,7 +1212,7 @@ function localStore(state, entry) {
 }
 
 // Instruction address reg control
-function iar(state, entry) {
+function iar(state: {[key: string]: any}, entry: {[key: string]: number}) : void {
   switch (entry['IV']) {
     case 0: // default
       break;
@@ -1226,35 +1226,41 @@ function iar(state, entry) {
       // implemented in mover
       break;
     case 4: // IA/4→A,IA
+      // Increment IAR by 4. Gate result to IAR and SAR. Initiate storage request.
+      // Inhibit invalid address trap. Set invalid address stat instead.
       state['IAR'] += 4;
       state['SAR'] = state['IAR'];
+      state['IAS'] = (state['IAR'] & 3) ? 1 : 0;
       break;
     case 5 : // IA+2/4 // QT115/019B
-      // CLF 001: IAR += 2 if ILC = 01, IAR += 4 if ILC = 1X
-      if (state['ILC'] == 1) {
+      // If instruction length code value is 0 or 1, increment IAR by 2. If ILC value is 2 or 3, increment
+      // IAR by 4. Gate result back to IAR.
+      if (state['ILC'] == 0 || state['ILC'] == 1) {
         state['IAR'] += 2;
       } else if (state['ILC'] == 2 || state['ILC'] == 3) {
         state['IAR'] += 4;
       }
       break;
-    case 6 : // IA+2 // QT120/018B
+    case 6 : // IA+2
+      // Increment IAR by 2. Gate result back to IAR.
       state['IAR'] += 2;
       break;
-    case 7: // IA+0/2→A // QP206/0D94 Also IA+0+2→A: QT115/0199 
-      // CLF 001 says +2 if ref is off, +0 if ref is on.
-      if (entry['ZN'] == 1) {
-        // SMIF: Suppress Memory Instruction Fetch
-        if (state['REFETCH'] == 0 && (state['IAR'] & 3) != 0) {
+    case 7: // IA+0/2→A
+      // Gate IAR to SAR, incremented by 2 if refetch stat is off, not incremented if refetch stat is on.
+      // Initiate storage request. Inhibit invalid address trap. Set invalid address stat instead. IAR is not altered.
+      if (entry['ZN'] == 1) { // SMIF: Suppress Memory Instruction Fetch if refetch stat is off and IAR bit 30 is 1
+        if (!state['REFETCH'] && (state['IAR'] & 2)) {
           // Half-word alignment, no refetch. Skip fetch because using op buffer.
           break;
         }
       }
-      if (state['REFETCH'] == 1) {
-        // Seems like we need to adjust the alignment when refetching
-        state['SAR'] = state['IAR'];
+      if (state['REFETCH'] == 0) {
+        state['SAR'] = state['IAR'] + 2;
       } else {
-        state['SAR'] = (state['IAR'] + 2) & ~0x3;
+        state['SAR'] = state['IAR'];
       }
+      // TODO(implement storage requests)
+      state['IAS'] = (state['SAR'] & 3) ? 1 : 0; // Invalid address stat
       break;
     default:
       alert('Unimplemented IV ' + entry['IV'] + " " + labels['IV'][entry['IV']]);
@@ -1845,10 +1851,10 @@ function roarAB(state, entry) {
     case 53: // CROS IB full
       alert('Unimplemented I/O AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
-    case 54: // CANG: (29-31) != 0  CA not good?
-      // QK700: No IV AR trap. Z(29-31) != 0 or IV AD to A.
-      // CROS: IO mode & (T29-31 not zero or Inv Add)   or  CPU mode & (T29-31 not zero or Inv Add) -- seems redundant
-      if ((state['T'] & 0x00000007) || (state['SAR'] & 1)) {
+    case 54: // CANG
+      // If adder output bits 29-31 are non-zero or invalid address trigger is on, set A bit to one.
+      // Otherwise set A bit to 0.
+      if ((state['T'] & 0x00000007) || state['IAS']) {
         roar |= 2;
       }
       break;
