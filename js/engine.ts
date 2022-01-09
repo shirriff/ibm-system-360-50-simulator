@@ -267,9 +267,18 @@ function adderT(state, entry) {
       break;
     case 6: // BC1B
       // Add. Set carry stat to carry out of position 1. Block carry from position 8 to position 7.
-      if (c8) {
-        t = (t - 0x01000000) >>> 0; // Undo the carry from position 8
+      // For AL23, a hot carry is inserted into position 7.
+
+      // Add the top byte separately
+      if (entry['AL'] == 23) { // Hot carry forced into position 7
+        var tb = (xg & 0xff000000) + (y & 0xff000000) + 0x01000000;
+      } else {
+        var tb = (xg & 0xff000000) + (y & 0xff000000);
       }
+      t = (tb | (t & 0x00ffffff)) >>> 0; // Combine the top byte addition with the regular addition of the other bytes.
+      // Recompute the carry
+      carries = t ^ (xg ^ y ^ carry);
+      c1 = (carries & 0x80000000) ? 1 : 0;
       state['CAR'] = c1;
       break;
     case 7: // BC8
@@ -438,140 +447,183 @@ function adderAL(state, entry) {
   state['T'] = state['T0']; // may be overwritten below
   switch (entry['AL']) {
     case 0: // Normal
+      // Gate adder output to latch, no shift.
       break;
     case 1: // Q→SR1→F
+      // Gate adder output to latch, shifted right 1, entering Q. Spill bit enters F, which is shifted right.
       var s = sr1(state['Q'], state['T'], state['F']);
       state['T'] = s[0];
       state['F'] = s[1];
       break;
     case 2: // L0,¬S4→
-      // QG406: insert inv sign
+      // Gate adder output bits 8-31 to latch bits 8-31. Gate L reg bits 1-7 to latch bits 1-7.
+      // Set latch bit 0 to the complement of stat 4.
       var sign = state['S'][4] == 0 ? 0x80000000 : 0;
-      state['T'] = (sign | (state['L'] & 0xff000000) | (state['T'] & 0x00ffffff)) >>> 0;
+      state['T'] = (sign | (state['L'] & 0x7f000000) | (state['T'] & 0x00ffffff)) >>> 0;
       break;
     case 3: // +SGN→
+      // Gate adder output bits 1-31 to latch bits 1-31. Set latch bit 0 to zero.
       state['T'] = state['T'] & 0x7fffffff;
       break;
     case 4: // -SGN→
+      // Gate adder output bits 1-31 to latch bits 1-31. Set latch bit 0 to one.
       state['T'] = (state['T'] | 0x80000000) >>> 0;
       break;
     case 5: // L0,S4→
+      // Gate adder output bits 8-31 to latch bits 8-31. Gate L reg bits 1-7 to latch bits 1-7. Gate stat 4 bit to latch bit 0.
       var sign = state['S'][4] == 1 ? 0x80000000 : 0;
-      state['T'] = (sign | (state['L'] & 0xff000000) | (state['T'] & 0x00ffffff)) >>> 0;
+      state['T'] = (sign | (state['L'] & 0x7f000000) | (state['T'] & 0x00ffffff)) >>> 0;
       break;
     case 6: // IA→H // Handled by D
+      // Gate adder output to latch, no shift. Gate IAR to H reg bits 8-31. H reg bits 0-7 remain unchanged.
       if (state['IAR'] == undefined) {alert('undefined iar');}
-      state['H'] = state['IAR'];
+      state['H'] = ((state['H'] & 0xff000000) | (state['IAR'] & 0x00ffffff)) >>> 0;
       break;
     case 7: // Q→SL→-F
-      var s = sl1(state['Q'] << 3, state['T'], state['F']);
+      // Gate adder output to latch, shifted left 1, entering Q. Complement of spill bit enters F, which is shifted left.
+      var s = sl1(state['Q'] << 3, state['T'], state['F']); // Need to treat Q as a 4-bit value
       state['T'] = s[0];
       state['F'] = s[1] ^ 0x1; // Negate new (bottom) bit
       break;
     case 8: // Q→SL1→F
+      // Gate adder output to latch, shifted left 1, entering Q. Spill bit enters F, which is shifted left.
       var s = sl1(state['Q'] << 3, state['T'], state['F']);
       state['T'] = s[0];
       state['F'] = s[1];
       break;
     case 9: // F→SL1→F
+      // Gate adder output to latch, shifted left 1, entering bit 0 of F. Spill bit enters F, which is shifted left.
       var s = sl1(state['F'], state['T'], state['F']);
       state['T'] = s[0];
       state['F'] = s[1];
       break;
     case 10: // SL1→Q
+      // Gate adder output to latch, shifted left 1, entering zero. Spill bit enters G.
       var s = sl1(0, state['T'], 0);
       state['T'] = s[0];
       state['Q'] = s[1];
       break;
     case 11: // Q→SL1
+      // Gate adder output to latch, shifted left 1, entering Q. Spill bit is discarded.
       var s = sl1(state['Q'] << 3, state['T'], 0);
       state['T'] = s[0];
       break;
     case 12: // SR1→F
+      // Gate adder output to latch, shifted right 1, entering zero. Spill bit enters F, which is shifted right.
       var s = sr1(0, state['T'], state['F']);
       state['T'] = s[0];
       state['F'] = s[1];
       break;
     case 13: // SR1→Q
-      var s = sr1(0, state['T'], state['Q']);
+      // Gate adder output to latch, shifted right 1, entering zero. Spill bit enters Q.
+      var s = sr1(0, state['T'], 0);
       state['T'] = s[0];
       state['Q'] = s[1] >> 3; // Convert 4-bit result to 1-bit Q
       break;
     case 14: // Q→SR1→Q
+      // Gate adder output to latch, shifted right 1, entering Q. Spill bit enters Q.
       var s = sr1(state['Q'], state['T'], 0);
       state['T'] = s[0];
       state['Q'] = s[1] >> 3; // Convert 4-bit result to 1-bit Q
       break;
     case 15: // F→SL1→Q
+      // Gate adder output to latch, shifted left 1, entering bit 0 of F. Spill bit enters G. F is shifted left 1, entering 0.
       var s = sl1(state['F'], state['T'], 0);
       state['T'] = s[0];
       state['Q'] = s[1];
+      state['F'] = (state['F'] << 1) & 0xf;
       break;
-    case 16: // SL4→F    // Shift adder output left by 4, also put in F.
+    case 16: // SL4→F
+      // Gate adder output to latch, shifted left 4, entering zeros.
+      // Spill bits enter F.
       var s = sl4(0, state['T']);
       state['T'] = s[0];
       state['F'] = s[1];
       break;
     case 17: // F→SL4→F
+      // Gate adder output to latch, shifted left 4, entering F. Spill bits enter F.
       var s = sl4(state['F'], state['T']);
       state['T'] = s[0];
       state['F'] = s[1];
       break;
     case 18: // FPSL4 Floating point shift left 4, preserving top byte (sign, exponent)
-      state['LB'] = (state['T'] & 0x00f00000) ? 1 : 0; // LB indicates if data shifted out
+      // Gate adder output bits 0-7 to latch 0-7. Gate adder output bits 8-31 to latch bits 8-31, shifted left 4, entering zeros.
+      // Spill bits from adder output 8-11 are discarded.
       var s = sl4(0, state['T']);
       state['T'] = ((state['T'] & 0xff000000) | (s[0] & 0x00ffffff)) >>> 0;
       break;
     case 19: // F→FPSL4
-      state['LB'] = (state['T'] & 0x00f00000) ? 1 : 0; // LB indicates if data shifted out
+      // Gate adder output bits 0-7 to latch bits 0-7. Gate adder output bits 8-31 to latch bits 8-31, shifted left 4, entering F.
+      // Spill bits from adder output 8-11 are discarded.
       var s = sl4(state['F'], state['T']);
       state['T'] = ((state['T'] & 0xff000000) | (s[0] & 0x00ffffff)) >>> 0;
       break;
     case 20: // SR4→F
+      // Gate adder output to latch, shifted right 4, entering zeros. Spill bits enter F.
       var s = sr4(0, state['T']);
       state['T'] = s[0];
       state['F'] = s[1];
       break;
     case 21: // F→SR4→F
+      // Gate adder output to latch, shifted right 4, entering F. Spill bits enter F.
       var s = sr4(state['F'], state['T']);
       state['T'] = s[0];
       state['F'] = s[1];
       break;
-    case 22: // FPSR4→F  Floating point shift right 4, preserving top byte (sign, exponent)
-      state['F'] = state['T'] & 0xf;
-      state['T'] = ((state['T'] & 0xff000000) | ((state['T'] & 0x00fffff0) >>> 4)) >>> 0;
+    case 22: // FPSR4→F  Floating point shift right 4
+      // Gate adder output bits 8-31 to latch bits 8-31, shifted right 4, entering zeros. Gate zeros to latch bits 0-7.
+      // Spill bits enter F.
+      var s = sr4(0, state['T']);
+      state['T'] = ((s[0] & 0x000fffff)) >>> 0;
+      state['F'] = s[1];
       break;
-    case 23: // 1→FPSR4→F  Floating point shift right 4, shifting 1 in at top
+    case 23: // 1→FPSR4→F  Floating point shift right 4.
+      // Gate adder output bits 0-7 to latch bits 0-7. Gate adder output bits 8-31 to latch bits 8-31, shifted right 4, entering 0001.
+      // Spill bits enter F. A hot carry is forced into position 7 of the adder. (This order can be used only with an AD field value of AD6.)
+      var s = sr4(0, state['T']);
       state['F'] = state['T'] & 0xf;
-      state['T'] = ((state['T'] & 0xff000000) | 0x00100000 | ((state['T'] & 0x00fffff0) >>> 4)) >>> 0;
+      state['T'] = ((state['T'] & 0xff000000) | 0x00100000 | (s[0] & 0x000fffff)) >>> 0;
       break;
     case 24: // SR4→H
-      alert('Unimplemented AL ' + entry['AL'] + " " + labels['AL'][entry['AL']]);
+      // Gate adder output to latch, shifted right 4, entering zeros. Spill bits enter H reg bits 0-3.
+      // Gate latch bits 4-7 to R reg bits 0-3. (This order can be used only with a TR field value of TR1,
+      // and latch bits 4-7 must have an even number of ones.)
+      var s = sr4(0, state['T']);
+      state['T'] = s[0];
+      state['H'] = ((s[1] << 28) | (state['H'] & 0x0fffffff)) >>> 0;
+      state['R'] = (((state['T'] << 4) & 0xf0000000) | (state['R'] & 0x0fffffff)) >>> 0;
       break;
     case 25: // F→SR4
+      // Gate adder output to latch, shifted right 4, entering F. Spill bits are discarded. F is not altered.
       var s = sr4(state['F'], state['T']);
       state['T'] = s[0];
       break;
     case 26: // E→FPSL4  Floating point shift left 4, preserving top byte
-      state['LB'] = (state['T'] & 0x00f00000) ? 1 : 0; // LB indicates if data shifted out
+      // Gate adder output bits 0-7 to latch bits 0-7. Gate adder output bits 8-31 to latch bits 8-31, shifted left 4,
+      // entering the emit field. Spill bits from adder output 8-11 are discarded.
       var s = sl4(entry['CE'], state['T']);
       state['T'] = ((state['T'] & 0xff000000) | (s[0] & 0x00ffffff)) >>> 0;
       break;
     case 27: // F→SR1→Q
+      // Gate adder output to latch, shifted right 1, entering bit 3 of F. Spill bit enters Q. F is not changed.
       var s = sr1(state['F'], state['T'], 0);
       state['T'] = s[0];
-      state['Q'] = s[1] >> 3;
+      state['Q'] = s[1] >> 3; // Convert Q to 1 bit
       break;
     case 28: // DKEY→ // Handled by D, data keys
+      // Gate data keys to latch. Gate bits 28-31 of data keys to F.
       alert('Unimplemented AL ' + entry['AL'] + " " + labels['AL'][entry['AL']]);
       break;
     case 29:
+      // Gate bus from selector channels to latch.
       alert('Unimplemented I/O AL ' + entry['AL'] + " " + labels['AL'][entry['AL']]);
-    case 30: // D→ // Handled by D
+    case 30: // D→
+      // Gate storage data reg to latch. Interlock with storage timing ring to cause possible storage holdoff.
       msg = read(state);
       state['T'] = state['SDR'];
       break;
-    case 31: // AKEY→ // Handled by D, address keys
+    case 31: // AKEY→
+      // Gate address keys to latch bits 8-31. Gate zeros to latch bits 0-7.
       alert('Unimplemented AL ' + entry['AL'] + " " + labels['AL'][entry['AL']]);
       break;
     default:
