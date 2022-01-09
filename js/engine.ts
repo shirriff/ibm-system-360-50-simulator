@@ -609,6 +609,8 @@ function trapInvalidDecimal(state) {
 // Assume SAR and SDR set up
 function store(state) {
   state['MS'][state['SAR'] & ~3] = state['SDR'];
+  coreHiliteAddr = state['SAR'];
+  coreHiliteColor = "#ffcccc";
   return 'Storing ' + fmt4(state['SDR']) + ' in ' + fmt3(state['SAR']);
 }
 
@@ -620,6 +622,8 @@ function read(state) {
   if (state['SDR'] == undefined) {
     state['SDR'] = 0xdeadbeef; // Random value in uninitialized memory.
   }
+  coreHiliteAddr = state['SAR'];
+  coreHiliteColor = "#ccccff";
   return 'Read ' + fmt4(state['SDR']) + ' from ' + fmt3(state['SAR']);
 }
 

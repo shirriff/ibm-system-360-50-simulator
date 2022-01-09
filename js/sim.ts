@@ -11,6 +11,8 @@ var speed: number;
 var seenInstructions: {[key: string]: number};
 var lsHilitePos: number = -1; // Highlights the selected LSAR word.
 var lsHiliteColor: string = ""; // Specifies the color for the LSAR highlight (to indicate read vs write).
+var coreHiliteAddr: number = -1; // Highlights the selected core word.
+var coreHiliteColor: string = ""; // Specifies the color for the core highlight (to indicate read vs write).
 
 // Override alert so simulator will stop if an error is hit.
 // https://stackoverflow.com/questions/1729501/javascript-overriding-alert
@@ -100,6 +102,20 @@ function initialize() {
     $("#microinfo").on("click", function (e) {
         microinfo();
     });
+    // Memory info
+    $("#coreinfoopen").on("click", function (e) {
+      if ($("#coreviewer").is(":visible")) {
+        $("#coreinfoopen").text("expand");
+        $("#coreviewer").hide();
+      } else {
+        $("#coreinfoopen").text("unfold_less");
+        $("#coreviewer").show();
+        updateCoreInfo();
+      }
+    });
+    $("#coreaddr").on("change", function (e) {
+        updateCoreInfo();
+    });
     count = 0;
     speed = FRAME_RATE; // ms
     skipping = false;
@@ -111,6 +127,31 @@ function initialize() {
     initConsole();
     resize();
     stopAnimate();
+}
+
+function updateCoreInfo(): void {
+  if (!$("#coreviewer").is(":visible")) {
+    return;
+  }
+  const saddr: string = String($("#coreaddr").val());
+  let addr: number = parseInt(saddr, 16);
+  const lines: string[] = []
+  let line: string = "";
+  for (let row = 0; row < 8; row++) {
+    line = '<span style="font-weight: 600">' + fmt3(addr) + '</span> ';
+    for (let col = 0; col < 4; col++) {
+      let style = "";
+      if (addr == coreHiliteAddr) {
+        style = ' style="background:' + coreHiliteColor + '"'
+      }
+      line += '<span' + style + '>' + fmt4(state['MS'][addr]) + '</span> ';
+      addr += 4; // 4 bytes
+    }
+    line += '<br/>';
+    lines.push(line);
+  }
+  $("#coredata").html(lines.join('\n'));
+  coreHiliteAddr = -1; // Clear the highlight on the next cycle
 }
 
 function microinfo() {
@@ -245,7 +286,11 @@ function step(): void {
     draw();
     displayMicroOp(saddr);
     displayState(state);
-    $("#divmsg").html(msg1 || msg2 || '');
+    updateCoreInfo();
+    if ($("#coreviewer").is(":visible")) {
+      // Display an update instead of the memory itself.
+      $("#divmsg").html(msg1 || msg2 || '');
+    }
     if ([0x148, 0x149, 0x14a, 0x14c, 0x14e, 0x184, 0x185, 0x187, 0x188, 0x189, 0x19b].includes(state['ROAR'])) {
         // Lots of entries to instruction decoding.
         var iar = state['IAR'];
@@ -408,6 +453,7 @@ const LSlabels: string[] = [
 ];
 
 function displayState(state) {
+    displayMicroOp(fmt2(state['ROAR']));
     var keys = Object.keys(state);
     keys.push('PSW'); // PSW isn't stored as an explicit key in state, but a collection of stuff.
     keys = keys.sort();

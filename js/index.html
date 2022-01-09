@@ -33,7 +33,7 @@
   }
 
   .hastip {
-    cursor: pointer;
+    cursor: help;
   }
 </style>
 
@@ -63,13 +63,11 @@
         <div class="col-4 border-right" id="sidebar" style="overflow-y:scroll">
 
           <div class="card">
-            <div class="card-header" role="tab">
-            </div>
             <div class="card-body">
               <h5 class="card-title">Instruction</h5>
-              <p class="card-text" id="divinstr"></p>
+              <p class="card-text" id="divinstr" style="min-height: 2em"></p>
               <h5 class="card-title">Micro-instruction <span class="material-icons" style="font-size:100%; cursor: pointer; display:none" id="microinfo">info</span> </h5>
-              <p class="card-text" id="microcode"></p>
+              <p class="card-text" id="microcode" style="min-height: 20em"></p>
             </div>
           </div>
             
@@ -81,13 +79,18 @@
           </div>
 
           <div class="card">
-            <div class="card-header" role="tab">
-            </div>
             <div class="card-body">
               <h5 class="card-title">Local Storage</h5>
-              <p class="card-text" id="LS" style="font-size: 55%; font-family: 'Courier New', Courier, monospace "></p>
-              <h5 class="card-title">Core Memory</h5>
+              <p class="card-text" id="LS" style="font-size: 55%; font-family: 'Courier New', Courier, monospace"></p>
+              <h5 class="card-title">Core Memory <span class="material-icons" style="font-size:75%; cursor: pointer;" id="coreinfoopen">expand</span> </h5>
               <p class="card-text" id="divmsg"></p>
+              <p class="card-text" id="coreviewer" style="display:none">
+                Address: <input style="width: 6em" id="coreaddr" value="0100" />
+                <div id="coredata" style="font-size:80%; font-family: 'Courier New', Courier, monospace">
+
+                </div>
+
+              </p>
             </div>
           </div>
             
