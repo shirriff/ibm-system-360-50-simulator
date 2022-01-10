@@ -2065,6 +2065,7 @@ function roarBB(state, entry) {
       roar |= state['RSGNS'];
       break;
     case 11: // HSCH HS Channel Special Branch
+      // If high speed channel is operating or 256 subchannel operation is installed, set B bit to one. Otherwise set B bit to zero.
       alert('Unexpected BB ' + entry['BB'] + " " + labels['AB'][entry['AB']]);
       break;
     case 12: // EXC      // Exception Branch
@@ -2079,8 +2080,7 @@ function roarBB(state, entry) {
       alert('Unexpected BB ' + entry['BB'] + " " + labels['AB'][entry['AB']]);
       break;
     case 15: // T13=0
-      // Inexplicably, T13=0 seems to mean T bits 8 to 31 are 0 (i.e. fraction in a float)
-      // See CROS manual Figure 27 and floating point code.
+      // If adder output bus bits 8-13 are zero, set B bit to one. Otherwise set B bit to zero.
       if ((state['T'] & 0x00ffffff) == 0) {
         roar |= 1;
       }
@@ -2136,28 +2136,36 @@ function roarBB(state, entry) {
         roar |= 1;
       }
       break;
-    case 26: // I/O  CROS manual: IO Stat 1 to CPU
+    case 26: // IOS1
+      // Set B bit to value of multiplexer channel stat 1.
       alert('Unimplemented I/O BB ' + entry['BB'] + " " + labels['BB'][entry['BB']]);
       break;
-    case 27: // MD/JI   CROS manual: MD Odd Gt 8 or J odd gt 8.  From FP register defs, apparently that means odd or >= 8.
-      if ((state['MD'] & 1) || state['MD'] >= 8 || (state['J'] & 1) || state['J'] >= 8) {
+    case 27: // MD/JI
+      // If either bit 1 or bit 3 of either MD reg or J reg is set to one, set B bit to one (illegal FP reg).
+      // Otherwise set B bit to zero.
+      // [I think that description must be wrong; if bit 0 (not bit 1) is set, the FP reg is illegal. I've coded it that way below.]
+      if ((state['MD'] & 9) || (state['J'] & 9)) {
         roar |= 1;
       }
       break;
     case 28: // IVA // QT110/0149
-      if (state['SAR'] & 1) {
+      // Set B bit to value of Invalid Address Stat.
+      if (state['IAS']) {
         roar |= 1;
       }
       break;
-    case 29: // I/O stat 3
+    case 29: // IOS3
+      // Set B bit to value of multiplexer channel stat 3.
       alert('Unimplemented I/O BB ' + entry['BB'] + " " + labels['BB'][entry['BB']]);
       break;
     case 30: // (CAR) branch immediate on carry latch
+      // Set B bit to value of carry latch as set this cycle.
       if (state['CAR'] == 1) {
         roar |= 1;
       }
       break;
-    case 31: // (Z00): looks at current T
+    case 31: // (Z00)
+      // Set B bit to value of adder sum bit 0 (before shift) this cycle.
       if (state['T0'] & 0x80000000) {
         roar |= 1;
       }

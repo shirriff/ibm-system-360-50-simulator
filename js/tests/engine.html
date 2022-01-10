@@ -2439,14 +2439,18 @@ QUnit.test( "bb 27 (MD/JI)", function(assert) {
   assert.equal(state['ROAR'], 0x49c | 1);
 });
 
-QUnit.skip("bb 28 IVA", function(assert) {
+QUnit.test("bb 28 IVA", function(assert) {
   var state = {'ROAR': 0x49c, 'SAR': 0x102};
   roarBB(state, {'BB': 28});
   assert.equal(state['ROAR'], 0x49c | 0);
 
   state = {'ROAR': 0x49c, 'SAR': 0x101};
   roarBB(state, {'BB': 28});
-  assert.equal(state['ROAR'], 0x49c | 1);
+  assert.equal(state['ROAR'], 0x49c | 0, 'ignore SAR value');
+
+  state = {'ROAR': 0x49c, 'SAR': 0x101, 'IAS': 1};
+  roarBB(state, {'BB': 28});
+  assert.equal(state['ROAR'], 0x49c | 1, 'Invalid Address Stat');
 });
 
 // 29 I/O
