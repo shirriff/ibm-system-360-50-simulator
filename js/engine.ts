@@ -687,27 +687,14 @@ function checkaddr(state, alignment: number) {
 
 // Helper functions
 function x0(state) {
-  // (X=0)→S0, where X = T(12-15)
+  // If adder latch bits 12-15 are zero, set Stat 0 to one. (X=0)
+  // Otherwise set Stat 0 to zero.
   state['S'][0] = (state['T'] & 0x000f0000) == 0 ? 1 : 0;
 }
 
-function b0(state) {
-  // B0 is usually in T(0-3), which equals MD, e.g. QT115:14c, 
-  // Unclear if T(0-3) is the right source, or MD is better
-  state['S'][1] = (state['T'] & 0xf0000000) == 0 ? 1 : 0;
-  if (state['T'] >>> 28 != state['MD']) {
-    console.log('**** b0 mismatch T:' + (state['T'] >>> 28) + ' vs MD:' + state['MD'] + ', using T');
-  }
-}
-
 function syl1(state) {
-  // Set 1SYL
-  var op0 = state['T'] >>> 28;
-  if (op0 <= 3) {
-    state['1SYL'] = 1; // RR
-  } else {
-    state['1SYL'] = 0;
-  }
+  // If adder latch bits 16-17 are zero, set one-syllable-opt-in-buffer stat to one. Otherwise set this stat to zero.
+  state['1SYL'] = (state['T'] & 0x0000c000) == 0 ? 1 : 0;
 }
 
 function adderLatch(state, entry) {
@@ -834,7 +821,7 @@ function adderLatch(state, entry) {
       state['REFETCH'] = 0;
       state['J'] = (state['T'] >>> 16) & 0xf;
       state['MD'] = (state['T'] >>> 12) & 0xf;
-      state['S'][1] = (state['T'] & 0x0000f000) == 0 ? 1 : 0; // Equivalent to b0, but with bits 16-19
+      state['S'][1] = (state['T'] & 0x0000f000) == 0 ? 1 : 0; // If adder latch bits 16-19 are zero, set Stat 1 to one. (B=0)
       x0(state);
       syl1(state);
       var op0 = state['T'] >>> 28;
@@ -1334,8 +1321,10 @@ function stat(state, entry) {
     case 2:
       alert('Unexpected SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
       break;
-    case 3: // D→CR*BS  Set Cond Reg for Test and Set Instruction  QK300:905
-      // Unclear what to do if multiple BS set.
+    case 3: // D→CR*BS
+      // Set condition reg for Test and Set Instruction. Set cond reg bit 0 to 0.
+      // Set bit 1 of cond reg to one if the first bit is on in any SDR byte selected by the CPU byte stats.
+      // When used with Large Capacity Storage, this order interlocks the same as an SDR to latch transfer.
       read(state);
       var d = state['SDR'];
       var bs = state['BS'];
@@ -1348,37 +1337,59 @@ function stat(state, entry) {
     case 4: // E→SCANCTL // Performs scan operation controlled by E. See 50Maint p32. 0101 clears SCPS,SCFS QU100. 0011 ignore IO error. 0000 test for all ones, step bin trigger. 0001 sets SCPS,SCFS.
       // 1000 moves SDR(0-2) to CTR (clock advance counter) STR(5) to PSS (progressive scan stat), SDR(6) to SST (supervisory stat) QY110
       switch (entry['CE']) {
-        case 1:
+        case 0: // If SDR is all ones, step the binary trigger.
+          alert('Unimplemented SCANTRL ' + entry['CE'] + " " + labels['SS'][entry['SS']]);
+          break;
+        case 1: // Increment the scan test counter by 1. Then if binary tgr. is off, turn on the pass tgr.. If binary tgr. is on, turn on the fail tgr.
           state['SCPS'] = 1;
           state['SCFS'] = 1;
           break
-        case 3:
-          // Ignore I/O error QJ200:0731
+        case 2: // Undefined
+          alert('Undefined SCANTRL ' + entry['CE'] + " " + labels['SS'][entry['SS']]);
+          break;
+        case 3: // Turn off ignore I/O error trigger.
+          alert('Unimplemented SCANTRL ' + entry['CE'] + " " + labels['SS'][entry['SS']]);
           break
-        case 5:
+        case 4: // Turn on ignore I/O error trigger.
+          alert('Unimplemented SCANTRL ' + entry['CE'] + " " + labels['SS'][entry['SS']]);
+          break;
+        case 5: // Turn off Pass IAR and fail IAR.
           state['SCPS'] = 0;
           state['SCFS'] = 0;
           break;
-        case 8: // QY110:F8B, CLF213
+        case 6: // Turn on Invert SAR bit 16 trigger.
+          alert('Unimplemented SCANTRL ' + entry['CE'] + " " + labels['SS'][entry['SS']]);
+          break;
+        case 7: // Turn off Invert SAR bit 16 trigger.
+          alert('Unimplemented SCANTRL ' + entry['CE'] + " " + labels['SS'][entry['SS']]);
+          break;
+        case 8: // Set Supervisory Stat to value of SDR bit 6. Set Progressive Scan Stat to value of SDR bit 5.
+          // Set Sequence Counter to value of SDR bits 0-2. Set Supervisory, Enable Storage Stat to value of SDR 4.
           // SDR(0-2) to clock advance counters
           // SDR 5 to the progressive scan stat (PSS)
           // SDR 6 to the supervisory stat (SS)
           alert('Unimplemented SCANTRL ' + entry['CE'] + " " + labels['SS'][entry['SS']]);
-        case 12:
-          // Turn off log trig (for machine check traps)
-          // QT310:010e
+        case 9: // Set LCS Parity Control Trigger.
+          alert('Unimplemented SCANTRL ' + entry['CE'] + " " + labels['SS'][entry['SS']]);
+          break;
+        case 10: // Set LCS Byte Parity Mode.
+          alert('Unimplemented SCANTRL ' + entry['CE'] + " " + labels['SS'][entry['SS']]);
+          break;
+        case 11: // Reset LCS Parity Control Trigger and LCS Byte Parity Mode.
+          alert('Unimplemented SCANTRL ' + entry['CE'] + " " + labels['SS'][entry['SS']]);
+          break;
+        case 12: // Turn off log trigger (for machine check traps)
+          alert('Unimplemented SCANTRL ' + entry['CE'] + " " + labels['SS'][entry['SS']]);
           break;
         default:
           alert('Unimplemented SCANTRL ' + entry['CE'] + " " + labels['SS'][entry['SS']]);
           break;
       }
       break;
-    case 5: // L,RSGNS: QE900
-      // Trap if invalid sign. Valid sign is 0xa to 0xf; 0xa, 0xc, 0xe, 0xf positive, 0xb, 0xd negative.
-      // See Principles of Operation page 36.
-      // QS400 0d05: if -, 1→LSGN, ¬RSGN
-      // if +, 0→LSGN
-      // Value tested is in U apparently.
+    case 5: // L,RSGNS
+      // If left mover input U bits 4-7 has value less than 1010, force invalid data ROS trap.
+      // If value equals 1011 or 1101 (minus sign) turn on L sign stat and invert R sign stat.
+      // Otherwise turn off L sign stat.
       if ([0xa, 0xc, 0xe, 0xf].includes(state['U'] & 0xf)) { // Positive
         state['LSGNS'] = 0;
       } else if ([0xb, 0xd].includes(state['U'] & 0xf)) { // Negative
@@ -1389,8 +1400,8 @@ function stat(state, entry) {
       }
       break;
     case 6: // IVD/RSGNS
-      // QS200:E26: if -, clear RSGN. If not sign, trap.
-      // QS110:C2E Invert R sign stat if sign is minus.
+      // If left mover input U bits 4-7 has value less than 1010, force invalid data ROS trap.
+      // If value equals 1011 or 1101 (minus sign) invert R sign stat.
       if ([0xa, 0xc, 0xe, 0xf].includes(state['U'] & 0xf)) { // Positive
         // No action
       } else if ([0xb, 0xd].includes(state['U'] & 0xf)) { // Negative
@@ -1400,9 +1411,19 @@ function stat(state, entry) {
       }
       break;
     case 7: // EDITSGN
-      alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
+      // If mover latch bits 4-7 has value greater than 1001 (valid sign) turn on R sign stat. Otherwise turn off R sign stat.
+      // If mover latch bits 4-7 equal to 1010, 1100, 1110 or 1111 (plus sign) turn off L sign stat.
+      if (state['WR'] > 9) {
+        state['RSGNS'] = 1;
+      } else {
+        state['RSGNS'] = 0;
+      }
+      if ([0xa, 0xc, 0xe, 0xf].includes(state['WR'])) { // Positive
+        state['LSGNS'] = 0;
+      }
       break;
     case 8: // E→S03             // S03 = stats 0-3 50Maint p183, QU100
+      // Gate emit field to stats 0-3.
       var e = entry['CE'];
       state['S'][0] = (e >> 3) & 1;
       state['S'][1] = (e >> 2) & 1;
@@ -1410,14 +1431,16 @@ function stat(state, entry) {
       state['S'][3] = (e >> 0) & 1;
       break;
     case 9: // S03ΩE,1→LSGN
+      // Turn on stats 0-3 per emit field. Turn on L sign stat.
       state['LSGNS'] = 1;
       var e = entry['CE'];
-      state['S'][0] |= (e >> 3) & 1;
+      state['S'][0] |= (e >> 3) & 1; // Value OR'd in.
       state['S'][1] |= (e >> 2) & 1;
       state['S'][2] |= (e >> 1) & 1;
       state['S'][3] |= (e >> 0) & 1;
       break;
     case 10: // S03ΩE            // Set S03 bits from E
+      // Turn on stats 0-3 per emit field.
       var e = entry['CE'];
       state['S'][0] |= (e >> 3) & 1;
       state['S'][1] |= (e >> 2) & 1;
@@ -1425,6 +1448,7 @@ function stat(state, entry) {
       state['S'][3] |= (e >> 0) & 1;
       break;
     case 11: // S03ΩE,0→BS
+      // Turn on stats 0-3 per emit field. Turn off CPU byte stats.
       state['pending']['BS'] = [0, 0, 0, 0];
       var e = entry['CE'];
       state['S'][0] |= (e >> 3) & 1;
@@ -1433,36 +1457,53 @@ function stat(state, entry) {
       state['S'][3] |= (e >> 0) & 1;
       break;
     case 12: // X0,B0,1SYL      (B=0)→S1, set 1 SYL. QC031/003F
+      // If adder latch bits 12-15 are zero, set Stat 0 to one. (X=0)
+      // Otherwise set Stat 0 to zero.
+      // If adder latch bits 16-19 are zero, set Stat 1 to one. (B=0)
+      // Otherwise set Stat 1 to zero.
+      // If adder latch bits 16-17 are zero, set one-syllable-opt-in-buffer stat to one. Otherwise set this stat to zero.
       x0(state);
-      b0(state);
+      state['S'][1] = (state['T'] & 0x0000f000) == 0 ? 1 : 0; // If adder latch bits 16-19 are zero, set Stat 1 to one. (B=0)
       syl1(state);
       break;
-    case 13: // FPZERO  Set S0 if value is floating point 0, i.e. bytes 1-3 are zero (ignore sign, exponent)
-    // But QG406 says (T(8-31)=0).(F=0).S3→S0 -- what is F? Does S3 really matter here?
+    case 13: // FPZERO
+      // If adder latch bits 8-31 are zero, F reg is zero, and state 3 is on, turn on Stat 0.
+      // Otherwise turn off Stat 0.
       if ((state['T'] & 0x00ffffff) == 0 && state['F'] == 0 && state['S'][3]) {
         state['S'][0] = 1;
+      } else {
+        state['S'][0] = 0;
       }
       break;
     case 14: // FPZERO,E→FN
+      // If adder latch bits 8-31 are zero, F reg is zero, and Stat 3 is on, turn on Stat 0.
+      // Otherwise turn off stat 0.
+      // Gate emit field bits 2-3 to Local Storage Function Reg. (Effective for local storage addressing this cycle.)
       if ((state['T'] & 0x00ffffff) == 0 && state['F'] == 0 && state['S'][3]) {
         state['S'][0] = 1;
+      } else {
+        state['S'][0] = 0;
       }
-      state['FN'] = entry['CE'] & 3; // A guess as to which bits
+      state['FN'] = entry['CE'] & 3;
       break;
     case 15: // B0,1SYL // (B=0)→S1, set 1SYL QT115/0189
-      b0(state);
+      // If adder lath bits 0-3 are zero, turn on stat 1 (B=0). Otherwise turn off stat 1.
+      // If adder latch bits 16-17 are ero, turn on one-syllable-op-in-buffer stat. Otherwise turn this stat off.
+      state['S'][1] = (state['T'] & 0xf0000000) == 0 ? 1 : 0; // Note: this uses bits 0-3 for B instead of 16-19 elsewhere
       syl1(state);
       break;
     case 16: // S03.¬E           // Clear S03 bits from E
+      // Turn off stats 0-3 per emit field.
       for (var i = 0; i < 4; i++) {
         state['S'][i] &= ~(entry['CE']>>(3-i));
       }
       break;
     case 17: // (T=0)→S3
+      // If adder latch is zero turn on Stat 3, otherwise turn off Stat 3.
       state['S']['3'] = (state['T'] == 0) ? 1 : 0;
       break;
     case 18: // E→BS,T30→S3
-      // 01C6
+      // Gate emit field to CPU Byte Stats. Set Stat 3 to value of adder latch bit 30.
       state['pending']['BS'] = [];
       for (var i = 0; i < 4; i++) {
         state['pending']['BS'][i] = (entry['CE'] & (1<<(3-i))) ? 1 : 0;
@@ -1470,48 +1511,71 @@ function stat(state, entry) {
       state['S'][3] = (state['T'] >> 1) & 1; // T(30)→S3, branch address halfword indicator
       break;
     case 19: // E→BS             // Store E to byte stats (i.e. byte mask)
+      // Gate Emit field to CPU Byte Stats.
       state['pending']['BS'] = [];
       for (var i = 0; i < 4; i++) {
         state['pending']['BS'][i] = (entry['CE'] & (1<<(3-i))) ? 1 : 0;
       }
       break;
     case 20: // 1→BS*MB
+      // Turn on Byte Stat indicated by value of MD counter.
       state['pending']['BS'] = state['BS'].slice(); // Copy
       state['pending']['BS'][state['MB']] = 1;
       break;
-    case 21:
-      alert('Unexpected SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
+    case 21: // DIRCTL*E
+      // Direct Control per Emit
+      alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
       break;
-    case 22:
+    case 22: // undefined
       alert('Unexpected SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
       break;
     case 23: // MANUAL→STOP      // M trig to S (Halt status) QU100
-      // Ignore.
+      // Set Stop Trigger to value of Manual Trigger.
+      alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
       break;
-    case 24: // E→S47            // Write E to channel S bits 4-7
+    case 24: // E→S47
+      // Gate Emit field to Stats 4-7.
       state['S'][4] = (entry['CE'] >>> 3) & 1;
       state['S'][5] = (entry['CE'] >>> 2) & 1;
       state['S'][6] = (entry['CE'] >>> 1) & 1;
       state['S'][7] = (entry['CE'] >>> 0) & 1;
       break;
-    case 25: // S47ΩE            // S bits 4-7 |= E. Set bits indicated by E
+    case 25: // S47ΩE
+      // Turn on stats 4-7 per Emit field.
       state['S'][4] |= (entry['CE'] >>> 3) & 1;
       state['S'][5] |= (entry['CE'] >>> 2) & 1;
       state['S'][6] |= (entry['CE'] >>> 1) & 1;
       state['S'][7] |= (entry['CE'] >>> 0) & 1;
       break;
     case 26: // S47.¬E           // S bits 4-7 &= ~E. I.e. clear bits indicated by E
+      // Turn off stats 4-7 per Emit field.
       state['S'][4] &= ~((entry['CE'] >>> 3) & 1);
       state['S'][5] &= ~((entry['CE'] >>> 2) & 1);
       state['S'][6] &= ~((entry['CE'] >>> 1) & 1);
       state['S'][7] &= ~((entry['CE'] >>> 0) & 1);
       break;
-    case 27: // S47,ED*FP  QG700:0503, QG401:0440
-      // Norm sign → S4
-      // Compl add → S5
-      // (ED<16) → S6
-      // (ED=0) → S7
-      // Set exp dif reg. It is a 4-bit register, but value could overflow.
+    case 27: // S47,ED*FP
+      /* Set Stats 4-7 and exponent difference reg for floating point as follows.
+       * Stat 4 turned on if:
+       *    Stat 0 or Stat 1 is on and right adder input bit 0 is one and there is a carry out of position 1.
+       *  or
+       *    Stat 0 or Stat 1 is on, there is a carry out of position 1, and either left adder input bit 0 is one or stat 1 is on but not both (add type, result minus)
+       *  or
+       *    Both Stat 0 and Stat 1 are off and left adder input bit 0 is not equal to right adder input bit 0 (multiply or divide, signs unlike).
+       *
+       * Stat 5 turned on if left adder input bit 0, right adder input bit 0 and Stat 1 contain an even number of ones. (True add requred).
+       *
+       * Stat 6 turned on if value of exponent difference reg is less than 16 (dec) in absolute value.
+       *
+       * Stat 7 turned on if value of exponent difference reg is zero.
+       *
+       * Absence of turn on condition causes stat to be turned off.
+       *
+       * Exponent difference reg set as follows:
+       *  Bit 0 set to one if carry from adder pos 1 and sum bits 1-4 non zero, or if no carry from pos 1 and sum bits 1-4 equal 1111.
+       *  Bits 1-3 set equal to adder sum bits 5-7.
+      */
+      // Is Exponent Difference register set before or after the stats? I.e. are the stats based on the old value?
       state['ED'] = (state['T'] >>> 24) & 0xf;
       state['S'][4] = (state['R'] & 0x80000000) ? 1 : 0; // Normal sign. Sign of R???
       state['S'][5] = (state['T'] & 0x80000000) ? 0 : 1; // If signs are same, true add (i.e. not subtract)
