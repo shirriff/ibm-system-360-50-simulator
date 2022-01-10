@@ -17,6 +17,7 @@ function initState(state: {[key: string]: any}): void {
     'CSTAT': 0,
     'ROS': 0,
     'IAS': 0, // Invalid address stat
+    'ES': [0, 0, 0], // Edit stats
   });
   state['LS'] = new Array(64);
   for (var i = 0; i < 64; i++) {

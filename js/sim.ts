@@ -392,6 +392,7 @@ const formatters = {
     'CR': fmtN,
     'S': fmtN,
     'SDR': fmt4,
+    'ES': fmtN,
 };
 
 const tooltips: {[key: string]: string} = {
@@ -430,6 +431,7 @@ const tooltips: {[key: string]: string} = {
     'WFN': 'Mover function',
     'CR': 'Condition register',
     'SDR': 'Storage data register',
+    'ES': 'Edit stats',
 };
 
 // Labels for the local storage assignments

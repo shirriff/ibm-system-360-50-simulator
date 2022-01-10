@@ -1791,7 +1791,9 @@ function roarAB(state, entry) {
       }
       break;
     case 25: // G<4
-      if (state['G1'] == 0 && state['G2'] < 4) {
+      // If coupled length counters have value less than 4, set A bit to one. Otherwise set A bit to zero.
+      // Sign of G1 is included in value.
+      if ((state['G1'] == 0 && state['G2'] < 4) || state['G1NEG']) {
         roar |= 2;
       }
       break;
@@ -1802,9 +1804,11 @@ function roarAB(state, entry) {
       }
       break;
     case 27: // IO Stat 0 to CPU
+      // Set A bit to value of multiplexor channel stat 0.
       alert('Unimplemented I/O AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
     case 28: // IO Stat 2
+      // Set A bit to value of multiplexor channel stat 2.
       alert('Unimplemented I/O AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
     case 29: // R(31)
@@ -1838,9 +1842,13 @@ function roarAB(state, entry) {
       }
       break;
     case 35: // EDITPAT
-      // CROS manual page 31: sets A with edit stat 1, B with edit stat 2.
-      // d1c:
-      alert('Unimplemented AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
+      // Set A bit to value of edit stat 1. Set B bit to value of edit stat 2.
+      if (state['ES'][1]) {
+        roar |= 2;
+      }
+      if (state['ES'][2]) {
+        roar |= 1;
+      }
       break;
     case 36: // PROB     // Check problelm state (i.e. user vs supervisor)? QY110, QA800  Monitor stat
       if (state['AMWP'] & 1) {
@@ -1848,12 +1856,18 @@ function roarAB(state, entry) {
       }
       break;
     case 37: // TIMUP   Timer update signal and not manual trigger
-      alert('Unimplemented AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
+      // Set A bit to value of timer update signal. Reset timer update signal.
+      if (state['TIMUP']) {
+        roar |= 2;
+        state['TIMUP'] = 0;
+      }
       break;
     case 38:
       alert('Unexpected AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
     case 39: // GZ/MB3    CCROS: G1 == 0 & G2 == 0   or  BAM0 == 1 & BAM1 == 1
+      // If either the value of the coupled length counter G is zero or the value of the MB counter
+      // is 3 set A bit to one. Otherwise set A bit to zero.
       if ((state['G1'] == 0 && state['G2'] == 0) || state['MB'] == 3) {
         roar |= 2;
       }
@@ -1861,14 +1875,21 @@ function roarAB(state, entry) {
     case 40:
       alert('Unexpected AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
-    case 41: // LOG      // Branch on log scan stat. QY430 0 for FLT log, 1 for error log QY410
-      // Log trigger discussed in 50Maint
-      alert('Unimplemented AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
+    case 41: // LOG
+      // Set A bit to value of log scan stat.
+      if (state['LSS']) {
+        roar |= 2;
+      }
       break;
     case 42: // STC=0    // Check Scan Test Counter
-      alert('Unimplemented AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
+      // If scan test counter is zero, set A bit to one. Otherwise set A bit to zero.
+      if (state['STC']) {
+        roar |= 2;
+      }
       break;
     case 43: // G2<=LB
+      // If length counter G2 is less than or equal to LB counter, set A bit to one.
+      // Otherwise set A bit to zero. Sign of length counter is ignored.
       if (state['G2'] <= state['LB']) {
         roar |= 2;
       }
@@ -1893,18 +1914,33 @@ function roarAB(state, entry) {
       }
       break;
     case 48: // CROS: Storage protect violation
+      // Set A bit to value of I/O storage violation trigger.
       alert('Unimplemented I/O AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
     case 49: // W(67)→AB
+      // Set A bit to value of mover latch bit 6. Set B bit to value of mover latch bit 7.
       if (entry['BB'] != 0) {
         alert('Unexpected AB 49, BB ' + entry['BB'] + " " + labels['AB'][entry['AB']]);
       }
       roar |= state['W'] & 3;
       break;
-    case 50: // CROS T16-31 != 0
-    case 51: // CROS T5-7 == 0 && T16-31 != 0
-    case 52: // CROS bus in bit 0
-    case 53: // CROS IB full
+    case 50: // Z23≠0
+      // If adder output bits 16-31 are non-zero set A bit to one. Otherwise set A bit to 0.
+      if (state['T'] & 0x0000ffff) {
+        roar |= 2;
+      }
+      break;
+    case 51: // CCW2OK
+      // If SDR bits 16-31 and 5-7 are all zero set A bit to one. Otherwise set A bit to zero. (Count and flag test.)
+      // If adder output bits 16-31 are non-zero set A bit to one. Otherwise set A bit to 0.
+      if ((state['SDR'] & 0x0700ffff) == 0) {
+        roar |= 2;
+      }
+      break;
+    case 52: // MXBIO
+      // Set A bit to value of multiplexor input buffer bit 0.
+    case 53: // IBFULL
+      // Set A bit to value of input buffer full stat.
       alert('Unimplemented I/O AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
     case 54: // CANG
@@ -1915,8 +1951,8 @@ function roarAB(state, entry) {
       }
       break;
     case 55: // CHLOG   Channel log
-      // Don't log for now. Unclear what triggers this? A channel fault? Or a switch?
-      // Log trigger discussed in 50Maint. Is this a separate log?
+      // Set A bit to value of channel error log request line.
+      alert('Unimplemented I/O AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
     case 56:
       // I-FETCH does a 4-way branch:
@@ -1925,44 +1961,61 @@ function roarAB(state, entry) {
       // 10: on-bounds fetch (i.e. fetching a normal even halfword.)
       // 11: exception for on-bit in instruction counter position 30 (CROS page 31)
       // See e.g. QT105
-      if (state['IAR'] & 1) {
-        // Alignment exception. Other address exceptions?
+      if (state['IAS']) {
+        // Exception trigger is on.
         roar |= 3; 
       } else if (state['IAR'] & 2) {
         if (state['REFETCH'] == 0) {
+          // IAR bit 30 is one and refetch stat off
           // roar |= 0;
         } else {
+          // IAR bit 30 is one and refetch stat on
           roar |= 1;
         }
       } else {
+        // IAR bit 30 is zero
         roar |= 2;
       }
       break;
     case 57: // IA(30)
+      // Set A bit to value of IAR bit 30.
       if (state['IAR'] & 2) { // Bit 30
         roar |= 2;
       }
       break;
     case 58: // EXT,CHIRPT
-      // CROS page 31: A set with either timer or external channel, B with channel interrupt
-      // timer update and not manual trigger    or external chan intr
+      // If either a timer update request has occurred, or an external interrup is requested
+      // with mask bit on, set A bit to one. Otherwise set A bit to zero.
+      // If a chanel interrupt is requested, set B bit to one. Otherwise set B bit to zero.
       alert('Unimplemented AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
-    case 59: // CROS: direct date hold sense br
-      alert('Unexpected AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
+    case 59: // DCHOLD
+      // Set A bit to value of direct control hold line.
+      alert('Unimplemented I/O AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
     case 60: // PSS      // Test and reset Progressive Scan Stat QU100
+      // Set A bit to value of progressive scan stat. If PSS is on when tested,
+      // reset it, unless supervisory stat is on and supervisory enable storage stat
+      // is off.
       if (state['PSS']) {
         roar |= 2;
-        state['PSS'] = 0;
+        if (state['SS'] && !state['ESS']) {
+          // Not cleared
+        } else {
+          state['PSS'] = 0;
+        }
       }
       break;
-    case 61: // CROS: IO Stat 4
-    case 62:
+    case 61: // IOS4
+      // Set A bit to value of multiplexor channel stat 4.
       alert('Unexpected AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
       break;
-    case 63: // RX.S0   CROS: S0 & M01==01
-      // QT115:0188 RX instruction type
+    case 62: // RX,S0
+      alert('Unimplemented I/O AB ' + entry['AB'] + " " + labels['AB'][entry['AB']]);
+      break;
+    case 63: // RX,S0
+      // If stat 0 is on and M reg bits 0-1 have value 01 set A bit to 1. Otherwise set A bit to zero.
+      // (RX format and indexing required.)
       if (((state['M'] >>> 30) == 1) && state['S'][0]) {
         roar |= 2;
       }
