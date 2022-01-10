@@ -134,7 +134,7 @@ function updateCoreInfo(): void {
     return;
   }
   const saddr: string = String($("#coreaddr").val());
-  let addr: number = parseInt(saddr, 16);
+  let addr: number = parseInt(saddr, 16) & ~3; // Word-aligned
   const lines: string[] = []
   let line: string = "";
   for (let row = 0; row < 8; row++) {
