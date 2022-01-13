@@ -393,6 +393,65 @@ function adderT(state, entry) {
   } // AD
   state['T0'] = t; // Internal T before shifting
   state['c0'] = c0; // Used by SETCRLOG
+
+  // Handle SS27 (S47,ED*FP) stats here, since they depend on the carry values
+  if (entry['SS'] == 27) { 
+    /* Set Stats 4-7 and exponent difference reg for floating point as follows.
+     * Stat 4 turned on if:
+     *    Stat 0 or Stat 1 is on and right adder input bit 0 is one and there is a carry out of position 1.
+     *  or
+     *    Stat 0 or Stat 1 is on, there is a carry out of position 1, and either left adder input bit 0 is one or stat 1 is on but not both (add type, result minus)
+     *  or
+     *    Both Stat 0 and Stat 1 are off and left adder input bit 0 is not equal to right adder input bit 0 (multiply or divide, signs unlike).
+     * Absence of turn on condition causes stat to be turned off.
+     */
+    function oneOf(a, b) { // helper
+      return (a && !b) || (!a && b);
+    }
+    if (((state['S'][0] || state['S'][1]) && (y & 0x80000000) && c1) ||
+        ((state['S'][0] || state['S'][1]) && c1 && oneOf(xg & 0x80000000, state['S'][1])) ||
+        (!state['S'][0] && !state['S'][1] && (xg & 0x80000000) != (y & 0x80000000))) {
+      state['S'][4] = 1;
+    } else {
+      state['S'][4] = 0;
+    }
+
+    // Stat 5 turned on if left adder input bit 0, right adder input bit 0 and Stat 1 contain an even number of ones. (True add requred).
+    if ( (xg >>> 31) ^ (y >>> 31) ^ state['S'][1] ) {
+      // Odd number of ones
+      state['S'][5] = 0;
+    } else {
+      state['S'][5] = 1;
+    }
+
+    /*
+     * Exponent difference reg set as follows:
+     *  Bit 0 set to one if carry from adder pos 1 and sum bits 1-4 non zero, or if no carry from pos 1 and sum bits 1-4 equal 1111.
+     *  Bits 1-3 set equal to adder sum bits 5-7.
+     */
+    // The exponent difference is sort of 2's complement without the sign (which is indicated by the carry bit).
+    // Two 7-bit values are subtracted, xg - y. If the result is between 0 and 15, the register holds 0 to 15.
+    // If the result is between -15 and -1, the register stores 1 to 15 (like 2's complement).
+    // It's unclear what happens if the difference is 16 or greater.
+    // If the result is between -8 and 7, it is stored as a signed 4-bit value. The text says stat 6 is turned on if the value of the exponent difference
+    // reg is less than 16 (dec) in absolute value. This doesn't make sense since a 4-bit register is obviously less than 16.
+    // Presumably that refers to the actual difference, not the register value.
+    // The given formula will wrap if the difference is greater than 15, but I don't think that will work. I think the value needs to be forced to +/- 15
+    // to achieve the proper shifting. (Testing will show if this is the case.)
+    // The Exponent Difference value is used later for a 16-way branch in the microcode.
+    const ed0 = ((c1 && ((t & 0x78000000) != 0)) || (!c1 && ((t & 0x78000000) == 0x78000000))) ? 1 : 0;
+    const ed13 = (t >> 24) & 7;
+
+    // Stat 6 turned on if value of exponent difference reg is less than 16 (dec) in absolute value.
+    // It's unclear what this means since it is a 16-bit register so trivially less than 16.
+    const ed = (ed0 << 3) | ed13;
+    state['ED'] = ed;
+    const edActual = ((xg & 0x7f000000) >>> 24) - ((y & 0x7f000000) >>> 24); // The actual difference between the two exponents.
+    state['S'][6] = (Math.abs(edActual) < 16) ? 1 : 0;
+
+    // Stat 7 turned on if value of exponent difference reg is zero.
+    state['S'][7] = (ed == 0) ? 1 : 0;
+  }
 }
 
 // Force n to unsigned 32-bit
@@ -1555,32 +1614,7 @@ function stat(state, entry) {
       state['S'][7] &= ~((entry['CE'] >>> 0) & 1);
       break;
     case 27: // S47,ED*FP
-      /* Set Stats 4-7 and exponent difference reg for floating point as follows.
-       * Stat 4 turned on if:
-       *    Stat 0 or Stat 1 is on and right adder input bit 0 is one and there is a carry out of position 1.
-       *  or
-       *    Stat 0 or Stat 1 is on, there is a carry out of position 1, and either left adder input bit 0 is one or stat 1 is on but not both (add type, result minus)
-       *  or
-       *    Both Stat 0 and Stat 1 are off and left adder input bit 0 is not equal to right adder input bit 0 (multiply or divide, signs unlike).
-       *
-       * Stat 5 turned on if left adder input bit 0, right adder input bit 0 and Stat 1 contain an even number of ones. (True add requred).
-       *
-       * Stat 6 turned on if value of exponent difference reg is less than 16 (dec) in absolute value.
-       *
-       * Stat 7 turned on if value of exponent difference reg is zero.
-       *
-       * Absence of turn on condition causes stat to be turned off.
-       *
-       * Exponent difference reg set as follows:
-       *  Bit 0 set to one if carry from adder pos 1 and sum bits 1-4 non zero, or if no carry from pos 1 and sum bits 1-4 equal 1111.
-       *  Bits 1-3 set equal to adder sum bits 5-7.
-      */
-      // Is Exponent Difference register set before or after the stats? I.e. are the stats based on the old value?
-      state['ED'] = (state['T'] >>> 24) & 0xf;
-      state['S'][4] = (state['R'] & 0x80000000) ? 1 : 0; // Normal sign. Sign of R???
-      state['S'][5] = (state['T'] & 0x80000000) ? 0 : 1; // If signs are same, true add (i.e. not subtract)
-      state['S'][6] = ((state['ED'] & 0xf0000000) == 0) ? 1 : 0;
-      state['S'][7] = ((state['ED'] & 0xff000000) == 0) ? 1 : 0;
+      // Implemented in adderT().
       break;
     case 28: // OPPANEL→S47      // Write operator panel to S bits 4-7
       // See QT200 for mapping from console switches to S47

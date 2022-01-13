@@ -2834,7 +2834,275 @@ QUnit.test( "stat26: S47.¬E", function(assert) {
   assert.deepEqual(state['S'], [0, 0, 1, 1, 0, 0, 0, 1]);
 });
 
-QUnit.skip( "stat SS 27: S47,ED*FP", function(assert) {
+QUnit.test( "stat SS 27: S47,ED*FP", function(assert) {
+  // SS 27 is complex. It is implemented in adderT() because it deals with the adder and carries.
+
+  /* Set Stats 4-7 and exponent difference reg for floating point as follows.
+   * Stat 4 turned on if:
+   *    Stat 0 or Stat 1 is on and right adder input bit 0 is one and there is a carry out of position 1.
+   *  or
+   *    Stat 0 or Stat 1 is on, there is a carry out of position 1, and either left adder input bit 0 is one or stat 1 is on but not both (add type, result minus)
+   *  or
+   *    Both Stat 0 and Stat 1 are off and left adder input bit 0 is not equal to right adder input bit 0 (multiply or divide, signs unlike).
+   * Absence of turn on condition causes stat to be turned off.
+   */
+  // Floating point addition. The exponents are subtracted to determine the larger, and stat 4 (normal sign) should match the sign of the larger argument.
+  // I'm not convinced that the documented formula for S4 is correct.
+  var state = {'XG': 0x45000000, 'Y': 0x45000000, 'CIN': 0, 'F': 0, S: [1, 0, 0, 0]}; // positive + positive, exponents equal
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][4], 0, '+,+ add');
+
+  var state = {'XG': 0xc5000000, 'Y': 0x45000000, 'CIN': 0, 'F': 0, S: [1, 0, 0, 0]}; // negative + positive, exponents equal
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][4], 1, '-,+ add');
+
+  var state = {'XG': 0x45000000, 'Y': 0xc5000000, 'CIN': 0, 'F': 0, S: [1, 0, 0, 0]}; // positive + negative, exponents equal
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][4], 1, '+,- add');
+
+  var state = {'XG': 0xc5000000, 'Y': 0xc5000000, 'CIN': 0, 'F': 0, S: [1, 0, 0, 0]}; // negative + negative, exponents equal
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][4], 1, '-,- add');
+
+  var state = {'XG': 0x46000000, 'Y': 0x45000000, 'CIN': 0, 'F': 0, S: [1, 0, 0, 0]}; // positive + positive, left exponent larger
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][4], 1, '+,+ add');
+
+  var state = {'XG': 0xc6000000, 'Y': 0x45000000, 'CIN': 0, 'F': 0, S: [1, 0, 0, 0]}; // negative + positive, left exponent larger
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][4], 1, '-,+ add');
+
+  var state = {'XG': 0x46000000, 'Y': 0xc5000000, 'CIN': 0, 'F': 0, S: [1, 0, 0, 0]}; // positive + negative, left exponent larger
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][4], 1, '+,- add');
+
+  var state = {'XG': 0xc6000000, 'Y': 0xc5000000, 'CIN': 0, 'F': 0, S: [1, 0, 0, 0]}; // negative + negative, left exponent larger
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][4], 1, '-,- add');
+
+  var state = {'XG': 0x44000000, 'Y': 0x45000000, 'CIN': 0, 'F': 0, S: [1, 0, 0, 0]}; // positive + positive, right exponent larger
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][4], 0, '+,+ add');
+
+  var state = {'XG': 0xc4000000, 'Y': 0x45000000, 'CIN': 0, 'F': 0, S: [1, 0, 0, 0]}; // negative + positive, right exponent larger
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][4], 0, '-,+ add');
+
+  var state = {'XG': 0x44000000, 'Y': 0xc5000000, 'CIN': 0, 'F': 0, S: [1, 0, 0, 0]}; // positive + negative, right exponent larger
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][4], 0, '+,- add');
+
+  var state = {'XG': 0xc4000000, 'Y': 0xc5000000, 'CIN': 0, 'F': 0, S: [1, 0, 0, 0]}; // negative + negative, right exponent larger
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][4], 0, '-,- sub');
+
+  var state = {'XG': 0x45000000, 'Y': 0x45000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // positive - positive, exponents equal
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][4], 1, '+,+ sub');
+
+  var state = {'XG': 0xc5000000, 'Y': 0x45000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // negative - positive, exponents equal
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][4], 0, '-,+ sub');
+
+  var state = {'XG': 0x45000000, 'Y': 0xc5000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // positive - negative, exponents equal
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][4], 1, '+,- sub');
+
+  var state = {'XG': 0xc5000000, 'Y': 0xc5000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // negative - negative, exponents equal
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][4], 0, '-,- sub');
+
+  var state = {'XG': 0x46000000, 'Y': 0x45000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // positive - positive, left exponent larger
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][4], 1, '+,+ sub');
+
+  var state = {'XG': 0xc6000000, 'Y': 0x45000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // negative - positive, left exponent larger
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][4], 0, '-,+ sub');
+
+  var state = {'XG': 0x46000000, 'Y': 0xc5000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // positive - negative, left exponent larger
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][4], 1, '+,- sub');
+
+  var state = {'XG': 0xc6000000, 'Y': 0xc5000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // negative - negative, left exponent larger
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][4], 0, '-,- sub');
+
+  var state = {'XG': 0x44000000, 'Y': 0x45000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // positive - positive, right exponent larger
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][4], 0, '+,+ sub');
+
+  var state = {'XG': 0xc4000000, 'Y': 0x45000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // negative - positive, right exponent larger
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][4], 0, '-,+ sub');
+
+  var state = {'XG': 0x44000000, 'Y': 0xc5000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // positive - negative, right exponent larger
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][4], 0, '+,- sub');
+
+  var state = {'XG': 0xc4000000, 'Y': 0xc5000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // negative - negative, right exponent larger
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][4], 0, '-,- sub');
+
+  var state = {'XG': 0x44000000, 'Y': 0x44000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // positive * positive
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][4], 0, '+,+ mult');
+
+  var state = {'XG': 0xc4000000, 'Y': 0x44000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // negative * positive
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][4], 1, '-,+ mult');
+
+  var state = {'XG': 0x44000000, 'Y': 0xc4000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // positive * negative
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][4], 1, '+,- mult');
+
+  var state = {'XG': 0xc4000000, 'Y': 0xc4000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // negative * negative
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][4], 0, '-,- mult');
+
+    // Stat 5 turned on if left adder input bit 0, right adder input bit 0 and Stat 1 contain an even number of ones. (True add required).
+
+  var state = {'XG': 0x44000000, 'Y': 0x44000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 0, 0, 0
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][5], 1, 'stat 5');
+
+  var state = {'XG': 0xc4000000, 'Y': 0x44000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 1, 0, 0
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][5], 0, 'stat 5');
+
+  var state = {'XG': 0x44000000, 'Y': 0xc4000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 0, 1, 0
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][5], 0, 'stat 5');
+
+  var state = {'XG': 0x44000000, 'Y': 0x44000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // 0, 0, 1
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][5], 0, 'stat 5');
+
+  var state = {'XG': 0xc4000000, 'Y': 0xc4000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 1, 1, 0
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][5], 1, 'stat 5');
+
+  var state = {'XG': 0xc4000000, 'Y': 0xc4000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // 1, 1, 1
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][5], 0, 'stat 5');
+
+   /*
+     * Exponent difference reg set as follows:
+     *  Bit 0 set to one if carry from adder pos 1 and sum bits 1-4 non zero, or if no carry from pos 1 and sum bits 1-4 equal 1111.
+     *  Bits 1-3 set equal to adder sum bits 5-7.
+     */
+    // Stat 6 turned on if value of exponent difference reg is less than 16 (dec) in absolute value.
+    // This is a bit unclear since the exponent difference reg is 4 bits so it must be less than 16.
+    // I'm assuming they mean the absolute value of the exponent difference (not the register) is less than 16.
+  var state = {'XG': 0x10000000, 'Y': 0x10000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 10, 10
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][6], 1, 'stat 6');
+
+  var state = {'XG': 0x10000000, 'Y': 0x1f000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 10, 1f
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][6], 1, 'stat 6');
+
+  var state = {'XG': 0x1f000000, 'Y': 0x10000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 1f, 10
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][6], 1, 'stat 6');
+
+  var state = {'XG': 0x10000000, 'Y': 0x20000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 10, 20
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][6], 0, 'stat 6');
+
+  var state = {'XG': 0x20000000, 'Y': 0x10000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 20, 10
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][6], 0, 'stat 6');
+
+  var state = {'XG': 0x00000000, 'Y': 0xff000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 00, ff
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][6], 0, 'stat 6');
+
+    // Stat 7 turned on if value of exponent difference reg is zero.
+  var state = {'XG': 0x80000000, 'Y': 0x00ffffff, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 0, 0 (with other bits different)
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][7], 1, 'stat 7');
+
+  var state = {'XG': 0x7fffffff, 'Y': 0xff000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 7f, 7f
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][7], 1, 'stat 7');
+
+  var state = {'XG': 0x00000000, 'Y': 0x01000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 00, 01
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][7], 0, 'stat 7');
+
+  var state = {'XG': 0x00000000, 'Y': 0x02000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 00, 01
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][7], 0, 'stat 7');
+
+  var state = {'XG': 0x00000000, 'Y': 0x40000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 00, 40
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['S'][7], 0, 'stat 7');
+
+  // Tests of ED computation
+
+  var state = {'XG': 0x20000000, 'Y': 0x20000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]};
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['ED'], 0, 'ED 0');
+
+  var state = {'XG': 0x2F000000, 'Y': 0x20000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]};
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['ED'], 15, 'ED 15');
+
+  var state = {'XG': 0x1F000000, 'Y': 0x20000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]};
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['ED'], 15, 'ED -1');
+
+  var state = {'XG': 0x11000000, 'Y': 0x20000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]};
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['ED'], 1, 'ED -15');
+
+  var state = {'XG': 0x91000000, 'Y': 0x20000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]};
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['ED'], 1, 'ED -15, sign');
+
+  var state = {'XG': 0x21000000, 'Y': 0x00000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]};
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['ED'], 1, 'ED 33');
+
+  var state = {'XG': 0x45000000, 'Y': 0x00000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]};
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['ED'], 5, 'ED 0x45');
+
+  var state = {'XG': 0x00000000, 'Y': 0x45000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]};
+  adderT(state, {'AD': 6, 'TC': 1, 'SS': 27}); // BC1B: block carry from position 8, TC: subtract
+  assert.equal(state['ED'], 5, 'ED -0x45');
+});
+
+QUnit.skip( "stat SS 28: OPPANEL→S47", function(assert) {
+});
+
+QUnit.test( "stat29: CAR,(T≠0)→CR", function(assert) {
+  var state = {'CAR': 0, 'T': 0};
+  stat(state, {'CE': 6, 'SS': 29});
+  assert.deepEqual(state['CR'], 0);
+  state = {'CAR': 0, 'T': 0x10000};
+  stat(state, {'CE': 6, 'SS': 29});
+  assert.deepEqual(state['CR'], 1);
+  state = {'CAR': 1, 'T': 0};
+  stat(state, {'CE': 6, 'SS': 29});
+  assert.deepEqual(state['CR'], 2);
+  state = {'CAR': 1, 'T': 0xffffffff};
+  stat(state, {'CE': 6, 'SS': 29});
+  assert.deepEqual(state['CR'], 3);
+});
+
+QUnit.test( "stat30: KEY→F", function(assert) {
+  var state = {'SAR': 0x12345670, 'KEYS': {}};
+  state['KEYS'][0x12345670 & 0x00fff100] = 4;
+  stat(state, {'SS': 30});
+  assert.equal(state['F'], 4);
+});
+
+QUnit.test( "stat31: F→KEY", function(assert) {
+  var state = {'F': 4, 'SAR': 0x12345670, 'KEYS': {}};
+  stat(state, {'SS': 31});
+  assert.equal(state['KEYS'][0x12345670 & 0x00fff100], 4);
 });
 
 QUnit.skip( "stat SS 28: OPPANEL→S47", function(assert) {
