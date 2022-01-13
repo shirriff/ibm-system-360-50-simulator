@@ -219,7 +219,6 @@ function animate(time: DOMHighResTimeStamp): void{
     requestAnimationFrame(animate);
     var now = time;
     var elapsed = now - then;
-    console.log(now, then, elapsed);
     if (elapsed < speed) {
         return;
     }
@@ -308,23 +307,10 @@ function step(): void {
 
 // Displays the formatted micro-instruction
 function displayMicroOp(saddr: string): void {
-    const microcode : [string[], string[]] = decode(saddr, data[saddr]);
-    console.log(microcode[0].join('\n'));
-    $("#microcodeModalBody").html(microcode[1].join('<br/>'));
+    const microHtml = getMicroOpData(saddr);
+    $("#microcodeModalBody").html(microHtml[1]);
     $("#microinfo").show();
-    // Get the text description for the current ALD sheet
-    let desc = "";
-    const sheet = data[saddr]['sheet'];
-      if (sheet) {
-      const text = aldText[sheet];
-      if (text) {
-        desc = text.join('<br/>');
-      }
-    }
-    function fmt(uc : string[]) : string {
-        return '<pre style="margin-bottom:0">' + uc.join('\n') + '</pre>';
-    }
-    $("#microcode").html(fmt(microcode[0]) + desc);
+    $("#microcode").html(microHtml[0]);
 }
 
 // Run at high speed until a new instruction is encountered
@@ -512,5 +498,5 @@ function displayState(state) {
         }
     }
     $("#registers").html(misc.join(', '));
-    console.log(raw.join(', '))
+    log(raw.join(', '))
 }

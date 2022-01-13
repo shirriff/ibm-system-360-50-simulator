@@ -22,10 +22,16 @@ Test instructions on the 360 simulator.
 
 QUnit.config.collapse = false; // Expand all failures
 
+var log = function debuglog(html) {
+  if (QUnit.config.testId.length != 1) return; // Only log if a single test is being run
+  const debug = document.getElementById("debug");
+  debug.innerHTML += html + "<br/>";
+}
+
 // Log test name to console
 QUnit.testStart(function(test) {
   var module = test.module ? test.module : '';
-  console.log('-----' + module + " " + test.name + "-----");
+  log('-----' + module + " " + test.name + "-----");
 });
 
 // Override alert so simulator will stop if an error is hit.
@@ -34,7 +40,7 @@ QUnit.testStart(function(test) {
 window.alert = function() {
   running = 0; // Stop the simulator
   throw(arguments[0]);
-  console.log('stopping ' + arguments[0]);
+  log('stopping ' + arguments[0]);
   return proxied.apply(this, arguments);
 };
 })(window.alert);
@@ -187,13 +193,15 @@ var running;
 // Load instruction(s) into memory at 0x400 and execute.
 function execute(instr, assert, desired) {
   command = disasm(hw(instr));
-  console.log(command);
+  log(command);
   assert.equal(command.replace(/ /g, ''), desired.replace(/ /g, '', desired), desired);
   // Load instruction into memory
   for (var i = 0; i < instr.length; i++) {
     state['MS'][0x400 + i * 4] = instr[i];
   }
   state['IAR'] = 0x400;
+  state['IAS'] = 0; // Reset invalid address stat
+  state['REFETCH'] = 1; // Reset refetch stat
   state['ROAR'] = 0x0197;
   running = 1;
   executeInstr();
@@ -203,12 +211,14 @@ maxcount = 100;
 
 // Execute one instruction
 function executeInstr(instr) {
+  log("-----------------------------");
   for (var count = 0; count < maxcount; count++) {
     // Log micro-instruction
     var saddr = fmtAddress(state['ROAR']);
-    console.log(decode(saddr, testdata[saddr]).join('\n'));
+    log(getMicroOpData(saddr)[0]);
+
     // Execute micro-instruction
-    cycle(state, testdata[saddr]);
+    cycle(state, data[saddr]);
     if (!running) { // emulator problem bailout
       alert('Bailing out');
       return;
@@ -223,7 +233,7 @@ function executeInstr(instr) {
       }
     }
 
-    console.log('L: ' + state['L'].toString(16) +
+    log('L: ' + state['L'].toString(16) +
       ', R: ' + state['R'].toString(16) +
       ', M: ' + state['M'].toString(16) +
       ', T: ' + state['T'].toString(16) +
@@ -247,30 +257,34 @@ function executeInstr(instr) {
       ', CSTAT: ' + state['CSTAT'] +
       ', CAR: ' + state['CAR']);
     // Check if done
-    if (count > 5 && [0x149, 0x14a, 0x14c, 0x14e, 0x184, 0x185, 0x187, 0x188, 0x189, 0x19b].includes(state['ROAR'])) {
+    log(count + " " + state['ROAR'].toString(16));
+    if (count > 4 && [0x149, 0x14a, 0x14c, 0x14e, 0x184, 0x185, 0x187, 0x188, 0x189, 0x19b].includes(state['ROAR'])) {
+      log("bailing");
       return;
+    }
+    if (state['ROAR'] == 0x14f) {
+      log("******* invalid address trap");
     }
     if (count > 8 && [0x148].includes(state['ROAR'])) {
       return;
     }
     if (state['TRAP']) {
-      console.log("********** TRAP **********");
+      log("********** TRAP **********");
       throw('TRAP');
       return;
     }
     if ([0x218, 0x195, 0x19c, 0x1b0, 0x1b4, 0x1b8, 0x1b1, 0x1b3, 0x1b5, 0x1b7, 0x10e, 0x10f].includes(state['ROAR'])) {
-      console.log('********** Exception ' + state['ROAR'].toString(16) + ' **********');
-      console.log('IAR: ' + state['IAR']);
+      log('********** Exception ' + state['ROAR'].toString(16) + ' **********');
       throw('Exception');
       return;
     }
   }
   throw('Count exceeded');
 }
-
 QUnit.module("Utilities", function(hooks) {
   hooks.beforeEach(function(assert) {
-    state = createState();
+    state = {};
+    initState(state);
   });
 
   QUnit.test( "fp conversion", function(assert) {
@@ -324,7 +338,7 @@ QUnit.module("Utilities", function(hooks) {
         f = -f;
       }
       floatToFpreg(0, f);
-      console.log(f);
+      log(f);
       var fp = fpreg32ToFloat(0);
       // Compare within tolerance
       var ratio = Math.abs((fp - f) / f);
@@ -369,7 +383,7 @@ QUnit.module("Utilities", function(hooks) {
         f = -f;
       }
       floatToFpreg(0, f);
-      console.log(f);
+      log(f);
       assert.equal(fpreg64ToFloat(0), f, f);
     }
   });
@@ -432,7 +446,8 @@ function chctl(state, entry) {
 
 QUnit.module("Instructions", function(hooks) {
   hooks.beforeEach(function(assert) {
-    state = createState();
+    state = {};
+    initState(state);
   });
 
   QUnit.test( "Load LR", function(assert) {
@@ -529,7 +544,6 @@ QUnit.module("Instructions", function(hooks) {
     reg(1, 0x12345678);
     reg(2, 0x00000005);
     execute([0x1a120000], assert, 'AR 1,2');
-    console.log('reg 31 has ' + state['LS'][0x31].toString(16));
     assert.equal(reg(1), 0x1234567d);
     assert.equal(state['CR'], 2); // Positive
   });
@@ -540,7 +554,6 @@ QUnit.module("Instructions", function(hooks) {
     reg(3, 0x00000010);
     execute([0x1a121a31], assert, 'AR 1,2');
     executeInstr(); // Run the second instruction
-    console.log('reg 31 has ' + state['LS'][0x31].toString(16));
     assert.equal(reg(1), 0x12345679);
     assert.equal(reg(3), 0x12345689);
     assert.equal(state['CR'], 2); // Positive
@@ -831,8 +844,6 @@ QUnit.module("Instructions", function(hooks) {
     reg(4, 0x12345678); // 0x1122334455667788 / 0x12345678
     execute([0x1d240000], assert, 'DR 2,4');
     // divide R2/R3 by R4
-    console.log('Quotient' + reg(3).toString(16));
-    console.log('Remainder' + reg(2).toString(16));
     assert.equal(reg(2), 0x11b3d5f7); // Remainder
     assert.equal(reg(3), 0x00f0f0f0); // Quotient
   });
@@ -3218,5 +3229,6 @@ QUnit.module("Instructions", function(hooks) {
   });
 });
 </script>
+<div id="debug"></div>
 </body>
 </html>

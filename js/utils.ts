@@ -1,5 +1,9 @@
 // Share utility functions
 
+var log = function(x) {} // Logging function
+
+
+
 function initState(state: {[key: string]: any}): void {
   // Initialize state variables
   Object.assign(state, {'FN': 0, 'J': 0, 'LSAR': 0,
@@ -62,3 +66,21 @@ function fmt4(d: number): string {
   return d.toString(16).padStart(8, '0');
 }
 
+// Gets a displayable representation of the micro-op
+// Returns a graphical block representation of the micro-op, and a textual description of the micro-op.
+function getMicroOpData(saddr: string): string[] {
+    const microcode : [string[], string[]] = decode(saddr, data[saddr]);
+     // Get the text description for the current ALD sheet
+    let desc = "";
+    const sheet = data[saddr]['sheet'];
+      if (sheet) {
+      const text = aldText[sheet];
+      if (text) {
+        desc = text.join('<br/>');
+      }
+    }
+    function fmt(uc : string[]) : string {
+        return '<pre style="margin-bottom:0">' + uc.join('\n') + '</pre>';
+    }
+    return [fmt(microcode[0]) + desc, microcode[1].join('<br\>')];
+}
