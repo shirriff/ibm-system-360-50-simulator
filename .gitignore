@@ -14,7 +14,6 @@ js/display.html
 js/jquery.min.js
 js/node_modules/
 js/package-lock.json
-js/tests/data.js
 js/tests/qunit*
 ocr/data.json
 ocr/scanner/microcode
