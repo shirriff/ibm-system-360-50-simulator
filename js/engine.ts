@@ -398,7 +398,7 @@ function adderT(state, entry) {
   if (entry['SS'] == 27) { 
     /* Set Stats 4-7 and exponent difference reg for floating point as follows.
      * Stat 4 turned on if:
-     *    Stat 0 or Stat 1 is on and right adder input bit 0 is one and there is a carry out of position 1.
+     *    Stat 0 or Stat 1 is on and right adder input bit 0 is one and there is a carry out of position 1. [Typo? I think this should be "*not* a carry out"]
      *  or
      *    Stat 0 or Stat 1 is on, there is a carry out of position 1, and either left adder input bit 0 is one or stat 1 is on but not both (add type, result minus)
      *  or
@@ -408,16 +408,17 @@ function adderT(state, entry) {
     function oneOf(a, b) { // helper
       return (a && !b) || (!a && b);
     }
-    if (((state['S'][0] || state['S'][1]) && (y & 0x80000000) && c1) ||
-        ((state['S'][0] || state['S'][1]) && c1 && oneOf(xg & 0x80000000, state['S'][1])) ||
-        (!state['S'][0] && !state['S'][1] && (xg & 0x80000000) != (y & 0x80000000))) {
-      state['S'][4] = 1;
+    const x = xg ^ 0xffffffff; // Uncomplemented left adder input. The documentation doesn't mention this.
+    if (((state['S'][0] || state['S'][1]) && (y & 0x80000000) && !c1) ||
+        ((state['S'][0] || state['S'][1]) && c1 && oneOf(x & 0x80000000, state['S'][1])) ||
+        (!state['S'][0] && !state['S'][1] && (x & 0x80000000) != (y & 0x80000000))) {
+      state['S'][4] = 1; // Presumed negative
     } else {
-      state['S'][4] = 0;
+      state['S'][4] = 0; // Presumed positive
     }
 
-    // Stat 5 turned on if left adder input bit 0, right adder input bit 0 and Stat 1 contain an even number of ones. (True add requred).
-    if ( (xg >>> 31) ^ (y >>> 31) ^ state['S'][1] ) {
+    // Stat 5 turned on if left adder input bit 0, right adder input bit 0 and Stat 1 contain an even number of ones. (True add required).
+    if ( (x >>> 31) ^ (y >>> 31) ^ state['S'][1] ) {
       // Odd number of ones
       state['S'][5] = 0;
     } else {
@@ -446,7 +447,8 @@ function adderT(state, entry) {
     // It's unclear what this means since it is a 16-bit register so trivially less than 16.
     const ed = (ed0 << 3) | ed13;
     state['ED'] = ed;
-    const edActual = ((xg & 0x7f000000) >>> 24) - ((y & 0x7f000000) >>> 24); // The actual difference between the two exponents.
+    log('ED = ' + state['ED']);
+    const edActual = ((x & 0x7f000000) >>> 24) - ((y & 0x7f000000) >>> 24); // The actual difference between the two exponents.
     state['S'][6] = (Math.abs(edActual) < 16) ? 1 : 0;
 
     // Stat 7 turned on if value of exponent difference reg is zero.

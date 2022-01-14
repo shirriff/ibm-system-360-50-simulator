@@ -100,6 +100,7 @@ function floatToFpreg(num, val) {
   var w1 = Math.trunc((val - f0) * 2**32);
   fpreg(num, w0);
   fpreg(num + 1, w1);
+  log("FP " + val + " = " + fmt4(w0) + " " + fmt4(w1));
 }
 
 // Convert a float from a 32-bit FP register
@@ -205,6 +206,7 @@ function execute(instr, assert, desired) {
   state['ROAR'] = 0x0197;
   running = 1;
   executeInstr();
+  log = function() {}; // Disable logging after first instruction
 }
 
 maxcount = 100;
@@ -341,8 +343,7 @@ QUnit.module("Utilities", function(hooks) {
       log(f);
       var fp = fpreg32ToFloat(0);
       // Compare within tolerance
-      var ratio = Math.abs((fp - f) / f);
-      assert.ok(ratio < .000001, fp + ' ' + f);
+      assert.ok(close(fp, f), fp + ' ' + f);
     }
   });
 
@@ -1427,26 +1428,61 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(state['CR'], 1);
   });
 
-  QUnit.test("Add N (FP short) AER ", function(assert) { // F
+  // Ensure that a and b are close, within a tolerance.
+  function close(a, b) {
+    if (a == 0 && b == 0) return true;
+    if (a == 0 || b == 0) return false;
+    return Math.abs((a - b) / b) < 0.000001; // Ratio is within a tolerance
+  }
+
+  // Helper: takes a list of addition argument pairs
+  function aerTest(tests, assert) {
+    tests.forEach(function([f1, f2]) {
+      floatToFpreg(0, f1);
+      floatToFpreg(2, f2);
+      execute([0x3a020000], assert, 'AER 0, 2');
+      var fres = fpreg32ToFloat(0);
+      var wanted = f1 + f2;
+      assert.ok(close(fres, wanted), '' + f1 + '+' + f2 + ': got ' + fres + ', wanted ' + wanted);
+      if (wanted == 0) {
+        assert.equal(state['CR'], 0, 'cr');
+      } else if (wanted > 0) {
+        assert.equal(state['CR'], 2, 'cr');
+      } else {
+        assert.equal(state['CR'], 1, 'cr');
+      }
+    });
+  }
+
+  // Test addition, focusing on the sign and exponent cases.
+  QUnit.test("Add N (FP short) AER ", function(assert) {
+    aerTest([[1, 1], [1, 16], [1, 65536], [1, 1e40], [16, 1], [65536, 1], [1e40, 0], [1e40, 1], [2**64, 1], [2**65, 1], [2**72, 1]], assert); // Test different exponents
+    aerTest([[100, 0], [-100, 0], [0, 0]], assert); // Test CR values
+    aerTest([[1, -1], [-1, 1], [-1, -1]], assert); // Test different signs with equal exponents
+    aerTest([[1, 256], [1, -256], [-256, 1], [-256, -1]], assert); // Test different signs with first exponent larget
+    aerTest([[256, 1], [256, -1], [-1, 256], [-1, -256]], assert); // Test different signs with second exponent larget
+    aerTest([[-100, 1]], assert); // Test CR values
+    aerTest([[1, 2**64], [1, 2**80], [1, 2**96], [1, 2**112], [2**64, 1], [2**80, 1], [2**96, 1], [2**112, 1]], assert); // Test large exponent ranges
+    aerTest([[0, 0], [100, -100], [-100, 100], [2**50, -(2**50)], [-(2**50), 2**50]], assert); // Test zero sums
+  });
+
+  QUnit.test("Add N (FP short) AER random", function(assert) { // F
     var rand = mulberry32(100);
-    for (var i = 0; i < 1; i++) {
+    for (var i = 0; i < 10; i++) {
       var f1 = randfloat(rand, 64);
       var f2 = randfloat(rand, 64);
-      f1 = 1;
-      f2 = 2;
       floatToFpreg(0, f1);
       floatToFpreg(2, f2);
       execute([0x3a020000], assert, 'AER 0,2');
       var fres = fpreg32ToFloat(0);
       var wanted = f1 + f2;
-      var ratio = Math.abs((fres - wanted) / wanted);
-      assert.ok(ratio < .000001, fres + ' ' + wanted);
+      assert.ok(close(fres, wanted), 'got ' + fres + ', wanted ' + wanted);
       if (wanted == 0) {
-        assert.equal(state['CR'], 1);
+        assert.equal(state['CR'], 0, 'cr');
       } else if (wanted > 0) {
-        assert.equal(state['CR'], 2);
+        assert.equal(state['CR'], 2, 'cr');
       } else {
-        assert.equal(state['CR'], 1);
+        assert.equal(state['CR'], 1, 'cr');
       }
     }
   });
@@ -1461,8 +1497,7 @@ QUnit.module("Instructions", function(hooks) {
       execute([0x3b020000], assert, 'SER 0,2');
       var fres = fpreg32ToFloat(0);
       var wanted = f1 - f2;
-      var ratio = Math.abs((fres - wanted) / wanted);
-      assert.ok(ratio < .000001, fres + ' ' + wanted);
+      assert.ok(close(fres, wanted), fres + ' ' + wanted);
     }
   });
 
@@ -1476,8 +1511,7 @@ QUnit.module("Instructions", function(hooks) {
       execute([0x3c020000], assert, 'MER 0,2');
       var fres = fpreg64ToFloat(0);
       var wanted = f1 * f2;
-      var ratio = Math.abs((fres - wanted) / wanted);
-      assert.ok(ratio < .000001, fres + ' ' + wanted);
+      assert.ok(close(fres, wanted), fres + ' ' + wanted);
     }
   });
 
@@ -1491,8 +1525,7 @@ QUnit.module("Instructions", function(hooks) {
       execute([0x3d020000], assert, 'DER 0,2');
       var fres = fpreg64ToFloat(0);
       var wanted = f1 / f2;
-      var ratio = Math.abs((fres - wanted) / wanted);
-      assert.ok(ratio < .000001, fres + ' ' + wanted);
+      assert.ok(close(fres, wanted), fres + ' ' + wanted);
     }
   });
 
@@ -1506,8 +1539,7 @@ QUnit.module("Instructions", function(hooks) {
       execute([0x3e020000], assert, 'AUR 0,2');
       var fres = fpreg64ToFloat(0);
       var wanted = f1 + f2;
-      var ratio = Math.abs((fres - wanted) / wanted);
-      assert.ok(ratio < .000001, fres + ' ' + wanted);
+      assert.ok(close(fres, wanted), fres + ' ' + wanted);
     }
   });
 
@@ -1521,8 +1553,7 @@ QUnit.module("Instructions", function(hooks) {
       execute([0x3f020000], assert, 'SUR 0,2');
       var fres = fpreg64ToFloat(0);
       var wanted = f1 - f2;
-      var ratio = Math.abs((fres - wanted) / wanted);
-      assert.ok(ratio < .000001, fres + ' ' + wanted);
+      assert.ok(close(fres, wanted), fres + ' ' + wanted);
     }
   });
 
