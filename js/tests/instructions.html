@@ -3200,7 +3200,7 @@ QUnit.module("Instructions", function(hooks) {
   });
 
   QUnit.test( "Set Storage Key SSK - no priv", function(assert) {
-    state['AMWP'] = 0; // Privileged
+    state['AMWP'] = 1; // Not privileged ("problem" state)
     assert.throws(function() {
       execute([0x08120000], assert, 'SSK 1,2');
     });

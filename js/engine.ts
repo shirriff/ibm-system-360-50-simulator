@@ -1999,7 +1999,7 @@ function roarAB(state, entry) {
         roar |= 1;
       }
       break;
-    case 36: // PROB     // Check problelm state (i.e. user vs supervisor)? QY110, QA800  Monitor stat
+    case 36: // PROB     // Check problem state (i.e. user vs supervisor)? QY110, QA800  Monitor stat
       if (state['AMWP'] & 1) {
         roar |= 2;
       }
