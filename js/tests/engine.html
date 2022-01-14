@@ -3296,11 +3296,7 @@ QUnit.skip( "stat SS 54: 1→TIMERIRPT", function(assert) {
 });
 
 // T to AMWP bits
-QUnit.test( "stat55  T→PSW,IPL→T", function(assert) {
-  var state = {'T': 0x12345678};
-  stat(state, {'SS': 55});
-  assert.equal(state['AMWP'], 4);
-  assert.equal(state['T'], 0x0c000000); // Hardwored card reader IPl
+QUnit.skip( "stat55  T→PSW,IPL→T", function(assert) {
 });
 
 // T to AMWP bits
@@ -3310,11 +3306,8 @@ QUnit.test( "stat56 T→PSW", function(assert) {
   assert.equal(state['AMWP'], 0xf);
 });
 
-QUnit.test( "stat57", function(assert) {
+QUnit.skip( "stat57", function(assert) {
   // 57: SCAN*E00
-  var state = {};
-  stat(state, {'SS': 57, 'CE': 0x3});
-  assert.equal(state['SCANCTRL'], 0x0c);
 });
 
 QUnit.skip( "stat SS 58: 1→IOMODE", function(assert) {
