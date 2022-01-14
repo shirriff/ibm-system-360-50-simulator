@@ -3275,7 +3275,14 @@ QUnit.skip( "stat SS 47: SCAN*E,10", function(assert) {
 
 // SS 48, 49: I/O
 
-QUnit.skip( "stat SS 50: E(0)→IBFULL", function(assert) {
+QUnit.test( "stat SS 50: E(0)→IBFULL", function(assert) {
+  var state = {};
+  stat(state, {'SS': 50, 'CE': 8});
+  assert.equal(state['IBFULL'], 1);
+
+  var state = {};
+  stat(state, {'SS': 50, 'CE': 7});
+  assert.equal(state['IBFULL'], 0);
 });
 
 // SS 51: unused

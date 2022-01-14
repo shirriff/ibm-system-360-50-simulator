@@ -1619,16 +1619,35 @@ function stat(state, entry) {
       // Implemented in adderT().
       break;
     case 28: // OPPANEL→S47      // Write operator panel to S bits 4-7
-      // See QT200 for mapping from console switches to S47
+      /* Set Stats 4-7 per maintenance console switches as follows:
+       * 0000 None of those described below.
+       * 0001 Instruction step, wait bit not on, start.
+       * 0010 Set instruction counter, manual trigger on.
+       * 0011 Repeat instruction, manual trigger on.
+       * 0100 IAR compare (sync or stop), manual trigger and wait bit both off.
+       * 0110 Enter channel, manual trigger on.
+       * 1XXY Display or store with manual trigger on as follows:
+       *      XX 00 Main Storage
+       *         01 Protection Tag Storage
+       *         10 Local Storage
+       *         11 Multiplexor bump storage
+       *       Y  0 Display
+       *          1 STore
+       */
       alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
       break;
     case 29: // CAR,(T≠0)→CR
+      // Set left bit of Condition Reg (PSW bit 34) to value of carry out of adder position 0.
+      // Set right bit (PSW bit 35) to one if adder latch is non-zero, to zero if latch is 0.
       state['CR'] = (state['CAR'] ? 2 : 0) | (state['T'] != 0 ? 1 : 0);
       break;
     case 30: // KEY→F // QT115/020E
+      // Gate from tag storage data lines to F reg. If SAR adresses LCS, initiate signal to storage indicating read stoage key operation.
       state['F'] = state['KEYS'][state['SAR'] & 0x00fff100] | 0; // 0 if undefined
       break;
     case 31: // F→KEY // QT220/02BF  QA800: write storage key
+      // Gate F reg to tag storage data lines. Initiate write storage key operation. (Note: this order is given on W2 cycle of
+      // storage and causes holdoff until next W2 cycle.)
       state['KEYS'][state['SAR'] & 0x00fff100] = state['F'];
       break;
     case 32: // 1→LSGNS
@@ -1650,24 +1669,24 @@ function stat(state, entry) {
       state['RSGNS'] = (state['R'] & 0x80000000) ? 1 : 0;
       break;
     case 38: // E(13)→WFN
-      // Seems to also do something with I/O? Maybe I/O mover?
-      // .000 = CROSS QA800:01A2
-      // .001 = O (OR) QB400:0298
-      // .010 = N (AND) QB400:0290
-      // .011 = X XOR QC030:0138
-      // .100: set mover fn reg to move (8 bit) characters QP800:0608 default???
-      // .101: set mover fn reg to move zones (upper 4 bits) QP800:060c
-      // .110: set mover fn reg to move numerics (lower 4 bits) QP800:0604
+      // Gate emit field bits 1-3 to mover function reg.
       state['WFN'] = entry['CE'] & 7;
       break;
     case 39: // E(23)→FN // QT120/0102
+      // Gate emit field bits 2-3 to local storage function reg.
+      // (Effective for local storage addressing this cycle.)
       state['FN'] = entry['CE'] & 3;
       break;
     case 40: // E(23)→CR
+      // Gate emit field bits 2-3 to condition reg (PSW bits 34-35).
       state['CR'] = entry['CE'] & 3;
       break;
-    case 41: // SETCRALG   Set condition register from algebraic comparison
-      // If T=0 00→CR, if T<0, 01→CR, QE580/222. Part may be BCVC
+    case 41: // SETCRALG
+      /* Set the condition reg according to algebraic conditions as follows:
+       * 00 Adder latch 0
+       * 01 Adder latch bit 0 is one. (minus)
+       * 10 Adder latch bit 0 is 0, bits 1-31 non-zero. (plus)
+       */
       if (state['T'] == 0) {
         state['CR'] = 0;
       } else if (state['T'] & 0x80000000) {
@@ -1676,9 +1695,12 @@ function stat(state, entry) {
         state['CR'] = 2; // Positive
       }
       break;
-    case 42: // SETCRLOG   Set condition register from logical comparison
-      // QB500:246: If T*BS=0, 00→CR.  If T*BS≠0, and CAR(0)=0, 01→CR.
-      // If T*BS≠0, and CAR(0)=1, 10→CR.
+    case 42: // SETCRLOG
+      /* Set the condition reg according to logical conditions as follows
+       * 00 Adder latch bytes selected by byte stats are zero.
+       * 01 Adder latch bytes selected by byte stats are not all zero and there is no carry out of adder position 0.
+       * 10 Adder latch bytes selected by byte stats are not all zero and there is a carry out of adder position 0.
+       */
       if (tzbs(state)) {
         state['CR'] = 0; // Equal
       } else if (state['c0'] == 0) {
@@ -1688,74 +1710,95 @@ function stat(state, entry) {
       }
       break;
     case 43: // ¬S4,S4→CR
+      // Set left bit of condition reg (PSW bit 34) to the complement of stat 4.
+      // Set the right bit (PSW bit 35) equal to stat 4.
       state['CR'] = ((state['S'][4] ^ 1) << 1) | state['S'][4];
       break;
     case 44: // S4,¬S4→CR
+      // Set left bit of condition reg (PSW bit 34) to stat 4.
+      // Set the right bit (PSW bit 35) equal to the complement of stat 4.
       state['CR'] = (state['S'][4] << 1) | (state['S'][4] ^ 1);
       break;
     case 45: // 1→REFETCH
+      // Turn on the refetch trigger.
       state['REFETCH'] = 1;
       break;
     case 46: // SYNC→OPPANEL // QT200/0107
+      // Send address compare sync/stop pulse to console.
       alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
       break;
-    case 47: // SCAN*E,10        // sets FLT register. See 50Maint p28. Channel address, Unit address to L.
+    case 47: // SCAN*E,10        // sets FLT register. See 50Maint p28.
+      // Turn on FLT Op Reg pos 1. If this microinstruction contains the FOLD micro-order, turn on FLT Op Reg Pos 0.
+      // Otherwise turn it off. Gate emit field to FLT op reg pos 2-5.
       alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
       break;
-    case 48:
+    case 48: // 1*SUPOUT
+      // Turn on multiplexor channel suppress out line.
       alert('Unexpected I/O SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
       break;
-    case 49:
+    case 49: // MPXSEL RESET
+      // Selective reset of multiplexor channel.
       alert('Unexpected SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
       break;
     case 50: // E(0)→IBFULL      // Reset MPX Input Buffer Full stat QU100
-      alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
+      // Set Interrupt buffer full stat to value of emit field bit 0.
       state['IBFULL'] = (entry['CE'] >> 3) & 1;
       break;
     case 51:
       alert('Unexpected SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
       break;
     case 52: // E→CH             // QY430 E=0110 resets common and mpx channel
+      // Gate the emit field to the common channel.
       alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
       break;
     case 53:
       alert('Unexpected SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
       break;
     case 54: // 1→TIMERIRPT
+      // Turn on the timer bit in the external interrupt reg.
       alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
       break;
     case 55: // T→PSW,IPL→T,      // QU100, 50Maint
-      // IPL UA → 0-7, IPL CA → 21-23
-      // T 12-15 to PSW AMWP control bits
+      // Gate IPL unit address bits 0-7 to L reg bits 0-7.
+      // Gate channel address to L reg bits 21-23. Order TR7 is used with this order to provide
+      // register pulse for L but T→L gating is inhibited.
+      // [The T→PSW part isn't mentioned in the documentation?]
+      alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
       state['AMWP'] = (state['T'] & 0x000f0000) >>> 16;
       // Hardwire card reader = 00C: channel 0, device 0C
       var ca = 0
       var ua = 0x0c;
       state['T'] = ((ua << 24) | (ca << 8)) >>> 0;
       break;
-    case 56: // T→PSW            // T(12-15) to PSW control bits QJ200:751
+    case 56: // T→PSW
+      // Gate adder latch bits 12-15 to PSW bits 12-15 (mode bits).
       state['AMWP'] = (state['T'] & 0x000f0000) >>> 16;
       break;
     case 57: // SCAN*E,00        // E → SCANCTRL(2-5), 0→SCANCTRL(1), (FOLD)→SCANCTRL(0) // U100
-      var fold = 0;
-      state['SCANCTRL'] = (fold << 7) | entry['CE'] << 2;
-      break;
-    case 58: // 1→IOMODE // 50Maint p39. Sets I/O mode stat
+      // Turn off FLT Op Reg pos 1. If thhis micro-instruction contains the FOLD micro-order,
+      // turn on FLT Op Reg Pos 0. Otherwise turn it off. Gate emit field to Flt Op Reg pos 2-5.
       alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
       break;
-    case 59:
+    case 58: // 1→IOMODE // 50Maint p39. Sets I/O mode stat
+      // Turn on I/O Mode stat.
+      alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
+      break;
+    case 59: // 0→IOMODE
+      // Turn off I/O Mode stat.
       alert('Unimplemented I/O SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
       break;
-    case 60:
+    case 60: // 1→SELOUT
+      // Turn on multiplexor channel Select Out line.
       alert('Unimplemented I/O SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
       break;
-    case 61:
+    case 61: // 1→ADROUT
+      // Turn on multiplexor channel Select Out line.
       alert('Unimplemented I/O SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
       break;
-    case 62:
+    case 62: // 1→COMOUT
       alert('Unimplemented I/O SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
       break;
-    case 63:
+    case 63: // 1→SERVOUT
       alert('Unimplemented I/O SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
       break;
     default:
