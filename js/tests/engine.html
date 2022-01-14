@@ -430,8 +430,8 @@ QUnit.test( "adder ad 9 DC0", function(assert) {
   var state = {'S': [0, 0, 0, 0, 0, 0, 0, 0], 'XG': 0xff00ff0f, 'Y': 0x01010100, 'CIN': 1};
   adderT(state, {'AD': 9, 'DG': 0});
   assert.equal(state['S'][1], 1, 'state');
-  assert.equal(state['pending']['L'], 0x00660066, 'Corrections');
-  assert.equal(state['T0'], 0x0002000f, 'sum');
+  assert.equal(state['pending']['L'], 0x00660060, 'Corrections');
+  assert.equal(state['T0'], 0x00020010, 'sum');
 
   var state = {'S': [0, 1, 0, 0, 0, 0, 0, 0], 'XG': 0xff00ff0f, 'Y': 0x01010100, 'CIN': 1};
   adderT(state, {'AD': 9, 'DG': 0});
@@ -680,94 +680,100 @@ QUnit.test( "iar iv 3 W→IVD", function(assert) {
 });
 
 QUnit.test( "iar iv 4 IA/4→A,IA", function(assert) {
-  var state = {'IAR': 0x12340000};
+  var state = {'IAR': 0x001000};
   iar(state, {'IV': 4});
-  assert.equal(state['IAR'], 0x12340004);
-  assert.equal(state['SAR'], 0x12340004);
+  assert.equal(state['IAR'], 0x001004);
+  assert.equal(state['SAR'], 0x001004);
   assert.equal(state['IAS'], 0);
 
-  var state = {'IAR': 0x12340002};
+  var state = {'IAR': 0x001ffc};
   iar(state, {'IV': 4});
-  assert.equal(state['IAR'], 0x12340006);
-  assert.equal(state['SAR'], 0x12340006);
+  assert.equal(state['IAR'], 0x002000); // Hit the 8k limit
+  assert.equal(state['SAR'], 0x002000);
   assert.equal(state['IAS'], 1, "invalid address stat");
 });
 
 QUnit.test( "iar iv 5 IA+2/4", function(assert) {
   // ILC 0
-  var state = {'ILC': 0, 'IAR': 0x00123450};
+  var state = {'ILC': 0, 'IAR': 0x001450};
   iar(state, {'IV': 5});
-  assert.equal(state['IAR'], 0x00123452);
+  assert.equal(state['IAR'], 0x001452);
 
   // ILC 1
-  var state = {'ILC': 1, 'IAR': 0x00123450};
+  var state = {'ILC': 1, 'IAR': 0x001450};
   iar(state, {'IV': 5});
-  assert.equal(state['IAR'], 0x00123452);
+  assert.equal(state['IAR'], 0x001452);
 
   // ILC 2
-  var state = {'ILC': 2, 'IAR': 0x00123450};
+  var state = {'ILC': 2, 'IAR': 0x001450};
   iar(state, {'IV': 5});
-  assert.equal(state['IAR'], 0x00123454);
+  assert.equal(state['IAR'], 0x001454);
 
   // ILC 3
-  var state = {'ILC': 3, 'IAR': 0x00123450};
+  var state = {'ILC': 3, 'IAR': 0x001450};
   iar(state, {'IV': 5});
-  assert.equal(state['IAR'], 0x00123454);
+  assert.equal(state['IAR'], 0x001454);
 });
 
 QUnit.test( "iar iv 6 IA+2", function(assert) {
-  var state = {'IAR': 0x12340000};
+  var state = {'IAR': 0x000100};
   iar(state, {'IV': 6});
-  assert.equal(state['IAR'], 0x12340002);
+  assert.equal(state['IAR'], 0x000102);
 });
 
 QUnit.test( "iar iv 7 IA+0/2→A", function(assert) {
   // Refetch stat off cases, increment by 2
-  var state = {'IAR': 0x00123450, 'REFETCH': 0};
+  var state = {'IAR': 0x001450, 'REFETCH': 0};
   iar(state, {'IV': 7});
-  assert.equal(state['IAR'], 0x00123450);
-  assert.equal(state['SAR'], 0x00123452);
-  assert.equal(state['IAS'], 1, "invalid address stat");
-
-  var state = {'IAR': 0x00123452, 'REFETCH': 0};
-  iar(state, {'IV': 7});
-  assert.equal(state['IAR'], 0x00123452);
-  assert.equal(state['SAR'], 0x00123454);
+  assert.equal(state['IAR'], 0x001450);
+  assert.equal(state['SAR'], 0x001452);
   assert.equal(state['IAS'], 0, "invalid address stat");
 
-  var state = {'IAR': 0x00123452, 'REFETCH': 0}; // with SMIF: skip fetch if off word boundary
+  var state = {'IAR': 0x001452, 'REFETCH': 0};
+  iar(state, {'IV': 7});
+  assert.equal(state['IAR'], 0x001452);
+  assert.equal(state['SAR'], 0x001454);
+  assert.equal(state['IAS'], 0, "invalid address stat");
+
+  var state = {'IAR': 0x001ffe, 'REFETCH': 0};
+  iar(state, {'IV': 7});
+  assert.equal(state['IAR'], 0x001ffe);
+  assert.equal(state['SAR'], 0x002000);
+  assert.equal(state['IAS'], 1, "invalid address stat"); // Hit 8k limit
+
+  var state = {'IAR': 0x001452, 'REFETCH': 0}; // with SMIF: skip fetch if off word boundary
   iar(state, {'IV': 7, 'ZN': 1}); // ZN=1 for SMIF
-  assert.equal(state['IAR'], 0x00123452);
+  assert.equal(state['IAR'], 0x001452);
   assert.equal(state['SAR'], undefined, "fetch skipped");
 
-  var state = {'IAR': 0x00123450, 'REFETCH': 0};
+  var state = {'IAR': 0x001450, 'REFETCH': 0};
   iar(state, {'IV': 7, 'ZN': 1});
-  assert.equal(state['IAR'], 0x00123450);
-  assert.equal(state['SAR'], 0x00123452);
+  assert.equal(state['IAR'], 0x001450);
+  assert.equal(state['SAR'], 0x001452);
 
   // Refetch stat on cases
-  var state = {'IAR': 0x00123450, 'REFETCH': 1};
+  var state = {'IAR': 0x001450, 'REFETCH': 1};
   iar(state, {'IV': 7});
-  assert.equal(state['IAR'], 0x00123450);
-  assert.equal(state['SAR'], 0x00123450);
+  assert.equal(state['IAR'], 0x001450);
+  assert.equal(state['SAR'], 0x001450);
   assert.equal(state['IAS'], 0, "invalid address stat");
 
-  var state = {'IAR': 0x00123452, 'REFETCH': 1};
+  var state = {'IAR': 0x001452, 'REFETCH': 1};
   iar(state, {'IV': 7});
-  assert.equal(state['IAR'], 0x00123452);
-  assert.equal(state['SAR'], 0x00123452);
-  assert.equal(state['IAS'], 1, "invalid address stat");
-
-  var state = {'IAR': 0x00123450, 'REFETCH': 1}; // with SMIF: skip fetch if off word boundary
-  iar(state, {'IV': 7, 'ZN': 1});
-  assert.equal(state['IAR'], 0x00123450);
-  assert.equal(state['SAR'], 0x00123450);
+  assert.equal(state['IAR'], 0x001452);
+  assert.equal(state['SAR'], 0x001452);
   assert.equal(state['IAS'], 0, "invalid address stat");
 
-  var state = {'IAR': 0x00123452, 'REFETCH': 1};
+  var state = {'IAR': 0x001450, 'REFETCH': 1}; // with SMIF: skip fetch if off word boundary
   iar(state, {'IV': 7, 'ZN': 1});
-  assert.equal(state['IAR'], 0x00123452);
-  assert.equal(state['SAR'], 0x00123452);
+  assert.equal(state['IAR'], 0x001450);
+  assert.equal(state['SAR'], 0x001450);
+  assert.equal(state['IAS'], 0, "invalid address stat");
+
+  var state = {'IAR': 0x002000, 'REFETCH': 1};
+  iar(state, {'IV': 7, 'ZN': 1});
+  assert.equal(state['IAR'], 0x002000);
+  assert.equal(state['SAR'], 0x002000);
   assert.equal(state['IAS'], 1, "invalid address stat");
 });
 

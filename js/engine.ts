@@ -230,7 +230,10 @@ function adderT(state, entry) {
     // BCF0: If F reg equals zero, insert carry into position 31.
     carry = (state['F'] == 0) ? 1 : 0;
   } else if (entry['AD'] == 9 || entry['AD'] == 10 || entry['AD'] == 12) { // DC0, DDC0, or DCBS
-    carry = state['S'][1]; // Insert previous value of stat 1 as carry into position 31.
+    // It's unclear what should happen if there are two entries to the carry, e.g.
+    // micro-op c2a has HOT1→ADDER, but also DC0 says insert value of Stat 1 as carry.
+    // ORing the two seems like the best approach.
+    carry |= state['S'][1]; // Insert previous value of stat 1 as carry into position 31.
   }
 
   t = xg + y + carry;
@@ -955,10 +958,13 @@ function moverU(state, entry) {
     case 2: // R3        // R3 = low byte (byte 3, right) of register R
       u = state['R'] & 0xff;
       break;
-    case 3: // I/O
+    case 3: // BIB
+      // Gate multiplex channel buffer in bus to left mover input U.
       alert('Unimplemented LU ' + entry['LU'] + " " + labels['LU'][entry['LU']]);
       break;
     case 4: // XTR       // Parity error (extra bit)? Reset by reading. QU100
+      // Cases 4-7 are different for I/O mode.
+      // They are listed as L0/L3; gate L reg bytes 0-3 (respectively) to left mover input U.
       u = 0;
       break;
     case 5: // PSW4      // PSW byte 4.
@@ -1333,8 +1339,8 @@ function iar(state: {[key: string]: any}, entry: {[key: string]: number}) : void
       // Increment IAR by 4. Gate result to IAR and SAR. Initiate storage request.
       // Inhibit invalid address trap. Set invalid address stat instead.
       state['IAR'] += 4;
-      state['SAR'] = state['IAR'];
-      state['IAS'] = (state['IAR'] & 3) ? 1 : 0;
+      state['SAR'] = state['IAR'] & 0x00ffffff;
+      state['IAS'] = (state['IAR'] >= ramSize) ? 1 : 0;
       break;
     case 5 : // IA+2/4 // QT115/019B
       // If instruction length code value is 0 or 1, increment IAR by 2. If ILC value is 2 or 3, increment
@@ -1364,7 +1370,7 @@ function iar(state: {[key: string]: any}, entry: {[key: string]: number}) : void
         state['SAR'] = state['IAR'];
       }
       // TODO(implement storage requests)
-      state['IAS'] = (state['SAR'] & 3) ? 1 : 0; // Invalid address stat
+      state['IAS'] = (state['SAR'] >= ramSize) ? 1 : 0; // Invalid address stat
       break;
     default:
       alert('Unimplemented IV ' + entry['IV'] + " " + labels['IV'][entry['IV']]);

@@ -1015,6 +1015,15 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(state['CR'], 2); // Positive
   });
 
+  QUnit.test( "Add Decimal AP - 1 byte, ASCII", function(assert) {
+    state['MS'][0x100] = 0x2888011c; // 2888011+
+    state['MS'][0x200] = 0x1112292c; // 1112292+
+    state['AMWP'] = 8; // ASCII
+    execute([0xfa330100, 0x02000000], assert, 'AP 100(4,0),200(4,0)');
+    assert.equal(state['MS'][0x100],  0x4000303a); // 4000303+
+    assert.equal(state['CR'], 2); // Positive
+  });
+
   QUnit.test( "Add Decimal AP - 1 byte - small", function(assert) {
     state['MS'][0x100] = 0x0000002c; // 2+
     state['MS'][0x200] = 0x0000003c; // 3+

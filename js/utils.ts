@@ -3,6 +3,7 @@
 var log = function(x) {} // Logging function
 
 
+const ramSize = 8192; // 8K of RAM
 
 function initState(state: {[key: string]: any}): void {
   // Initialize state variables
