@@ -190,6 +190,14 @@ function randfloat(rand, powRange) {
   return f;
 }
 
+// Ensure that a and b are close, within a tolerance.
+function close(a, b) {
+  if (a == 0 && b == 0) return true;
+  if (a == 0 || b == 0) return false;
+  return Math.abs((a - b) / b) < 0.000001; // Ratio is within a tolerance
+}
+
+
 var running;
 // Load instruction(s) into memory at 0x400 and execute.
 function execute(instr, assert, desired) {
@@ -260,7 +268,7 @@ function executeInstr(instr) {
       ', CAR: ' + state['CAR']);
     // Check if done
     log(count + " " + state['ROAR'].toString(16));
-    if (count > 4 && [0x149, 0x14a, 0x14c, 0x14e, 0x184, 0x185, 0x187, 0x188, 0x189, 0x19b].includes(state['ROAR'])) {
+    if (count > 4 && [0x146, 0x149, 0x14a, 0x14c, 0x14e, 0x184, 0x185, 0x187, 0x188, 0x189, 0x19b].includes(state['ROAR'])) {
       log("bailing");
       return;
     }
@@ -1427,13 +1435,6 @@ QUnit.module("Instructions", function(hooks) {
     execute([0x39420000], assert, 'CER 4,2');
     assert.equal(state['CR'], 1);
   });
-
-  // Ensure that a and b are close, within a tolerance.
-  function close(a, b) {
-    if (a == 0 && b == 0) return true;
-    if (a == 0 || b == 0) return false;
-    return Math.abs((a - b) / b) < 0.000001; // Ratio is within a tolerance
-  }
 
   // Helper: takes a list of addition argument pairs
   function aerTest(tests, assert) {
