@@ -137,6 +137,16 @@ function adderDG(state, entry) {
   state['pending'] = state['pending'] || {}; // Initialize if necessary
   var carry = 0;
 
+  function g1minus1() {
+    state['G1NEG'] = (state['G1'] == 0) ? 1 : 0;
+    state['pending']['G1'] = (state['G1'] - 1) & 0xf;
+  }
+
+  function g2minus1() {
+    state['G2NEG'] = (state['G2'] == 0) ? 1 : 0;
+    state['pending']['G2'] = (state['G2'] - 1) & 0xf;
+  }
+
   // Length counter and carry insert ctrl
   // Inconveniently, we need to do some of the DG operations early, to set up the adder. But
   // we also need to do some of the DG operations late in the cycle, to update registers.
@@ -151,59 +161,27 @@ function adderDG(state, entry) {
       carry = 1;
       break;
     case 3: // G1-1
-      if (state['G1'] == 0) {
-        state['G1NEG'] = 1; // Update underflow
-        // Hold at 0. Seems from QP100 that wrapping doesn't work.
-      } else {
-        state['G1NEG'] = 0;
-        state['pending']['G1'] = state['G1'] - 1;
-      }
+      g1minus1();
       break;
     case 4: // HOT1,G-1
       carry = 1;
-      // Unclear how negative works
-      if (state['G1'] == 0 && state['G2'] == 0) {
-        state['G1NEG'] = 1; // Update underflow, hoild at 0
-      } else {
-        if (state['G2'] == 0) {
-          state['pending']['G1'] = state['G1'] - 1;
-        }
-        state['pending']['G2'] = (state['G2'] - 1) & 0xf;
+      g2minus1();
+      if (state['G2'] == 0) {
+        g1minus1();
       }
       break;
     case 5: // G2-1
-      if (state['G2'] == 0) {
-        state['G2NEG'] = 1; // Update underflow, hold at 0.
-      } else {
-        state['G2NEG'] = 0;
-        state['pending']['G2'] = state['G2'] - 1;
-      }
+      g2minus1();
       break;
     case 6: // G-1
-      // Unclear how negative works
-      if (state['G1'] == 0 && state['G2'] == 0) {
-        state['G1NEG'] = 1; // Update underflow
-      } else {
-        state['G1NEG'] = 0;
-        if (state['G2'] == 0) {
-          state['pending']['G1'] = state['G1'] - 1;
-        }
-        state['pending']['G2'] = (state['G2'] - 1) & 0xf;
+      g2minus1();
+      if (state['G2'] == 0) { // prior to decrement
+        g1minus1();
       }
       break;
     case 7: // G1,2-1
-      if (state['G1'] == 0) {
-        state['G1NEG'] = 1; // Update underflow, hold at 0
-      } else {
-        state['G1NEG'] = 0;
-        state['pending']['G1'] = state['G1'] - 1;
-      }
-      if (state['G2'] == 0) {
-        state['G2NEG'] = 1; // Update underflow, hold at 0.
-      } else {
-        state['G2NEG'] = 0;
-        state['pending']['G2'] = state['G2'] - 1;
-      }
+      g1minus1();
+      g2minus1();
       break;
     default:
       alert('Unexpected DG ' + entry['DG'] + " " + labels['DG'][entry['DG']]);
@@ -1138,13 +1116,17 @@ function storeMover(state, entry) {
       break;
     case 9: // WL→G1
       state['G1'] = state['WL'];
+      state['G1NEG'] = 0;
       break;
     case 10: // WR→G2
       state['G2'] = state['WR'];
+      state['G2NEG'] = 0;
       break;
     case 11: // W→G
       state['G1'] = state['WL'];
       state['G2'] = state['WR'];
+      state['G1NEG'] = 0;
+      state['G2NEG'] = 0;
       break;
     case 13: // WL→MD
       state['MD'] = state['WL'];
@@ -1280,6 +1262,7 @@ function localStorageLSAR(state, entry) {
  */
 function writeLS(state, value: number) {
   state['LS'][state['LSAR']] = value;
+  log("LS: write " + fmt4(value) + " to " + fmt2(state['LSAR']));
   lsHilitePos = state['LSAR']; // Highlight this entry in the GUI
   lsHiliteColor = "#ffcccc";
 }
@@ -1290,7 +1273,9 @@ function writeLS(state, value: number) {
 function readLS(state): number {
   lsHilitePos = state['LSAR']; // Highlight this entry in the GUI
   lsHiliteColor = "#ccccff";
-  return state['LS'][state['LSAR']];
+  const value = state['LS'][state['LSAR']];
+  log("LS: read " + fmt4(value) + " from " + fmt2(state['LSAR']));
+  return value;
 }
 
 function localStore(state, entry) {
