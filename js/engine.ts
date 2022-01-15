@@ -407,7 +407,7 @@ function adderT(state, entry) {
      *  or
      *    Stat 0 or Stat 1 is on, there is a carry out of position 1, and either left adder input bit 0 is one or stat 1 is on but not both (add type, result minus)
      *  or
-     *    Both Stat 0 and Stat 1 are off and left adder input bit 0 is not equal to right adder input bit 0 (multiply or divide, signs unlike).
+     *    Both Stat 0 and Stat 1 are off and left adder input bit 0 is not equal to right adder input bit 0 (multiply or divide, signs unlike). [I flipped this to make multiplication signs correct.]
      * Absence of turn on condition causes stat to be turned off.
      */
     function oneOf(a, b) { // helper
@@ -416,7 +416,7 @@ function adderT(state, entry) {
     const x = xg ^ 0xffffffff; // Uncomplemented left adder input. The documentation doesn't mention this.
     if (((state['S'][0] || state['S'][1]) && (y & 0x80000000) && !c1) ||
         ((state['S'][0] || state['S'][1]) && c1 && oneOf(x & 0x80000000, state['S'][1])) ||
-        (!state['S'][0] && !state['S'][1] && (x & 0x80000000) != (y & 0x80000000))) {
+        (!state['S'][0] && !state['S'][1] && (x & 0x80000000) == (y & 0x80000000))) {
       state['S'][4] = 1; // Presumed negative
     } else {
       state['S'][4] = 0; // Presumed positive

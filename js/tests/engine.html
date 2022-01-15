@@ -2957,19 +2957,19 @@ QUnit.test( "stat SS 27: S47,ED*FP", function(assert) {
 
   var state = {'XG':  neg(0x44000000), 'Y': 0x44000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // positive * positive
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
-  assert.equal(state['S'][4], 0, '+,+ mult');
+  assert.equal(state['S'][4], 1, '+,+ mult');
 
   var state = {'XG':  neg(0xc4000000), 'Y': 0x44000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // negative * positive
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
-  assert.equal(state['S'][4], 1, '-,+ mult');
+  assert.equal(state['S'][4], 0, '-,+ mult');
 
   var state = {'XG':  neg(0x44000000), 'Y': 0xc4000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // positive * negative
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
-  assert.equal(state['S'][4], 1, '+,- mult');
+  assert.equal(state['S'][4], 0, '+,- mult');
 
   var state = {'XG':  neg(0xc4000000), 'Y': 0xc4000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // negative * negative
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
-  assert.equal(state['S'][4], 0, '-,- mult');
+  assert.equal(state['S'][4], 1, '-,- mult');
 
     // Stat 5 turned on if left adder input bit 0, right adder input bit 0 and Stat 1 contain an even number of ones. (True add required).
 
