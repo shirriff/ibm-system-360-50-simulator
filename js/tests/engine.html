@@ -3124,7 +3124,7 @@ QUnit.test( "stat30: KEY→F", function(assert) {
 
 QUnit.test( "stat31: F→KEY", function(assert) {
   var state = {'F': 4, 'SAR': 0x12345670, 'KEYS': {}};
-  stat(state, {'SS': 31});
+  adderLatch(state, {'TR': 0, 'SS': 31}); // Implemted in adderLatch() for timing reasons.
   assert.equal(state['KEYS'][0x12345670 & 0x00fff100], 4);
 });
 
@@ -3155,7 +3155,7 @@ QUnit.test( "stat30: KEY→F", function(assert) {
 
 QUnit.test( "stat31: F→KEY", function(assert) {
   var state = {'F': 4, 'SAR': 0x12345670, 'KEYS': {}};
-  stat(state, {'SS': 31});
+  adderLatch(state, {'TR': 0, 'SS': 31}); // Implemted in adderLatch() for timing reasons.
   assert.equal(state['KEYS'][0x12345670 & 0x00fff100], 4);
 });
 

@@ -2396,7 +2396,7 @@ QUnit.module("Instructions", function(hooks) {
     assert.equal(state['IAR'], 0x123450);
   });
 
-  QUnit.test( "Diagnose", function(assert) { // F
+  QUnit.skip( "Diagnose", function(assert) { // F
     reg(2, 3); // Counter
     execute([0x83123456], assert, 'diagnose');
   });
@@ -3211,7 +3211,7 @@ QUnit.module("Instructions", function(hooks) {
     reg(1, 0x11223344); // Key
     reg(2, 0x00005670); // Address: last 4 bits must be 0
     execute([0x08120000], assert, 'SSK 1,2');
-    assert.equal(state['KEYS'][0x12345678 & 0x00fff100], 4);
+    assert.equal(state['KEYS'][0x00005670 & 0x00fff100], 4);
   });
 
   QUnit.test( "Set Storage Key SSK - unaligned", function(assert) {

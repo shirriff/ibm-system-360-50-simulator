@@ -7,6 +7,7 @@ function cycle(state: {[key: number]: any}, entry: {[key: string]: number}) : st
   try {
     lsHilitePos = -1; // Reset the LS highlight
     state['ROS'] = entry['ROS'] // The raw ROS bits
+    // Need to sort out timing. Latch pulse (375ms): set adder output into T.
     adderLX(state, entry);
     adderRY(state, entry);
     adderDG(state, entry);
@@ -30,6 +31,7 @@ function cycle(state: {[key: number]: any}, entry: {[key: string]: number}) : st
     iar2(state, entry); // iar operations after mover
     counters(state, entry); // Need counters after mover, see QK801:0992
     localStorageLSAR(state, entry); // Need to do mover before reading localStorage 0126
+    // Register set pulse time (0): store data into registers
     var msg2 = adderLatch(state, entry);
     localStore(state, entry); // Need to do mover before reading localStorage 0126. Need to do this after R is written. See QB730:0220
     if (msg) {
@@ -928,6 +930,13 @@ function adderLatch(state, entry) {
       break;
   } // TR
 
+  if (entry['SS'] == 31) { // F→KEY
+    // Implemented here so the address will have been set up.
+    // Gate F reg to tag storage data lines. Initiate write storage key operation. (Note: this order is given on W2 cycle of
+    // storage and causes holdoff until next W2 cycle.)
+    state['KEYS'][state['SAR'] & 0x00fff100] = state['F'];
+  }
+
   // Store any pending entries
   var pending = state['pending'];
   if (pending) {
@@ -1415,7 +1424,7 @@ function stat(state, entry) {
           alert('Undefined SCANTRL ' + entry['CE'] + " " + labels['SS'][entry['SS']]);
           break;
         case 3: // Turn off ignore I/O error trigger.
-          alert('Unimplemented SCANTRL ' + entry['CE'] + " " + labels['SS'][entry['SS']]);
+          // Ignore for now; used for PSW setting.
           break
         case 4: // Turn on ignore I/O error trigger.
           alert('Unimplemented SCANTRL ' + entry['CE'] + " " + labels['SS'][entry['SS']]);
@@ -1652,9 +1661,7 @@ function stat(state, entry) {
       state['F'] = state['KEYS'][state['SAR'] & 0x00fff100] | 0; // 0 if undefined
       break;
     case 31: // F→KEY // QT220/02BF  QA800: write storage key
-      // Gate F reg to tag storage data lines. Initiate write storage key operation. (Note: this order is given on W2 cycle of
-      // storage and causes holdoff until next W2 cycle.)
-      state['KEYS'][state['SAR'] & 0x00fff100] = state['F'];
+      // Handled in adderLatch
       break;
     case 32: // 1→LSGNS
       state['LSGNS'] = 1;
