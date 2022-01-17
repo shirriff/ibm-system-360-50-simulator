@@ -1060,7 +1060,7 @@ QUnit.test( "mover", function(assert) {
   storeMover(state, entry);
   assert.equal(state['W'], 0x58);
   assert.equal(state['WL'], 0x5);
-  assert.equal(state['J'], 0x5);
+  assert.equal(state['pending']['J'], 0x5);
   assert.equal(state['WR'], 0x8);
 });
 
@@ -1246,7 +1246,7 @@ QUnit.test("storeMover WM 5 W→PSW0", function(assert) {
 QUnit.test("storeMover WM 6 WL→J", function(assert) {
   var state = {'W': 0x89, 'WL': 8, 'WR': 9};
   storeMover(state, {'WM': 6});
-  assert.equal(state['J'], 8);
+  assert.equal(state['pending']['J'], 8);
 });
 
 QUnit.skip("storeMover WM 7 W→CHCTL", function(assert) {

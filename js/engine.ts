@@ -1084,6 +1084,7 @@ function moverWR(state, entry) {
 }
 
 function storeMover(state, entry) {
+  state['pending'] = state['pending'] || {}; // Initialize if necessary
   // Mover output destination W →
   switch (entry['WM']) {
     case 0: // no action
@@ -1107,7 +1108,7 @@ function storeMover(state, entry) {
       state['SYSMASK'] = state['W'];
       break;
     case 6: // WL→J
-      state['J'] = state['WL'];
+      state['pending']['J'] = state['WL'];
       break;
     case 7: // W→CHCTL           // Channel control: 0001 is start I/O, 0100 is test I/O. Updates R, M, DA, L (see QK800). M0 = unit status. L1 is channel end status
       // 0010 is halt: QK70093a
