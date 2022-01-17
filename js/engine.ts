@@ -197,6 +197,7 @@ function adderDG(state, entry) {
 function adderT(state, entry) {
   var t;
   state['pending'] = state['pending'] || []; // Initialize if not present
+  state['pending']['S'] = state['pending']['S'] || []; // Initialize if not present
 
   var xg = state['XG'];
   if (entry['SS'] == 42) {
@@ -285,7 +286,7 @@ function adderT(state, entry) {
       // previous value of stat 1 as carry into position 31. Test
       // carry out of each digit position. If carry, set corresponding
       // digit position in L reg to 0000. If no carry, set digit in L reg to 0110.
-      state['S'][1] = c0;
+      state['pending']['S'][1] = c0;
       // Correction digit is 6 unless there was a carry out of the position.
       // The idea is to add numbers excess-6. A carry out indicates the decimal sum was 10 (i.e. 16 with excess-6), so we
       // want to keep that carry for BCD. Otherwise, subtract 6 to get back to the right value.
@@ -306,7 +307,7 @@ function adderT(state, entry) {
       // Decimal double. Set stat 1 to carry out of position 0. Insert previous value of stat 1
       // as carry into position 1. Test each digit of sum. If 5 or greater, set corresponding digit
       // position in L reg to 0110. If less than 5, set digit in L reg to 0000.
-      state['S'][1] = c0;
+      state['pending']['S'][1] = c0;
       var corr = 0;
       for (let i = 0; i < 8; i++) {
         const digit = (t >> (i * 4)) & 0xf;
@@ -347,15 +348,15 @@ function adderT(state, entry) {
       var c16 = (carries & 0x00010000) ? 1 : 0;
       var c24 = (carries & 0x00000100) ? 1 : 0;
       if (state['BS'][0]) {
-        state['S'][1] = c0;
+        state['pending']['S'][1] = c0;
       } else if (state['BS'][1]) {
-        state['S'][1] = c8;
+        state['pending']['S'][1] = c8;
       } else if (state['BS'][2]) {
-        state['S'][1] = c16;
+        state['pending']['S'][1] = c16;
       } else if (state['BS'][3]) {
-        state['S'][1] = c24;
+        state['pending']['S'][1] = c24;
       } else {
-        state['S'][1] = 0;
+        state['pending']['S'][1] = 0;
       }
       state['pending']['L'] =
         ((carries & 0x00000010) ? 0 : 0x00000006) |
@@ -395,17 +396,17 @@ function adderT(state, entry) {
     if (((state['S'][0] || state['S'][1]) && (y & 0x80000000) && !c1) ||
         ((state['S'][0] || state['S'][1]) && c1 && oneOf(x & 0x80000000, state['S'][1])) ||
         (!state['S'][0] && !state['S'][1] && (x & 0x80000000) == (y & 0x80000000))) {
-      state['S'][4] = 1; // Presumed negative
+      state['pending']['S'][4] = 1; // Presumed negative
     } else {
-      state['S'][4] = 0; // Presumed positive
+      state['pending']['S'][4] = 0; // Presumed positive
     }
 
     // Stat 5 turned on if left adder input bit 0, right adder input bit 0 and Stat 1 contain an even number of ones. (True add required).
     if ( (x >>> 31) ^ (y >>> 31) ^ state['S'][1] ) {
       // Odd number of ones
-      state['S'][5] = 0;
+      state['pending']['S'][5] = 0;
     } else {
-      state['S'][5] = 1;
+      state['pending']['S'][5] = 1;
     }
 
     /*
@@ -432,10 +433,10 @@ function adderT(state, entry) {
     state['ED'] = ed;
     log('ED = ' + state['ED']);
     const edActual = ((x & 0x7f000000) >>> 24) - ((y & 0x7f000000) >>> 24); // The actual difference between the two exponents.
-    state['S'][6] = (Math.abs(edActual) < 16) ? 1 : 0;
+    state['pending']['S'][6] = (Math.abs(edActual) < 16) ? 1 : 0;
 
     // Stat 7 turned on if value of exponent difference reg is zero.
-    state['S'][7] = (ed == 0) ? 1 : 0;
+    state['pending']['S'][7] = (ed == 0) ? 1 : 0;
   }
 }
 
@@ -915,12 +916,17 @@ function adderLatch(state, entry) {
     state['KEYS'][state['SAR'] & 0x00fff100] = state['F'];
   }
 
-  // Store any pending entries
+  // Store any pending entries. This is sort of a hack because new registers values are generated earlier in
+  // the cycle than registers are updated. So the changes are stored in 'pending' until the cycle is done.
   var pending = state['pending'];
   if (pending) {
     var keys = Object.keys(pending);
     for (var i = 0; i < keys.length; i++) {
-      state[keys[i]] = state['pending'][keys[i]];
+      if (keys[i] == 'S') { // Special case for 'S' list
+        pending['S'].forEach((elt, idx) => state['S'][idx] = elt);
+      } else {
+        state[keys[i]] = state['pending'][keys[i]];
+      }
     }
     delete state['pending'];
   }
