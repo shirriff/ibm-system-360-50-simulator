@@ -3715,9 +3715,9 @@ QUnit.test( "al23 1→FPSR4→F", function(assert) {
 QUnit.test( "al24 SR4→H", function(assert) {
   var state = {'T0': 0x12345678, 'R': 0x98765432, 'H': 0x24681357};
   adderAL(state, {'AL': 24});
-  assert.equal(state['T'], 0x01234567);
+  assert.equal(state['T'], 0x11234567);
   assert.equal(state['H'], 0x84681357);
-  assert.equal(state['R'], 0x18765432);
+  assert.equal(state['R'], 0x98765432);
 });
 
 QUnit.test( "al25 F→SR4", function(assert) {

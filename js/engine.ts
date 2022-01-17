@@ -634,9 +634,8 @@ function adderAL(state, entry) {
       // Gate latch bits 4-7 to R reg bits 0-3. (This order can be used only with a TR field value of TR1,
       // and latch bits 4-7 must have an even number of ones.)
       var s = sr4(0, state['T']);
-      state['T'] = s[0];
+      state['T'] = ((state['T'] & 0xf0000000) | s[0]) >>> 0; // Essentially the top 4 bits stay in place, duplicated by the shift.
       state['H'] = ((s[1] << 28) | (state['H'] & 0x0fffffff)) >>> 0;
-      state['R'] = (((state['T'] << 4) & 0xf0000000) | (state['R'] & 0x0fffffff)) >>> 0;
       break;
     case 25: // F→SR4
       // Gate adder output to latch, shifted right 4, entering F. Spill bits are discarded. F is not altered.
