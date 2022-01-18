@@ -761,7 +761,9 @@ function adderLatch(state, entry) {
     case 3: // M
       state['M'] = t;
       if (entry['WM'] == 1 || entry['WM'] == 12) {
-        // Inconveniently, W→MMB can merge together T and W on the bus, so this hack here.  QS010:C22: W→MMB must override 0→M
+        // Inconveniently, W→MMB can merge together T and W on the bus, so this hack here.
+        // In this case, MB is forced to byte 3. To quote the documentation:
+        // "This is a hardware fore which overrrides the MB counter when T is also gated to M reg."
         storeMover(state, entry);
       }
       break;
@@ -1013,17 +1015,17 @@ function moverOp(state, entry, op) {
         // Emit is 1100 (BCD +), 1101 (BCD -), 1111 (zone) for EBCDIC.
         // ASCII mods: 1010 (+), 1011 (-), 0101 (zone).
         // It's unclear why these values are used.
-        // See PrincOps page 36
+        // The formula below is from the microcode documentation.
         if (state['AMWP'] & 8) {
-          if (emit == 0xc) {
-            emit = 0xa;
-          } else if (emit == 0xd) {
-            emit = 0xb;
-          } else if (emit == 0xf) {
-            emit = 0x5;
-          } else {
-            alert('Unexpected emit for W→MMB(E?): ' + emit);
-          }
+          const ein0: number = (emit >> 3) & 1;
+          const ein1: number = (emit >> 2) & 1;
+          const ein2: number = (emit >> 1) & 1;
+          const ein3: number = (emit >> 0) & 1;
+          const e0: number = (ein0 == 0 || ein2 == 0) ? 1 : 0;
+          const e1: number = (ein2 == 1 || ein1 == 0) ? 1 : 0;
+          const e2: number = (ein2 == 1) ? 0 : 1;
+          const e3: number = ein3;
+          emit = (e0 << 3) | (e1 << 2) | (e2 << 1) | (e3 << 0);
         }
       }
       w = (emit << 4) | emit;
@@ -1089,6 +1091,13 @@ function storeMover(state, entry) {
     case 0: // no action
       break;
     case 1: // W→MMB     // W to M indexed by MB
+      // If T is gated to M, W is stored to M byte 3, overriding MB.
+      if (entry['TR'] == 3 || entry['TR'] == 28) {
+          state['M'] = ((state['M'] & ~bytemask[3]) | (state['W'] << byteshift[3])) >>> 0;
+      } else {
+          state['M'] = ((state['M'] & ~bytemask[state['MB']]) | (state['W'] << byteshift[state['MB']])) >>> 0;
+      }
+      break;
     case 12: // W→MMB(E?) // d29
       state['M'] = ((state['M'] & ~bytemask[state['MB']]) | (state['W'] << byteshift[state['MB']])) >>> 0;
       break;

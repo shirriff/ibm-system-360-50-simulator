@@ -1218,6 +1218,13 @@ QUnit.test("storeMover WM 1 W→MMB", function(assert) {
   assert.equal(state['M'], 0x11228944);
 });
 
+// If T is gated to M, then MB is forced to 3, inconveniently.
+QUnit.test("storeMover WM 1 W→MMB exception", function(assert) {
+  var state = {'W': 0x89, 'WL': 0x8, 'WR': 0x9, 'MB': 2, 'M': 0x11223344};
+  storeMover(state, {'WM': 1, 'TR': 3});
+  assert.equal(state['M'], 0x11223389);
+});
+
 QUnit.test("storeMover WM 2 W67→MB", function(assert) {
   var state = {'W': 0x89, 'WL': 8, 'WR': 9};
   storeMover(state, {'WM': 2});
@@ -1282,7 +1289,17 @@ QUnit.test("storeMover WM 11 W→G", function(assert) {
   assert.equal(state['pending']['G2NEG'], 0, 'reset G2NEG');
 });
 
-QUnit.skip("storeMover WM 12 W→MMB(E?)", function(assert) {
+QUnit.test("storeMover WM 12 W→MMB(E?)", function(assert) {
+  var state = {'W': 0x89, 'WL': 0x8, 'WR': 0x9, 'MB': 2, 'M': 0x11223344};
+  storeMover(state, {'WM': 12});
+  assert.equal(state['M'], 0x11228944);
+
+  // Note: these mover actions are implemented in moverOp
+  var state = {'AMWP': 8};
+  (state, {'WM': 12});
+  assert.equal(moverOp(state, {'WM': 12, 'CE': 0xc}, 0), 0xaa, 'ASCII emit update');
+  assert.equal(moverOp(state, {'WM': 12, 'CE': 0xd}, 0), 0xbb, 'ASCII emit update');
+  assert.equal(moverOp(state, {'WM': 12, 'CE': 0xf}, 0), 0x55, 'ASCII emit update');
 });
 
 QUnit.test("storeMover WM 13 WL→MD", function(assert) {
