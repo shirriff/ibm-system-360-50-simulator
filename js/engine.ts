@@ -138,12 +138,12 @@ function adderDG(state, entry) {
   var carry = 0;
 
   function g1minus1() {
-    state['G1NEG'] = (state['G1'] == 0) ? 1 : 0;
+    state['pending']['G1NEG'] = (state['G1'] == 0) ? 1 : 0;
     state['pending']['G1'] = (state['G1'] - 1) & 0xf;
   }
 
   function g2minus1() {
-    state['G2NEG'] = (state['G2'] == 0) ? 1 : 0;
+    state['pending']['G2NEG'] = (state['G2'] == 0) ? 1 : 0;
     state['pending']['G2'] = (state['G2'] - 1) & 0xf;
   }
 
@@ -1121,18 +1121,18 @@ function storeMover(state, entry) {
       state['SAR'] = 0x1000000 | (state['W'] << 4) | ((entry['CE'] & 3) << 2);
       break;
     case 9: // WL→G1
-      state['G1'] = state['WL'];
-      state['G1NEG'] = 0;
+      state['pending']['G1'] = state['WL'];
+      state['pending']['G1NEG'] = 0;
       break;
     case 10: // WR→G2
-      state['G2'] = state['WR'];
-      state['G2NEG'] = 0;
+      state['pending']['G2'] = state['WR'];
+      state['pending']['G2NEG'] = 0;
       break;
     case 11: // W→G
-      state['G1'] = state['WL'];
-      state['G2'] = state['WR'];
-      state['G1NEG'] = 0;
-      state['G2NEG'] = 0;
+      state['pending']['G1'] = state['WL'];
+      state['pending']['G2'] = state['WR'];
+      state['pending']['G1NEG'] = 0;
+      state['pending']['G2NEG'] = 0;
       break;
     case 13: // WL→MD
       state['MD'] = state['WL'];
