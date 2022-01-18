@@ -3009,16 +3009,17 @@ QUnit.module("Instructions", function(hooks) {
 
   QUnit.test("Edit ED", function(assert) {
     // Princ Ops page 149
-    state['MS'][0x1200] = 0x0257426c;
-    state['MS'][0x1000] = 0x4020206b;
-    state['MS'][0x1004] = 0x2020214b;
-    state['MS'][0x1008] = 0x202040c3;
-    state['MS'][0x100c] = 0xd9ffffff;
+    state['MS'][0x1200] = 0x0257426c; // Number: 257426+
+    state['MS'][0x1000] = 0x4020206b; // pattern bdd,
+    state['MS'][0x1004] = 0x2020214b; // dds.
+    state['MS'][0x1008] = 0x202040c3; // ddbC
+    state['MS'][0x100c] = 0xd9ffffff; // R
+    reg(12, 0x001000);
     execute([0xde0cc000, 0xc200aaaa], assert, 'ED 0(13,12),200(12)');
-    assert.equal(state['MS'][0x1000], 0x4040f26b);
-    assert.equal(state['MS'][0x1004], 0xf5f7f44b);
-    assert.equal(state['MS'][0x1008], 0xf2f64040);
-    assert.equal(state['MS'][0x1008], 0x40ffffff);
+    assert.equal(state['MS'][0x1000], 0x4040f26b); // bb2,
+    assert.equal(state['MS'][0x1004], 0xf5f7f44b); // 574.
+    assert.equal(state['MS'][0x1008], 0xf2f64040); // 26bb
+    assert.equal(state['MS'][0x100c], 0x40ffffff); // b
     assert.equal(state['CR'], 2); // Result greater than zero
   });
 
@@ -3029,28 +3030,30 @@ QUnit.module("Instructions", function(hooks) {
     state['MS'][0x1004] = 0x2020214b;
     state['MS'][0x1008] = 0x202040c3;
     state['MS'][0x100c] = 0xd9ffffff;
+    reg(12, 0x001000);
     execute([0xde0cc000, 0xc200aaaa], assert, 'ED 0(13,12),200(12)');
     assert.equal(state['MS'][0x1000], 0x40404040);
     assert.equal(state['MS'][0x1004], 0x4040404b);
     assert.equal(state['MS'][0x1008], 0xf2f640c3);
-    assert.equal(state['MS'][0x1008], 0xd9ffffff);
+    assert.equal(state['MS'][0x100c], 0xd9ffffff);
     assert.equal(state['CR'], 1); // Result less than zero
   });
 
   QUnit.test("Edit and Mark EDMK", function(assert) {
     reg(1, 0xaabbccdd);
-    state['MS'][0x1200] = 0x0000026d;
-    state['MS'][0x1000] = 0x4020206b;
-    state['MS'][0x1004] = 0x2020214b;
-    state['MS'][0x1008] = 0x202040c3;
+    state['MS'][0x1200] = 0x0257426d; // Number: 257426-
+    state['MS'][0x1000] = 0x4020206b; // bdd,
+    state['MS'][0x1004] = 0x2020214b; // dds.
+    state['MS'][0x1008] = 0x202040c3; // ddbC
     state['MS'][0x100c] = 0xd9ffffff;
-    execute([0xde0cc000, 0xc200aaaa], assert, 'ED 0(13,12),200(12)');
-    assert.equal(state['MS'][0x1000], 0x40404040);
-    assert.equal(state['MS'][0x1004], 0x4040404b);
-    assert.equal(state['MS'][0x1008], 0xf2f640c3);
-    assert.equal(state['MS'][0x1008], 0xd9ffffff);
+    reg(12, 0x001000);
+    execute([0xdf0cc000, 0xc200aaaa], assert, 'EDMK 0(13,12),200(12)');
+    assert.equal(state['MS'][0x1000], 0x4040f26b); // bb2,
+    assert.equal(state['MS'][0x1004], 0xf5f7f44b); // 574.
+    assert.equal(state['MS'][0x1008], 0xf2f640c3); // 26 C
+    assert.equal(state['MS'][0x100c], 0xd9ffffff); // R
     assert.equal(state['CR'], 1); // Result less than zero
-    assert.equal(reg(1), 0xaa001000); // Need to adjust this address
+    assert.equal(reg(1), 0xaa001002, 'first signficant digit');
   });
 
   QUnit.test("Move with Offset MVO", function(assert) {

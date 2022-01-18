@@ -986,17 +986,22 @@ function moverV(state, entry) {
       v = 0;
       break;
     case 1: // MLB
-      v = (state['M'] & bytemask[state['LB']]) >> byteshift[state['LB']];
+      v = ((state['M'] & bytemask[state['LB']]) >> byteshift[state['LB']]) & 0xff;
       break;
     case 2: // MMB
-      v = (state['M'] & bytemask[state['MB']]) >> byteshift[state['MB']];
+      v = ((state['M'] & bytemask[state['MB']]) >> byteshift[state['MB']]) & 0xff;
       break;
     case 3:
     default:
       alert('Unexpected MV ' + entry['MV'] + " " + labels['MV'][entry['MV']]);
       break;
   }
-  state['V'] = v & 0xff;
+
+  state['V'] = v;
+  // Set the edit stats based on V value. This is tested with EDITPAT.
+  state['pending'] = state['pending'] || {}; // Initialize if necessary
+  state['pending']['ES1'] = (v == 0x20 || v == 0x21) ? 0 : 1;
+  state['pending']['ES2'] = (v == 0x20 || v == 0x22) ? 0 : 1;
 }
 
 // Apply mover operation to both halves to generate an 8-bit value.
@@ -1999,10 +2004,10 @@ function roarAB(state, entry) {
       break;
     case 35: // EDITPAT
       // Set A bit to value of edit stat 1. Set B bit to value of edit stat 2.
-      if (state['ES'][1]) {
+      if (state['ES1']) {
         roar |= 2;
       }
-      if (state['ES'][2]) {
+      if (state['ES2']) {
         roar |= 1;
       }
       break;

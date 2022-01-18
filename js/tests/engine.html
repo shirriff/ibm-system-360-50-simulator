@@ -1886,21 +1886,41 @@ QUnit.test("ab 34 TZ*BS", function(assert) {
 });
 
 QUnit.test( "ab 35 EDITPAT", function(assert) {
-  var state = {'ROAR': 0x49c, 'ES': [0, 0, 0]};
-  roarAB(state, {'AB': 35});
-  assert.equal(state['ROAR'], 0x49c | 0);
+  var state = {'M': 0x20, 'LB': 3}; // 0x20 to V
+  moverV(state, {'MV': 1});
+  assert.equal(state['pending']['ES1'], 0, '0x20 makes edit stats 00');
+  assert.equal(state['pending']['ES2'], 0, '0x20 makes edit stats 00');
 
-  var state = {'ROAR': 0x49c, 'ES': [0, 0, 1]};
-  roarAB(state, {'AB': 35});
-  assert.equal(state['ROAR'], 0x49c | 1);
+  var state = {'M': 0x21, 'LB': 3}; // 0x21 to V
+  moverV(state, {'MV': 1});
+  assert.equal(state['pending']['ES1'], 0, '0x21 makes edit stats 01');
+  assert.equal(state['pending']['ES2'], 1, '0x21 makes edit stats 01');
 
-  var state = {'ROAR': 0x49c, 'ES': [0, 1, 0]};
-  roarAB(state, {'AB': 35});
-  assert.equal(state['ROAR'], 0x49c | 2);
+  var state = {'M': 0x22, 'LB': 3}; // 0x22 to V
+  moverV(state, {'MV': 1});
+  assert.equal(state['pending']['ES1'], 1, '0x22 makes edit stats 10');
+  assert.equal(state['pending']['ES2'], 0, '0x22 makes edit stats 10');
 
-  var state = {'ROAR': 0x49c, 'ES': [0, 1, 1]};
+  var state = {'M': 0x23, 'LB': 3}; // 0x23 to V
+  moverV(state, {'MV': 1});
+  assert.equal(state['pending']['ES1'], 1, '0x23 makes edit stats 11');
+  assert.equal(state['pending']['ES2'], 1, '0x23 makes edit stats 11');
+
+  var state = {'ROAR': 0x49c, 'ES1': 0, 'ES2': 0};
   roarAB(state, {'AB': 35});
-  assert.equal(state['ROAR'], 0x49c | 3);
+  assert.equal(state['ROAR'], 0x49c | 0, 'Edit stats 00');
+
+  var state = {'ROAR': 0x49c, 'ES1': 0, 'ES2': 1};
+  roarAB(state, {'AB': 35});
+  assert.equal(state['ROAR'], 0x49c | 1, 'Edit stats 01');
+
+  var state = {'ROAR': 0x49c, 'ES1': 1, 'ES2': 0};
+  roarAB(state, {'AB': 35});
+  assert.equal(state['ROAR'], 0x49c | 2, 'Edit stats 10');
+
+  var state = {'ROAR': 0x49c, 'ES1': 1, 'ES2': 1};
+  roarAB(state, {'AB': 35});
+  assert.equal(state['ROAR'], 0x49c | 3, 'Edit stats 11');
 });
 
 QUnit.test( "ab 36 PROB", function(assert) {
