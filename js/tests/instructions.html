@@ -1974,7 +1974,7 @@ QUnit.module("Instructions", function(hooks) {
     state['AMWP'] = 8; // ASCII
     execute([0x4e10d008], assert, 'CVD 1,8(0,13)');
     assert.equal(state['MS'][0x7608], 0x00000000);
-    assert.equal(state['MS'][0x760c], 0x0003855d);
+    assert.equal(state['MS'][0x760c], 0x0003855a); // a = + for ASCII
   });
 
   QUnit.test( "Store ST", function(assert) {
@@ -2962,28 +2962,49 @@ QUnit.module("Instructions", function(hooks) {
     reg(12, 0x00002100);
     reg(15, 0x00001000);
     execute([0xdc13c000, 0xf000aaaa], assert, 'TR 0(20,12),0(15)');
-    assert,equal(state['MS'][0x2100], 0x1537597b);
-    assert,equal(state['MS'][0x2104], 0xaed0f204);
-    assert,equal(state['MS'][0x2108], 0x14253647);
-    assert,equal(state['MS'][0x210c], 0x58697a8b);
-    assert,equal(state['MS'][0x2110], 0x9cadbecf);
+    assert.equal(state['MS'][0x2100], 0x1537597b);
+    assert.equal(state['MS'][0x2104], 0xaed0f204);
+    assert.equal(state['MS'][0x2108], 0x14253647);
+    assert.equal(state['MS'][0x210c], 0x58697a8b);
+    assert.equal(state['MS'][0x2110], 0x9cadbecf);
   });
 
   QUnit.test("Translate and Test TRT", function(assert) {
-    // Based on Princ Ops p147
     for (var i = 0; i < 256; i += 4) {
-      state['MS'][0x1000 + i] = 0;
+      state['MS'][0x2000 + i] = 0;
     }
-    state['MS'][0x2020] = 0x10203040;
+    state['MS'][0x2020] = 0x10203040; // Nonzero entries in table
 
-    state['MS'][0x3000] = 0x12345621; // 21 will match table entry 20
+    state['MS'][0x3000] = 0x12345621; // Input: 21 will yield table entry 20
     state['MS'][0x3004] = 0x11223344;
     state['MS'][0x3008] = 0x55667788;
     state['MS'][0x300c] = 0x99aabbcc;
+    reg(1, 0x003000); // Points to input
+    reg(15, 0x002000); // Points to table
+    reg(2, 0xffffffff);
     execute([0xdd0f1000, 0xf000aaaa], assert, 'TRT 0(16,1),0(15)');
-    reg(1, 0x00003003); // Match at 3003
-    reg(2, 0x00000020); // Function value from table
+    assert.equal(reg(1), 0x003003);
+    assert.equal(reg(2), 0xffffff20); // New value 20 from table
     assert.equal(state['CR'], 1); // not completed
+  });
+
+  QUnit.test("Translate and Test TRT: complete", function(assert) {
+    for (var i = 0; i < 256; i += 4) {
+      state['MS'][0x2000 + i] = 0;
+    }
+    state['MS'][0x2020] = 0x10203040; // Nonzero entries in table
+
+    state['MS'][0x3000] = 0x12345678; // Input: no matches with table
+    state['MS'][0x3004] = 0x11323344;
+    state['MS'][0x3008] = 0x55667788;
+    state['MS'][0x300c] = 0x99aabbcc;
+    reg(1, 0x003000); // Points to input
+    reg(15, 0x002000); // Points to table
+    reg(2, 0xffffffff);
+    execute([0xdd0f1000, 0xf000aaaa], assert, 'TRT 0(16,1),0(15)');
+    assert.equal(reg(1), 0x003000); // No change
+    assert.equal(reg(2), 0xffffffff); // No change
+    assert.equal(state['CR'], 0); // completed
   });
 
   QUnit.test("Edit ED", function(assert) {
@@ -2994,10 +3015,10 @@ QUnit.module("Instructions", function(hooks) {
     state['MS'][0x1008] = 0x202040c3;
     state['MS'][0x100c] = 0xd9ffffff;
     execute([0xde0cc000, 0xc200aaaa], assert, 'ED 0(13,12),200(12)');
-    assert,equal(state['MS'][0x1000], 0x4040f26b);
-    assert,equal(state['MS'][0x1004], 0xf5f7f44b);
-    assert,equal(state['MS'][0x1008], 0xf2f64040);
-    assert,equal(state['MS'][0x1008], 0x40ffffff);
+    assert.equal(state['MS'][0x1000], 0x4040f26b);
+    assert.equal(state['MS'][0x1004], 0xf5f7f44b);
+    assert.equal(state['MS'][0x1008], 0xf2f64040);
+    assert.equal(state['MS'][0x1008], 0x40ffffff);
     assert.equal(state['CR'], 2); // Result greater than zero
   });
 
@@ -3009,10 +3030,10 @@ QUnit.module("Instructions", function(hooks) {
     state['MS'][0x1008] = 0x202040c3;
     state['MS'][0x100c] = 0xd9ffffff;
     execute([0xde0cc000, 0xc200aaaa], assert, 'ED 0(13,12),200(12)');
-    assert,equal(state['MS'][0x1000], 0x40404040);
-    assert,equal(state['MS'][0x1004], 0x4040404b);
-    assert,equal(state['MS'][0x1008], 0xf2f640c3);
-    assert,equal(state['MS'][0x1008], 0xd9ffffff);
+    assert.equal(state['MS'][0x1000], 0x40404040);
+    assert.equal(state['MS'][0x1004], 0x4040404b);
+    assert.equal(state['MS'][0x1008], 0xf2f640c3);
+    assert.equal(state['MS'][0x1008], 0xd9ffffff);
     assert.equal(state['CR'], 1); // Result less than zero
   });
 
@@ -3024,10 +3045,10 @@ QUnit.module("Instructions", function(hooks) {
     state['MS'][0x1008] = 0x202040c3;
     state['MS'][0x100c] = 0xd9ffffff;
     execute([0xde0cc000, 0xc200aaaa], assert, 'ED 0(13,12),200(12)');
-    assert,equal(state['MS'][0x1000], 0x40404040);
-    assert,equal(state['MS'][0x1004], 0x4040404b);
-    assert,equal(state['MS'][0x1008], 0xf2f640c3);
-    assert,equal(state['MS'][0x1008], 0xd9ffffff);
+    assert.equal(state['MS'][0x1000], 0x40404040);
+    assert.equal(state['MS'][0x1004], 0x4040404b);
+    assert.equal(state['MS'][0x1008], 0xf2f640c3);
+    assert.equal(state['MS'][0x1008], 0xd9ffffff);
     assert.equal(state['CR'], 1); // Result less than zero
     assert.equal(reg(1), 0xaa001000); // Need to adjust this address
   });
