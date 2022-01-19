@@ -204,6 +204,7 @@ function waitAnimate(): void {
 function startAnimate(): void {
     if (waitLight) {
       resetStateCode(state); // Program done, so restart from beginning
+      $("#dispinstr").html(""); // Clear 'halted' message
     }
     $("#control").text('Stop');
     powerOff = false;
@@ -293,11 +294,13 @@ function step(): void {
       // Display an update instead of the memory itself.
       $("#divmsg").html(msg1 || msg2 || '');
     }
+    // Lots of entries to instruction decoding.
     if ([0x148, 0x149, 0x14a, 0x14c, 0x14e, 0x184, 0x185, 0x187, 0x188, 0x189, 0x19b].includes(state['ROAR'])) {
-        // Lots of entries to instruction decoding.
         var iar = state['IAR'];
-        $("#divinstr").html(disasm([getHW(state, iar), getHW(state, iar + 2), getHW(state, iar + 4)]));
-        $;
+        // Display the instruction
+        const hw = [getHW(state, iar), getHW(state, iar + 2), getHW(state, iar + 4)];
+        const instr = disasm(hw) + "<br/>" + getName(hw);
+        $("#divinstr").html(instr);
     }
     if (memactive) {
         mem();
