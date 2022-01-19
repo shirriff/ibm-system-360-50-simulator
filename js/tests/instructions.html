@@ -48,7 +48,7 @@ window.alert = function() {
 var state;
 
 // *** Number of cycles for randomized tests
-testcycles = 1;
+testcycles = 3;
 
 // Read or write register
 function reg(num, data) {
@@ -1244,7 +1244,7 @@ QUnit.module("Instructions", function(hooks) {
       floatToFpReg64(2, f2);
       execute([0x2a020000], assert, 'ADR 0,2');
       var fres = fpreg64ToFloat(0);
-      assert.equal(fres, f1 - f2);
+      assert.equal(fres, f1 + f2);
     }
   });
 
@@ -1281,7 +1281,7 @@ QUnit.module("Instructions", function(hooks) {
       floatToFpReg64(2, f2);
       execute([0x2c020000], assert, 'MDR 0,2');
       var fres = fpreg64ToFloat(0);
-      assert.equal(fres, f1 * f2);
+      assert.ok(close(fres, f1 * f2));
     }
   });
 
@@ -1294,7 +1294,7 @@ QUnit.module("Instructions", function(hooks) {
       floatToFpReg64(2, f2);
       execute([0x2d020000], assert, 'DDR 0,2');
       var fres = fpreg64ToFloat(0);
-      assert.equal(fres, f1 / f2);
+      assert.ok(close(fres, f1 / f2));
     }
   });
 
@@ -2165,13 +2165,13 @@ QUnit.module("Instructions", function(hooks) {
       const dd0 = rand() & 0x7fffffff; // 64-bit dividend (positive)
       const dd1 = rand() >>> 0;
       const divisor = rand() & 0x7fffffff; // 32-bit divisor (positive)
-      if (dd0 >= divisor) {
-        // Divisor must be > dividend
+      // Need BigInt to handle 64-bit integers in Javascript
+      const dividend = BigInt(dd0) * BigInt(2**32) + BigInt(dd1);
+      if (dividend / BigInt(divisor) > 0x7fffffff) {
+        // Result too big
         i -= 1;
         continue;
       }
-      const dividend = dd0 * 2**32 + dd1;
-      log('dividend ' + dividend + ', divisor ' + divisor);
       reg(2, dd0);
       reg(3, dd1);
       state['MS'][0x100] = divisor;
@@ -2179,8 +2179,8 @@ QUnit.module("Instructions", function(hooks) {
 
       const remainder = signed32(reg(2));
       const quotient = signed32(reg(3));
-      const result = quotient * divisor + remainder
-      assert.equal(dividend, quotient * divisor + remainder, "Divide " + dividend + " by " + divisor + ": got " + quotient + " and remainder " + remainder);
+      const result = BigInt(quotient) * BigInt(divisor) + BigInt(remainder)
+      assert.equal(dividend, result, "Divide " + dividend + " by " + divisor + ": got " + quotient + " and remainder " + remainder);
     }
   });
 
@@ -2277,15 +2277,16 @@ QUnit.module("Instructions", function(hooks) {
     for (var i = 0; i < testcycles; i++) {
       var f1 = randfloat(rand);
       var f2 = randfloat(rand);
-      floatToFpReg64(6, f1);
+      floatToFpReg64(0, f1);
       const [w0, w1] = floatToWords(f2)
       state['MS'][0x2000] = w0;
       state['MS'][0x2004] = w1;
-      execute([0x6b60d000], assert, 'SD 6,0(0, 13)');
-      execute([0x69000100], assert, 'CD 0,100(0,0)');
+      reg(1, 0x1e00);
+      reg(2, 0x100);
+      execute([0x69012100], assert, 'CD 0,100(1,2)');
       if (f1 < f2) {
         assert.equal(state['CR'], 1, f1 + "<" + f2);
-      } else if (f1 < f2) {
+      } else if (f1 > f2) {
         assert.equal(state['CR'], 2, f1 + ">" + f2);
       } else {
         assert.equal(state['CR'], 0, f1 + "==" + f2);
@@ -2302,7 +2303,9 @@ QUnit.module("Instructions", function(hooks) {
       const [w0, w1] = floatToWords(f2)
       state['MS'][0x2000] = w0;
       state['MS'][0x2004] = w1;
-      execute([0x6a60d000], assert, 'AD 6,0(0, 13)');
+      reg(1, 0x1e00);
+      reg(2, 0x100);
+      execute([0x6a612100], assert, 'AD 6,100(1,2)');
       var fres = fpreg32ToFloat(6);
       var wanted = f1 + f2;
       assert.ok(close(fres, wanted), '' + f1 + '+' + f2 + ': got ' + fres + ', wanted ' + wanted);
@@ -2318,6 +2321,7 @@ QUnit.module("Instructions", function(hooks) {
       const [w0, w1] = floatToWords(f2)
       state['MS'][0x2000] = w0;
       state['MS'][0x2004] = w1;
+      reg(13, 0x2000);
       execute([0x6b60d000], assert, 'SD 6,0(0, 13)');
       var fres = fpreg32ToFloat(6);
       var wanted = f1 - f2;
@@ -2334,6 +2338,7 @@ QUnit.module("Instructions", function(hooks) {
       const [w0, w1] = floatToWords(f2)
       state['MS'][0x2000] = w0;
       state['MS'][0x2004] = w1;
+      reg(13, 0x2000);
       execute([0x6c60d000], assert, 'MD 6,0(0, 13)');
       var fres = fpreg32ToFloat(6);
       var wanted = f1 * f2;
@@ -2350,6 +2355,7 @@ QUnit.module("Instructions", function(hooks) {
       const [w0, w1] = floatToWords(f2)
       state['MS'][0x2000] = w0;
       state['MS'][0x2004] = w1;
+      reg(13, 0x2000);
       execute([0x6d60d000], assert, 'DD 6,0(0, 13)');
       var fres = fpreg32ToFloat(6);
       var wanted = f1 / f2;
@@ -2366,6 +2372,7 @@ QUnit.module("Instructions", function(hooks) {
       const [w0, w1] = floatToWords(f2)
       state['MS'][0x2000] = w0;
       state['MS'][0x2004] = w1;
+      reg(13, 0x2000);
       execute([0x7e60d000], assert, 'AU 6,0(0, 13)');
       var fres = fpreg32ToFloat(6);
       var wanted = f1 + f2;
@@ -2382,6 +2389,7 @@ QUnit.module("Instructions", function(hooks) {
       const [w0, w1] = floatToWords(f2)
       state['MS'][0x2000] = w0;
       state['MS'][0x2004] = w1;
+      reg(13, 0x2000);
       execute([0x7f60d000], assert, 'SU 6,0(0, 13)');
       var fres = fpreg32ToFloat(6);
       var wanted = f1 - f2;
@@ -2393,7 +2401,6 @@ QUnit.module("Instructions", function(hooks) {
     fpreg32(0, 0x12345678);
     reg(1, 0x100);
     reg(2, 0x300);
-    state['MS'][0x404] = 0x11223344;
     execute([0x70012100], assert, 'STE 0,100(1,2)');
     assert.equal(state['MS'][0x500], 0x12345678);
   });
@@ -2435,13 +2442,13 @@ QUnit.module("Instructions", function(hooks) {
     for (var i = 0; i < testcycles; i++) {
       var f1 = randfloat(rand);
       var f2 = randfloat(rand);
-      floatToFpReg64(6, f1);
+      floatToFpReg32(0, f1);
       const [w0, w1] = floatToWords(f2)
       state['MS'][0x500] = w0;
       reg(1, 0x100);
       reg(2, 0x300);
       execute([0x7a012100], assert, 'AE 0,100(1,2)');
-      var fres = fpreg32ToFloat(6);
+      var fres = fpreg32ToFloat(0);
       var wanted = f1 + f2;
       assert.ok(close(fres, wanted), '' + f1 + '+' + f2 + ': got ' + fres + ', wanted ' + wanted);
     }
@@ -2452,13 +2459,13 @@ QUnit.module("Instructions", function(hooks) {
     for (var i = 0; i < testcycles; i++) {
       var f1 = randfloat(rand);
       var f2 = randfloat(rand);
-      floatToFpReg64(6, f1);
+      floatToFpReg32(0, f1);
       const [w0, w1] = floatToWords(f2)
       state['MS'][0x500] = w0;
       reg(1, 0x100);
       reg(2, 0x300);
       execute([0x7b012100], assert, 'SE 0,100(1,2)');
-      var fres = fpreg32ToFloat(6);
+      var fres = fpreg32ToFloat(0);
       var wanted = f1 - f2;
       assert.ok(close(fres, wanted), '' + f1 + '-' + f2 + ': got ' + fres + ', wanted ' + wanted);
     }
@@ -2469,13 +2476,13 @@ QUnit.module("Instructions", function(hooks) {
     for (var i = 0; i < testcycles; i++) {
       var f1 = randfloat(rand);
       var f2 = randfloat(rand);
-      floatToFpReg64(6, f1);
+      floatToFpReg32(0, f1);
       const [w0, w1] = floatToWords(f2)
       state['MS'][0x500] = w0;
       reg(1, 0x100);
       reg(2, 0x300);
       execute([0x7c012100], assert, 'ME 0,100(1,2)');
-      var fres = fpreg32ToFloat(6);
+      var fres = fpreg32ToFloat(0);
       var wanted = f1 * f2;
       assert.ok(close(fres, wanted), '' + f1 + '*' + f2 + ': got ' + fres + ', wanted ' + wanted);
     }
@@ -2486,13 +2493,13 @@ QUnit.module("Instructions", function(hooks) {
     for (var i = 0; i < testcycles; i++) {
       var f1 = randfloat(rand);
       var f2 = randfloat(rand);
-      floatToFpReg64(6, f1);
+      floatToFpReg32(0, f1);
       const [w0, w1] = floatToWords(f2)
       state['MS'][0x500] = w0;
       reg(1, 0x100);
       reg(2, 0x300);
       execute([0x7d012100], assert, 'DE 0,100(1,2)');
-      var fres = fpreg32ToFloat(6);
+      var fres = fpreg32ToFloat(0);
       var wanted = f1 / f2;
       assert.ok(close(fres, wanted), '' + f1 + '/' + f2 + ': got ' + fres + ', wanted ' + wanted);
     }
@@ -2503,11 +2510,10 @@ QUnit.module("Instructions", function(hooks) {
     for (var i = 0; i < testcycles; i++) {
       var f1 = randfloat(rand);
       var f2 = randfloat(rand);
-      floatToFpReg64(6, f1);
+      floatToFpReg32(6, f1);
       const [w0, w1] = floatToWords(f2)
       state['MS'][0x500] = w0;
-      reg(1, 0x100);
-      reg(2, 0x300);
+      reg(13, 0x500);
       execute([0x7e60d000], assert, 'AU 6,0(0, 13)');
       var fres = fpreg32ToFloat(6);
       var wanted = f1 + f2;
@@ -2520,11 +2526,10 @@ QUnit.module("Instructions", function(hooks) {
     for (var i = 0; i < testcycles; i++) {
       var f1 = randfloat(rand);
       var f2 = randfloat(rand);
-      floatToFpReg64(6, f1);
+      floatToFpReg32(6, f1);
       const [w0, w1] = floatToWords(f2)
       state['MS'][0x500] = w0;
-      reg(1, 0x100);
-      reg(2, 0x300);
+      reg(13, 0x500);
       execute([0x7f60d000], assert, 'SU 6,0(0, 13)');
       var fres = fpreg32ToFloat(6);
       var wanted = f1 - f2;
