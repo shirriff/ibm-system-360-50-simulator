@@ -5,7 +5,6 @@ ui-test/imgs/
 out/
 *.swo
 *.swp
-*.png
 *.pdf
 *.map
 js.old/*
