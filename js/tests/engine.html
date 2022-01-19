@@ -2911,141 +2911,141 @@ QUnit.test( "stat SS 27: S47,ED*FP", function(assert) {
   // Note that the XG values are subtracted; we complement them here because we're bypassing the TC complement step.
   neg = x => (~x & 0xffffffff) >>> 0; // 32-bit negation
 
-  var state = {'XG':  neg(0x45000000), 'Y': 0x45000000, 'CIN': 0, 'F': 0, S: [1, 0, 0, 0]}; // positive + positive, exponents equal
+  var state = {'XG':  neg(0x45000000), 'XIN': 0x45000000, 'Y': 0x45000000, 'CIN': 0, 'F': 0, S: [1, 0, 0, 0]}; // positive + positive, exponents equal
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['pending']['S'][4], 0, '+,+ add');
 
-  var state = {'XG':  neg(0xc5000000), 'Y': 0x45000000, 'CIN': 0, 'F': 0, S: [1, 0, 0, 0]}; // negative + positive, exponents equal
+  var state = {'XG':  neg(0xc5000000), 'XIN': 0xc5000000, 'Y': 0x45000000, 'CIN': 0, 'F': 0, S: [1, 0, 0, 0]}; // negative + positive, exponents equal
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['pending']['S'][4], 1, '-,+ add');
 
-  var state = {'XG':  neg(0x45000000), 'Y': 0xc5000000, 'CIN': 0, 'F': 0, S: [1, 0, 0, 0]}; // positive + negative, exponents equal
+  var state = {'XG':  neg(0x45000000), 'XIN': 0x45000000, 'Y': 0xc5000000, 'CIN': 0, 'F': 0, S: [1, 0, 0, 0]}; // positive + negative, exponents equal
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['pending']['S'][4], 0, '+,- add');
 
-  var state = {'XG':  neg(0xc5000000), 'Y': 0xc5000000, 'CIN': 0, 'F': 0, S: [1, 0, 0, 0]}; // negative + negative, exponents equal
+  var state = {'XG':  neg(0xc5000000), 'XIN': 0xc5000000, 'Y': 0xc5000000, 'CIN': 0, 'F': 0, S: [1, 0, 0, 0]}; // negative + negative, exponents equal
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['pending']['S'][4], 1, '-,- add');
 
-  var state = {'XG':  neg(0x46000000), 'Y': 0x45000000, 'CIN': 0, 'F': 0, S: [1, 0, 0, 0]}; // positive + positive, left exponent larger
+  var state = {'XG':  neg(0x46000000), 'XIN': 0x46000000, 'Y': 0x45000000, 'CIN': 0, 'F': 0, S: [1, 0, 0, 0]}; // positive + positive, left exponent larger
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['pending']['S'][4], 0, '+,+ add');
 
-  var state = {'XG':  neg(0xc6000000), 'Y': 0x45000000, 'CIN': 0, 'F': 0, S: [1, 0, 0, 0]}; // negative + positive, left exponent larger
+  var state = {'XG':  neg(0xc6000000), 'XIN': 0xc6000000, 'Y': 0x45000000, 'CIN': 0, 'F': 0, S: [1, 0, 0, 0]}; // negative + positive, left exponent larger
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['pending']['S'][4], 0, '-,+ add');
 
-  var state = {'XG':  neg(0x46000000), 'Y': 0xc5000000, 'CIN': 0, 'F': 0, S: [1, 0, 0, 0]}; // positive + negative, left exponent larger
+  var state = {'XG':  neg(0x46000000), 'XIN': 0x46000000, 'Y': 0xc5000000, 'CIN': 0, 'F': 0, S: [1, 0, 0, 0]}; // positive + negative, left exponent larger
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['pending']['S'][4], 1, '+,- add');
 
-  var state = {'XG':  neg(0xc6000000), 'Y': 0xc5000000, 'CIN': 0, 'F': 0, S: [1, 0, 0, 0]}; // negative + negative, left exponent larger
+  var state = {'XG':  neg(0xc6000000), 'XIN': 0xc6000000, 'Y': 0xc5000000, 'CIN': 0, 'F': 0, S: [1, 0, 0, 0]}; // negative + negative, left exponent larger
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['pending']['S'][4], 1, '-,- add');
 
-  var state = {'XG':  neg(0x44000000), 'Y': 0x45000000, 'CIN': 0, 'F': 0, S: [1, 0, 0, 0]}; // positive + positive, right exponent larger
+  var state = {'XG':  neg(0x44000000), 'XIN': 0x44000000, 'Y': 0x45000000, 'CIN': 0, 'F': 0, S: [1, 0, 0, 0]}; // positive + positive, right exponent larger
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['pending']['S'][4], 0, '+,+ add');
 
-  var state = {'XG':  neg(0xc4000000), 'Y': 0x45000000, 'CIN': 0, 'F': 0, S: [1, 0, 0, 0]}; // negative + positive, right exponent larger
+  var state = {'XG':  neg(0xc4000000), 'XIN': 0xc4000000, 'Y': 0x45000000, 'CIN': 0, 'F': 0, S: [1, 0, 0, 0]}; // negative + positive, right exponent larger
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['pending']['S'][4], 1, '-,+ add');
 
-  var state = {'XG':  neg(0x44000000), 'Y': 0xc5000000, 'CIN': 0, 'F': 0, S: [1, 0, 0, 0]}; // positive + negative, right exponent larger
+  var state = {'XG':  neg(0x44000000), 'XIN': 0x44000000, 'Y': 0xc5000000, 'CIN': 0, 'F': 0, S: [1, 0, 0, 0]}; // positive + negative, right exponent larger
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['pending']['S'][4], 0, '+,- add');
 
-  var state = {'XG':  neg(0xc4000000), 'Y': 0xc5000000, 'CIN': 0, 'F': 0, S: [1, 0, 0, 0]}; // negative + negative, right exponent larger
+  var state = {'XG':  neg(0xc4000000), 'XIN': 0xc4000000, 'Y': 0xc5000000, 'CIN': 0, 'F': 0, S: [1, 0, 0, 0]}; // negative + negative, right exponent larger
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['pending']['S'][4], 1, '-,- sub');
 
-  var state = {'XG':  neg(0x45000000), 'Y': 0x45000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // positive - positive, exponents equal
+  var state = {'XG':  neg(0x45000000), 'XIN': 0x45000000, 'Y': 0x45000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // positive - positive, exponents equal
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['pending']['S'][4], 1, '+,+ sub');
 
-  var state = {'XG':  neg(0xc5000000), 'Y': 0x45000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // negative - positive, exponents equal
+  var state = {'XG':  neg(0xc5000000), 'XIN': 0xc5000000, 'Y': 0x45000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // negative - positive, exponents equal
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['pending']['S'][4], 0, '-,+ sub');
 
-  var state = {'XG':  neg(0x45000000), 'Y': 0xc5000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // positive - negative, exponents equal
+  var state = {'XG':  neg(0x45000000), 'XIN': 0x45000000, 'Y': 0xc5000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // positive - negative, exponents equal
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['pending']['S'][4], 1, '+,- sub');
 
-  var state = {'XG':  neg(0xc5000000), 'Y': 0xc5000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // negative - negative, exponents equal
+  var state = {'XG':  neg(0xc5000000), 'XIN': 0xc5000000, 'Y': 0xc5000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // negative - negative, exponents equal
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['pending']['S'][4], 0, '-,- sub');
 
-  var state = {'XG':  neg(0x46000000), 'Y': 0x45000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // positive - positive, left exponent larger
+  var state = {'XG':  neg(0x46000000), 'XIN': 0x46000000, 'Y': 0x45000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // positive - positive, left exponent larger
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['pending']['S'][4], 0, '+,+ sub');
 
-  var state = {'XG':  neg(0xc6000000), 'Y': 0x45000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // negative - positive, left exponent larger
+  var state = {'XG':  neg(0xc6000000), 'XIN': 0xc6000000, 'Y': 0x45000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // negative - positive, left exponent larger
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['pending']['S'][4], 0, '-,+ sub');
 
-  var state = {'XG':  neg(0x46000000), 'Y': 0xc5000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // positive - negative, left exponent larger
+  var state = {'XG':  neg(0x46000000), 'XIN': 0x46000000, 'Y': 0xc5000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // positive - negative, left exponent larger
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['pending']['S'][4], 1, '+,- sub');
 
-  var state = {'XG':  neg(0xc6000000), 'Y': 0xc5000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // negative - negative, left exponent larger
+  var state = {'XG':  neg(0xc6000000), 'XIN': 0xc6000000, 'Y': 0xc5000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // negative - negative, left exponent larger
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['pending']['S'][4], 1, '-,- sub');
 
-  var state = {'XG':  neg(0x44000000), 'Y': 0x45000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // positive - positive, right exponent larger
+  var state = {'XG':  neg(0x44000000), 'XIN': 0x44000000, 'Y': 0x45000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // positive - positive, right exponent larger
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['pending']['S'][4], 1, '+,+ sub');
 
-  var state = {'XG':  neg(0xc4000000), 'Y': 0x45000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // negative - positive, right exponent larger
+  var state = {'XG':  neg(0xc4000000), 'XIN': 0xc4000000, 'Y': 0x45000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // negative - positive, right exponent larger
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['pending']['S'][4], 0, '-,+ sub');
 
-  var state = {'XG':  neg(0x44000000), 'Y': 0xc5000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // positive - negative, right exponent larger
+  var state = {'XG':  neg(0x44000000), 'XIN': 0x44000000, 'Y': 0xc5000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // positive - negative, right exponent larger
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['pending']['S'][4], 1, '+,- sub');
 
-  var state = {'XG':  neg(0xc4000000), 'Y': 0xc5000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // negative - negative, right exponent larger
+  var state = {'XG':  neg(0xc4000000), 'XIN': 0xc4000000, 'Y': 0xc5000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // negative - negative, right exponent larger
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['pending']['S'][4], 0, '-,- sub');
 
-  var state = {'XG':  neg(0x44000000), 'Y': 0x44000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // positive * positive
+  var state = {'XG':  neg(0x44000000), 'XIN': 0x44000000, 'Y': 0x44000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // positive * positive
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
-  assert.equal(state['pending']['S'][4], 1, '+,+ mult');
+  assert.equal(state['pending']['S'][4], 0, '+,+ mult');
 
-  var state = {'XG':  neg(0xc4000000), 'Y': 0x44000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // negative * positive
+  var state = {'XG':  neg(0xc4000000), 'XIN': 0xc4000000, 'Y': 0x44000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // negative * positive
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
-  assert.equal(state['pending']['S'][4], 0, '-,+ mult');
+  assert.equal(state['pending']['S'][4], 1, '-,+ mult');
 
-  var state = {'XG':  neg(0x44000000), 'Y': 0xc4000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // positive * negative
+  var state = {'XG':  neg(0x44000000), 'XIN': 0x44000000, 'Y': 0xc4000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // positive * negative
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
-  assert.equal(state['pending']['S'][4], 0, '+,- mult');
+  assert.equal(state['pending']['S'][4], 1, '+,- mult');
 
-  var state = {'XG':  neg(0xc4000000), 'Y': 0xc4000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // negative * negative
+  var state = {'XG':  neg(0xc4000000), 'XIN': 0xc4000000, 'Y': 0xc4000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // negative * negative
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
-  assert.equal(state['pending']['S'][4], 1, '-,- mult');
+  assert.equal(state['pending']['S'][4], 0, '-,- mult');
 
-    // Stat 5 turned on if left adder input bit 0, right adder input bit 0 and Stat 1 contain an even number of ones. (True add required).
+  // Stat 5 turned on if left adder input bit 0, right adder input bit 0 and Stat 1 contain an even number of ones. (True add required).
 
-  var state = {'XG':  neg(0x44000000), 'Y': 0x44000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 0, 0, 0
-  adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
-  assert.equal(state['pending']['S'][5], 1, 'stat 5');
-
-  var state = {'XG':  neg(0xc4000000), 'Y': 0x44000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 1, 0, 0
-  adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
-  assert.equal(state['pending']['S'][5], 0, 'stat 5');
-
-  var state = {'XG':  neg(0x44000000), 'Y': 0xc4000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 0, 1, 0
-  adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
-  assert.equal(state['pending']['S'][5], 0, 'stat 5');
-
-  var state = {'XG':  neg(0x44000000), 'Y': 0x44000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // 0, 0, 1
-  adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
-  assert.equal(state['pending']['S'][5], 0, 'stat 5');
-
-  var state = {'XG':  neg(0xc4000000), 'Y': 0xc4000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 1, 1, 0
+  var state = {'XG':  neg(0x44000000), 'XIN': 0x44000000, 'Y': 0x44000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 0, 0, 0
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['pending']['S'][5], 1, 'stat 5');
 
-  var state = {'XG':  neg(0xc4000000), 'Y': 0xc4000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // 1, 1, 1
+  var state = {'XG':  neg(0xc4000000), 'XIN': 0xc4000000, 'Y': 0x44000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 1, 0, 0
+  adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
+  assert.equal(state['pending']['S'][5], 0, 'stat 5');
+
+  var state = {'XG':  neg(0x44000000), 'XIN': 0x44000000, 'Y': 0xc4000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 0, 1, 0
+  adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
+  assert.equal(state['pending']['S'][5], 0, 'stat 5');
+
+  var state = {'XG':  neg(0x44000000), 'XIN': 0x44000000, 'Y': 0x44000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // 0, 0, 1
+  adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
+  assert.equal(state['pending']['S'][5], 0, 'stat 5');
+
+  var state = {'XG':  neg(0xc4000000), 'XIN': 0xc4000000, 'Y': 0xc4000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 1, 1, 0
+  adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
+  assert.equal(state['pending']['S'][5], 1, 'stat 5');
+
+  var state = {'XG':  neg(0xc4000000), 'XIN': 0xc4000000, 'Y': 0xc4000000, 'CIN': 0, 'F': 0, S: [0, 1, 0, 0]}; // 1, 1, 1
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['pending']['S'][5], 0, 'stat 5');
 
@@ -3057,94 +3057,94 @@ QUnit.test( "stat SS 27: S47,ED*FP", function(assert) {
     // Stat 6 turned on if value of exponent difference reg is less than 16 (dec) in absolute value.
     // This is a bit unclear since the exponent difference reg is 4 bits so it must be less than 16.
     // I'm assuming they mean the absolute value of the exponent difference (not the register) is less than 16.
-  var state = {'XG':  neg(0x10000000), 'Y': 0x10000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 10, 10
+  var state = {'XG':  neg(0x10000000), 'XIN': 0x10000000, 'Y': 0x10000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 10, 10
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['pending']['S'][6], 1, 'stat 6');
 
-  var state = {'XG':  neg(0x10000000), 'Y': 0x1f000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 10, 1f
+  var state = {'XG':  neg(0x10000000), 'XIN': 0x10000000, 'Y': 0x1f000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 10, 1f
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['pending']['S'][6], 1, 'stat 6');
 
-  var state = {'XG':  neg(0x1f000000), 'Y': 0x10000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 1f, 10
+  var state = {'XG':  neg(0x1f000000), 'XIN': 0x1f000000, 'Y': 0x10000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 1f, 10
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['pending']['S'][6], 1, 'stat 6');
 
-  var state = {'XG':  neg(0x10000000), 'Y': 0x20000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 10, 20
+  var state = {'XG':  neg(0x10000000), 'XIN': 0x10000000, 'Y': 0x20000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 10, 20
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['pending']['S'][6], 0, 'stat 6');
 
-  var state = {'XG':  neg(0x20000000), 'Y': 0x10000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 20, 10
+  var state = {'XG':  neg(0x20000000), 'XIN': 0x20000000, 'Y': 0x10000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 20, 10
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['pending']['S'][6], 0, 'stat 6');
 
-  var state = {'XG':  neg(0x00000000), 'Y': 0xff000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 00, ff
+  var state = {'XG':  neg(0x00000000), 'XIN': 0x00000000, 'Y': 0xff000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 00, ff
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['pending']['S'][6], 0, 'stat 6');
 
     // Stat 7 turned on if value of exponent difference reg is zero.
-  var state = {'XG':  neg(0x80000000), 'Y': 0x00ffffff, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 0, 0 (with other bits different)
+  var state = {'XG':  neg(0x80000000), 'XIN': 0x80000000, 'Y': 0x00ffffff, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 0, 0 (with other bits different)
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['pending']['S'][7], 1, 'stat 7');
 
-  var state = {'XG':  neg(0x7fffffff), 'Y': 0xff000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 7f, 7f
+  var state = {'XG':  neg(0x7fffffff), 'XIN': 0x7fffffff, 'Y': 0xff000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 7f, 7f
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['pending']['S'][7], 1, 'stat 7');
 
-  var state = {'XG':  neg(0x00000000), 'Y': 0x01000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 00, 01
+  var state = {'XG':  neg(0x00000000), 'XIN': 0x00000000, 'Y': 0x01000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 00, 01
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['pending']['S'][7], 0, 'stat 7');
 
-  var state = {'XG':  neg(0x00000000), 'Y': 0x02000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 00, 01
+  var state = {'XG':  neg(0x00000000), 'XIN': 0x00000000, 'Y': 0x02000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 00, 01
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['pending']['S'][7], 0, 'stat 7');
 
-  var state = {'XG':  neg(0x00000000), 'Y': 0x40000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 00, 40
+  var state = {'XG':  neg(0x00000000), 'XIN': 0x00000000, 'Y': 0x40000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]}; // 00, 40
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['pending']['S'][7], 0, 'stat 7');
 
   // Tests of ED computation
 
-  var state = {'XG': neg(0x20000000), 'Y': 0x20000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]};
+  var state = {'XG': neg(0x20000000), 'XIN': 0x20000000, 'Y': 0x20000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]};
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['ED'], 0, 'ED 0');
 
-  var state = {'XG': neg(0x21000000), 'Y': 0x20000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]};
+  var state = {'XG': neg(0x21000000), 'XIN': 0x21000000, 'Y': 0x20000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]};
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['ED'], 15, 'ED -1');
 
-  var state = {'XG': neg(0x27000000), 'Y': 0x20000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]};
+  var state = {'XG': neg(0x27000000), 'XIN': 0x27000000, 'Y': 0x20000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]};
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['ED'], 9, 'ED -7');
 
-  var state = {'XG': neg(0x28000000), 'Y': 0x20000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]};
+  var state = {'XG': neg(0x28000000), 'XIN': 0x28000000, 'Y': 0x20000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]};
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['ED'], 8, 'ED -8');
 
-  var state = {'XG': neg(0x2F000000), 'Y': 0x20000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]};
+  var state = {'XG': neg(0x2F000000), 'XIN': 0x2F000000, 'Y': 0x20000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]};
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['ED'], 1, 'ED -15');
 
-  var state = {'XG': neg(0x1F000000), 'Y': 0x20000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]};
+  var state = {'XG': neg(0x1F000000), 'XIN': 0x1F000000, 'Y': 0x20000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]};
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['ED'], 1, 'ED 1');
 
-  var state = {'XG': neg(0x11000000), 'Y': 0x20000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]};
+  var state = {'XG': neg(0x11000000), 'XIN': 0x11000000, 'Y': 0x20000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]};
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['ED'], 15, 'ED 15');
 
-  var state = {'XG': neg(0x91000000), 'Y': 0x20000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]};
+  var state = {'XG': neg(0x91000000), 'XIN': 0x91000000, 'Y': 0x20000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]};
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['ED'], 15, 'ED 15, sign');
 
-  var state = {'XG': neg(0x21000000), 'Y': 0x00000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]};
+  var state = {'XG': neg(0x21000000), 'XIN': 0x21000000, 'Y': 0x00000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]};
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['ED'], 7, 'ED -33');
 
-  var state = {'XG': neg(0x45000000), 'Y': 0x00000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]};
+  var state = {'XG': neg(0x45000000), 'XIN': 0x45000000, 'Y': 0x00000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]};
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['ED'], 3, 'ED -0x45');
 
-  var state = {'XG': neg(0x00000000), 'Y': 0x45000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]};
+  var state = {'XG': neg(0x00000000), 'XIN': 0x00000000, 'Y': 0x45000000, 'CIN': 0, 'F': 0, S: [0, 0, 0, 0]};
   adderT(state, {'AD': 6, 'SS': 27, 'AL': 23}); // BC1B: block carry from position 8, AL:23 forces hot 1 into position 7
   assert.equal(state['ED'], 13, 'ED 0x45');
 });

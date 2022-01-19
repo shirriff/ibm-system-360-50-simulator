@@ -88,8 +88,8 @@ function adderLX(state: {[key: string]: any}, entry: {[key: string]: number}): v
       alert('Unexpected LX ' + entry['LX'] + " " + labels['LX'][entry['LX']]);
       break;
   }
+  state['XIN'] = xg; // The uncomplemented adder input value.
   if (entry['TC'] == 0) {
-    // Subtract
     xg = (~xg) >>> 0; // 1's complement
   }
   state['XG'] = xg;
@@ -392,17 +392,17 @@ function adderT(state, entry) {
     function oneOf(a, b) { // helper
       return (a && !b) || (!a && b);
     }
-    const x = xg ^ 0xffffffff; // Uncomplemented left adder input. The documentation doesn't mention this.
+    let xin = state['XIN']; // The uncomplemented input value.
     if (((state['S'][0] || state['S'][1]) && (y & 0x80000000) && !c1) ||
-        ((state['S'][0] || state['S'][1]) && c1 && oneOf(x & 0x80000000, state['S'][1])) ||
-        (!state['S'][0] && !state['S'][1] && (x & 0x80000000) == (y & 0x80000000))) {
+        ((state['S'][0] || state['S'][1]) && c1 && oneOf(xin & 0x80000000, state['S'][1])) ||
+        (!state['S'][0] && !state['S'][1] && (xin & 0x80000000) != (y & 0x80000000))) {
       state['pending']['S'][4] = 1; // Presumed negative
     } else {
       state['pending']['S'][4] = 0; // Presumed positive
     }
 
     // Stat 5 turned on if left adder input bit 0, right adder input bit 0 and Stat 1 contain an even number of ones. (True add required).
-    if ( (x >>> 31) ^ (y >>> 31) ^ state['S'][1] ) {
+    if ( (xin >>> 31) ^ (y >>> 31) ^ state['S'][1] ) {
       // Odd number of ones
       state['pending']['S'][5] = 0;
     } else {
@@ -432,7 +432,7 @@ function adderT(state, entry) {
     const ed = (ed0 << 3) | ed13;
     state['ED'] = ed;
     log('ED = ' + state['ED']);
-    const edActual = ((x & 0x7f000000) >>> 24) - ((y & 0x7f000000) >>> 24); // The actual difference between the two exponents.
+    const edActual = ((xin & 0x7f000000) >>> 24) - ((y & 0x7f000000) >>> 24); // The actual difference between the two exponents.
     state['pending']['S'][6] = (Math.abs(edActual) < 16) ? 1 : 0;
 
     // Stat 7 turned on if value of exponent difference reg is zero.
@@ -713,8 +713,8 @@ function store(state) {
 // Read memory: call before using SDR
 // Assume SAR
 function read(state) {
-  // Add some bounds to memory? Or just implement the whole 16 MB?
   state['SDR'] = state['MS'][state['SAR'] & ~3] >>> 0;
+  log('Core read ' + fmt4(state['SDR']) + ' from ' + fmt3(state['SAR']));
   if (state['SDR'] == undefined) {
     state['SDR'] = 0xdeadbeef; // Random value in uninitialized memory.
   }
