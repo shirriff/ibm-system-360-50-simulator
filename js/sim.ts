@@ -197,11 +197,14 @@ function waitAnimate(): void {
     waitLight = true;
     skipping = false;
     $("#control").text('Run');
-    $("#divinstr").text("Waiting");
+    $("#divinstr").text("Halted");
     draw();
 }
 
 function startAnimate(): void {
+    if (waitLight) {
+      resetStateCode(state); // Program done, so restart from beginning
+    }
     $("#control").text('Stop');
     powerOff = false;
     running = true;
