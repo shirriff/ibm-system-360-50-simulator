@@ -56,7 +56,11 @@ function reg(num, data) {
     // read
     return state['LS'][0x30 + num];
   } else {
-    state['LS'][0x30 + num] = data;
+    data = data >>> 0; // Make unsigned
+    if (data > 0xffffffff) {
+      alert('bad data');
+    }
+    state['LS'][0x30 + num] = data >>> 0; // Make unsigned
   }
 }
 
@@ -1580,6 +1584,19 @@ QUnit.module("Instructions", function(hooks) {
     }
   });
 
+  QUnit.test("Divide N (FP short) basic DER ", function(assert) {
+    //const tests = [[10, 2], [100000, 30], [0, 100], [-10, 2], [10, -2], [-10, -2], [100, 3], [-100, 3], [-100, -3], [100, -3]];
+    const tests = [[10, 2]];
+    tests.forEach(function([dividend, divisor]) {
+      floatToFpReg64(0, dividend);
+      floatToFpReg64(2, divisor);
+      execute([0x3d020000], assert, 'DER 0,2');
+      var fres = fpreg64ToFloat(0);
+      var wanted = dividend / divisor;
+      assert.ok(close(fres, wanted), dividend + "/" + divisor + ": got " + fres + ', wanted ' + wanted);
+    });
+  });
+
   QUnit.test("Divide N (FP short) DER ", function(assert) {
     var rand = mulberry32(100);
     for (var i = 0; i < testcycles; i++) {
@@ -1590,7 +1607,7 @@ QUnit.module("Instructions", function(hooks) {
       execute([0x3d020000], assert, 'DER 0,2');
       var fres = fpreg64ToFloat(0);
       var wanted = f1 / f2;
-      assert.ok(close(fres, wanted), fres + ' ' + wanted);
+      assert.ok(close(fres, wanted), f1 + "/" + f2 + ": got " + fres + ', wanted ' + wanted);
     }
   });
 
@@ -2145,34 +2162,25 @@ QUnit.module("Instructions", function(hooks) {
   QUnit.test("Divide D random", function(assert) {
     var rand = rand32(43);
     for (var i = 0; i < testcycles; i++) {
-      const dr0 = rand(); // divisor
-      const dr1 = rand();
-      const dd0 = rand(); // dividend
-      const dd1 = rand();
-      if ((dr0 & 0x7fffffff) <= (dr1 & 0x7fffffff)) {
+      const dd0 = rand() & 0x7fffffff; // 64-bit dividend (positive)
+      const dd1 = rand() >>> 0;
+      const divisor = rand() & 0x7fffffff; // 32-bit divisor (positive)
+      if (dd0 >= divisor) {
         // Divisor must be > dividend
         i -= 1;
         continue;
       }
-      const divisor = (dr0 << 32) | dr1;
-      const dividend = (dd0 << 32) | dd1;
-      reg(2, dr0);
-      reg(3, dr1);
-      state['MS'][0x100] = dd0;
-      state['MS'][0x104] = dd1;
+      const dividend = dd0 * 2**32 + dd1;
+      log('dividend ' + dividend + ', divisor ' + divisor);
+      reg(2, dd0);
+      reg(3, dd1);
+      state['MS'][0x100] = divisor;
       execute([0x5d200100], assert, 'D 2,100(0,0)');
 
-      var result = dividend / divisor
-      if (result == 0) {
-        assert.equal(state['CR'], 0); // Zero
-      } else if (result > 0) {
-        assert.equal(state['CR'], 2); // Positive
-      } else {
-        assert.equal(state['CR'], 1); // Negative
-      }
-      var remainder = reg(2);
-      var quotient = reg(3);
-      assert.equal(divisor, quotient * dividend + remainder, "Divide");
+      const remainder = signed32(reg(2));
+      const quotient = signed32(reg(3));
+      const result = quotient * divisor + remainder
+      assert.equal(dividend, quotient * divisor + remainder, "Divide " + dividend + " by " + divisor + ": got " + quotient + " and remainder " + remainder);
     }
   });
 
