@@ -1460,7 +1460,8 @@ function stat(state, entry) {
           alert('Unimplemented SCANTRL ' + entry['CE'] + " " + labels['SS'][entry['SS']]);
           break;
         case 12: // Turn off log trigger (for machine check traps)
-          alert('Unimplemented SCANTRL ' + entry['CE'] + " " + labels['SS'][entry['SS']]);
+          // Needs to be implemented, but don't alert since it is used in test program.
+          // alert('Unimplemented SCANTRL ' + entry['CE'] + " " + labels['SS'][entry['SS']]);
           break;
         default:
           alert('Unimplemented SCANTRL ' + entry['CE'] + " " + labels['SS'][entry['SS']]);
