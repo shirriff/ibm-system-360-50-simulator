@@ -3203,15 +3203,14 @@ QUnit.module("Instructions", function(hooks) {
 
   QUnit.test("Multiply MP", function(assert) {
     // PrincOps p 151
-    reg(4, 0x00001200);
-    reg(6, 0x00000500);
-    state['MS'][0x1200] = 0xffff3846;
-    state['MS'][0x1204] = 0x0dffffff;
-    state['MS'][0x500] = 0x321dffff;
+    reg(4, 0x00001200); // Address of multiplier
+    reg(6, 0x00000500); // Address of multiplicand
+    state['MS'][0x1300] = 0x00003846; // Multiplier 38460
+    state['MS'][0x1304] = 0x0dffffff;
+    state['MS'][0x500] = 0x321dffff; // Multiplicand 321
     execute([0xfc414100, 0x60000000], assert, 'MP 100(5, 4), 0(2, 6)');
-    assert.equal(state['MS'][0x1300],  0x01234566);
-    assert.equal(state['MS'][0x1304],  0x0c000000);
-    assert.equal(state['CR'], 2); // Positive
+    assert.equal(state['MS'][0x1300],  0x01234566); // Result 12345660
+    assert.equal(state['MS'][0x1304],  0x0cffffff);
   });
 
   QUnit.test("Divide DP", function(assert) {
