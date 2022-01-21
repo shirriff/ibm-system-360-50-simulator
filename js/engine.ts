@@ -1613,7 +1613,7 @@ function stat(state, entry) {
       break;
     case 23: // MANUAL→STOP      // M trig to S (Halt status) QU100
       // Set Stop Trigger to value of Manual Trigger.
-      alert('Unimplemented SS ' + entry['SS'] + " " + labels['SS'][entry['SS']]);
+      waitAnimate(); // Move to wait mode
       break;
     case 24: // E→S47
       // Gate Emit field to Stats 4-7.
