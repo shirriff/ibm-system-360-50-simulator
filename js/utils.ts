@@ -80,8 +80,16 @@ function getMicroOpData(saddr: string): string[] {
         desc = text.join('<br/>');
       }
     }
+    // Hack to reformat the lines so they appear okay on Android
     function fmt(uc : string[]) : string {
-        return '<pre style="margin-bottom:0">' + uc.join('\n') + '</pre>';
+        for (let i = 0; i < uc.length; i++) {
+          if (uc[i].slice(-1) == '|') {
+            uc[i] = '<div class="box">' + uc[i].substr(0, uc[i].length - 1) + '</div>|\n<br/>';
+          } else {
+            uc[i] = '<div class="box">' + uc[i] + '</div>\n<br/>';
+          }
+        }
+        return '<div class="boxwrapper">' + uc.join('\n') + '</div>';
     }
-    return [fmt(microcode[0]) + desc, microcode[1].join('<br\>')];
+    return [fmt(microcode[0]) + desc, microcode[1].join('<br/>')];
 }
