@@ -24,7 +24,7 @@
     background: #eee;
     color: black;
     padding: 4px 8px;
-    font-size: 13px;
+    font-size: 100%;
     border: 1px solid #ccc;
     border-radius: 4px;
     display: none;
@@ -37,29 +37,53 @@
   .hastip {
     cursor: help;
   }
+  .bg-primary {
+    background: #f6fbf7 !important;
+  }
+  .navbar {
+  }
+  .homelink {
+    color: #666;
+    z-index: 2;
+    padding-right: 10px;
+    float: right;
+    cursor: pointer;
+    font-size: 90%;
+  }
+  .title {
+    font-size: 140%;
+    color: #a03;
+    text-align: center;
+    position: absolute;
+    width: 100%;
+    left: 0;
+    top: 0;
+    z-index: -2;
+  }
+
 </style>
 
 
 
 <script src="https://unpkg.com/@popperjs/core@2"></script>
-  <div id="topinfotext" data-showx>The IBM System/360 Model 50 was a popular mainframe introduced in 1964. This web page simulates the mainframe by running the original microcode.
-    The console lights are illuminated as they would be on an real Model 50.
-    <br/>
-    To start the simulator, click on the <b>Run</b> button below. 
-    The console lights are controlled by rollers; click on the roller knob to change the display function.
-    You can zoom in on the console display for more detail.
-    <br/>
-    For background, see the <a href="https://righto.com">Model 50 blog post</a>.
-    <span class="material-icons" style="font-size:100%; cursor: pointer" id="topclose">cancel</span></div>
-   <nav class="navbar navbar-light sticky-top bg-primary flex-md-nowrap p-0" id="nav">
+   <nav class="navbar sticky-top bg-primary flex-md-nowrap p-0" id="nav">
      <span>
-      <button id="control">Run</button>
-      <button id="step">Step</button>
-      <!--
-      <span class="nav-item">Next addr:</span> <input type="text" id="addr" value="0243" style="width:4em"></input>
-      -->
+        <button id="control">Run</button>
+        <button id="step">Step</button>
+      </span>
+      <a class="homelink d-none d-sm-inline d-md-inline d-lg-inline" href="https://www.righto.com">Ken Shirriff's Blog</a>
+      <span class="title">IBM 360/50 Simulator <span style="font-size: 60%">(beta)</span></span>
     </nav>
 
+  <div id="topinfotext" data-show>The IBM System/360 Model 50 was a popular mainframe introduced in 1964. This page simulates this computer by running its original microcode.
+    The console lights are illuminated as they would be on an real Model 50.
+    <br/>
+    To start the simulator, click the <b>Run</b> button above. 
+    Click a roller knob on the right of the console to change the display.
+    Zoom in on the console for more detail.
+    <br/>
+    See the <a href="https://righto.com">Model 50 blog post</a> for background.
+    <span class="material-icons" style="font-size:100%; cursor: pointer" id="topclose">cancel</span></div>
     <div class="container-fluid">
       <div class="row">
         <div class="col-sm-12 col-md-4 col-lg-4 col-xl-4 border-right order-2 order-sm-2 order-md-1 order-lg-1 order-xl-1" id="sidebar" style="overflow-y:scroll">
