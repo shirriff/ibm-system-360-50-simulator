@@ -18,11 +18,15 @@ let testLight: boolean = false;
 let loadLight: boolean = false;
 
 // Handle a window resize: adjust the canvas size and then redraw
+// The idea is to fit the canvas to the screen vertically, while make the sidebar scrollable.
+// There's probably a better way to do this...
 function resize() : void {
-  // Determine available vertical space
-  const h = window.innerHeight - $("#nav").height();
-  $("#sidebar").height(h);
-  $("#canvas").height(h)
+  // I'm not clever enough to do everything with media queries, so I'm hardcoding it.
+  if ($(window).width() > 768) {
+    resizeDesktop();
+  } else {
+    resizeMobile();
+  }
   // canvas width is the number of logical pixels, clientWidth is the number of pixels occupied by the canvas.
   canvasWidth = $("#canvas").width();
   canvasHeight = $("#canvas").height();
@@ -37,6 +41,37 @@ function resize() : void {
   MIN_ZOOM = cameraZoom; // Don't zoom too small
 
   draw();
+}
+
+// Adjust the layout for a desktop display
+// The idea is to fit the canvas to the available space, with the sidebar equal space but scrollable.
+function resizeDesktop() : void {
+  // Determine available vertical space
+  const h = window.innerHeight - $("#nav").height();
+  $("body").css("overflow-y", "hidden");
+  $("#sidebar").css("overflow-y", "scroll");
+  $("#sidebar").height(h);
+  $("#canvas").height(h)
+}
+
+// Adjust the layout for a mobile device
+// The idea is to have the canvas on top and the sidebar below, scrolling together.
+// The canvas is sized to fit the available space if reasonable.
+function resizeMobile() : void {
+  // Determine available vertical space
+  $("body").css("overflow-y", "scroll");
+  $("#sidebar").css("overflow-y", "visible");
+  let h = window.innerHeight - $("#nav").height();
+  let w = window.innerWidth;
+  let h1 = consoleImg.height / consoleImg.width * w; // Height if image fills width of window
+  if (h1 <= h * .8) {
+    // Image fits
+    $("#canvas").height(h1)
+  } else {
+    // Shrink image so it fits.
+    // Won't look good on a landscape phone.
+    $("#canvas").height(h * .8)
+  }
 }
 
 // Avoid zoom/pan from zooming the image out of the screen.
