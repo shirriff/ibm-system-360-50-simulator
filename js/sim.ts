@@ -138,8 +138,8 @@ function updateCoreInfo(): void {
   const lines: string[] = []
   let line: string = "";
   for (let row = 0; row < 8; row++) {
-    line = '<span style="font-weight: 600">' + fmt3(addr) + '</span> ';
-    for (let col = 0; col < 4; col++) {
+    line = '<span style="font-weight: 800">' + fmt3(addr) + '</span> ';
+    for (let col = 0; col < 2; col++) {
       let style = "";
       if (addr == coreHiliteAddr) {
         style = ' style="background:' + coreHiliteColor + '"'
@@ -204,7 +204,7 @@ function waitAnimate(): void {
 function startAnimate(): void {
     if (waitLight) {
       resetStateCode(state); // Program done, so restart from beginning
-      $("#dispinstr").html(""); // Clear 'halted' message
+      $("#divinstr").html(""); // Clear 'halted' message
     }
     $("#control").text('Stop');
     powerOff = false;
