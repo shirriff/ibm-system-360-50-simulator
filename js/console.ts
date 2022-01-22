@@ -789,3 +789,11 @@ function updateRoller(n: number) : void {
   rollerPos[n - 1] = (rollerPos[n - 1] % 8) + 1; // increment value 1-8, wrapping 8 to 1.
   draw();
 }
+
+function drawLoadingMessage() {
+  canvas = <HTMLCanvasElement> document.getElementById("canvas")
+  ctx = canvas.getContext('2d')
+  ctx.fillStyle = "#666";
+  ctx.font = 'bold 24px serif';
+  ctx.fillText("Loading...", 100, 100);
+}

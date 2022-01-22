@@ -36,6 +36,7 @@ let aldText: {} = undefined; // Mapping from a microcode ALD sheet name (e.g. "Q
 
 // Load images and microcode data. This is the main entry point.
 function loadStuff() {
+  drawLoadingMessage();
   // Fetch the microcode data, store in data.
   let dataPromise = new Promise((resolve, reject) => {
       $.getJSON("data.json", function (indata) {
