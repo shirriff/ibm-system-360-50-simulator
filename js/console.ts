@@ -38,6 +38,7 @@ function resize() : void {
   // Scale to fit the image: Initialize cameraOffset, cameraZoom
   cameraOffset = { x: canvasWidth / 2, y: canvasHeight / 2 }
   cameraZoom = Math.min(canvasWidth / consoleImg.width, canvasHeight / consoleImg.height);
+  lastZoom = cameraZoom;
   MIN_ZOOM = cameraZoom; // Don't zoom too small
 
   draw();
@@ -669,7 +670,7 @@ function initConsole() : void {
   /**
    * Updates pointer when over a clickable region.
    */
-  $("#canvas").on("mousemove", function (e) {
+  $("#canvas").on("mousemove", function(e) {
     const result = testLocation(e);
     if (result) {
       $("#label").html(result);
@@ -680,6 +681,23 @@ function initConsole() : void {
     }
   });
   $(window).resize(resize); // resize handle
+  // Block canvas touches from dragging the whole page.
+  $("#canvas").bind("touchstart", function(e) {
+    if (cameraZoom != MIN_ZOOM) { // Allow dragging at first, so users don't get stuck.
+      handleTouch(e, onPointerDown);
+      e.preventDefault();
+    }
+  });
+  $("#canvas").bind("touchend", function(e) {
+    e.touches = e.changedTouches; // Make a fake mouse event out of this
+    if (e.changedTouches.length > 0) {
+      // @ts-ignore
+      e.clientX = e.changedTouches[0].clientX;
+      // @ts-ignore
+      e.clientY = e.changedTouches[0].clientY;
+    }
+    handleTouch(e, onPointerUp);
+  });
 }
 
 /**
@@ -695,7 +713,6 @@ function coords(e: JQuery.Event) : [number, number] {
   // Convert from coordinates with 0 in screen center to coordinates relative to the image
   return [Math.round((x + consoleImg.width / 2) / SCALE), Math.round((y + consoleImg.height / 2) / SCALE)];
 }
-
 
 /**
  * Tests if the event e is inside a region.

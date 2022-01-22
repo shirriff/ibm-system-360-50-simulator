@@ -22,7 +22,6 @@ function initZoom() {
   canvas.addEventListener('resize', resize);
   canvas.addEventListener('click', (e) => console.log(e));
   canvas.addEventListener('mousedown', onPointerDown);
-  canvas.addEventListener('touchstart', (e) => handleTouch(e, onPointerDown));
   canvas.addEventListener('mouseup', onPointerUp);
   canvas.addEventListener('mousemove', onPointerMove);
   canvas.addEventListener('touchmove', (e) => handleTouch(e, onPointerMove));
