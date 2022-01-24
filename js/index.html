@@ -40,8 +40,6 @@
   .bg-primary {
     background: #f6fbf7 !important;
   }
-  .navbar {
-  }
   .homelink {
     color: #666;
     z-index: 2;
@@ -50,15 +48,20 @@
     cursor: pointer;
     font-size: 90%;
   }
+  @media (min-width: 500px) {
+    .title {
+      text-align: center;
+      position: absolute;
+      width: 100%;
+      left: 0;
+      top: 0;
+    }
+  }
   .title {
     font-size: 140%;
     color: #a03;
-    text-align: center;
-    position: absolute;
-    width: 100%;
-    left: 0;
-    top: 0;
     z-index: -2;
+    margin-right: 10px;
   }
   .boxwrapper {
     font-family: "Courier New", Courier, monospace;
@@ -72,16 +75,14 @@
 
 </style>
 
-
-
 <script src="https://unpkg.com/@popperjs/core@2"></script>
    <nav class="navbar sticky-top bg-primary flex-md-nowrap p-0" id="nav">
      <span>
         <button id="control">Run</button>
         <button id="step">Step</button>
       </span>
-      <a class="homelink d-none d-sm-inline d-md-inline d-lg-inline" href="https://www.righto.com">Ken Shirriff's Blog</a>
       <span class="title">IBM 360/50 Simulator</span>
+      <a class="homelink d-none d-sm-inline d-md-inline d-lg-inline" href="https://www.righto.com">Ken Shirriff's Blog</a>
     </nav>
 
   <div id="topinfotext" data-show>The IBM System/360 Model 50 was a popular mainframe introduced in 1964. This page simulates this computer by running its original microcode.
