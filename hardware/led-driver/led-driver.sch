@@ -1,0 +1,1093 @@
+EESchema Schematic File Version 4
+EELAYER 30 0
+EELAYER END
+$Descr A4 11693 8268
+encoding utf-8
+Sheet 1 1
+Title ""
+Date ""
+Rev ""
+Comp ""
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+$Comp
+L symbols:PCA9634 U1
+U 1 1 61F856B9
+P 3500 2450
+F 0 "U1" H 3475 3436 50  0000 C CNN
+F 1 "PCA9634" H 3475 3343 50  0000 C CNN
+F 2 "Housings_SOIC:SOIC-20W_7.5x12.8mm_Pitch1.27mm" H 3500 2850 50  0001 C CNN
+F 3 "" H 3500 2850 50  0001 C CNN
+	1    3500 2450
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	4100 2750 4100 4750
+Wire Wire Line
+	4150 4350 4150 2650
+Wire Wire Line
+	4150 2650 4100 2650
+Wire Wire Line
+	4100 2550 4200 2550
+Wire Wire Line
+	4200 2550 4200 3950
+Wire Wire Line
+	4250 3550 4250 2450
+Wire Wire Line
+	4250 2450 4100 2450
+Wire Wire Line
+	4900 4750 4800 4750
+Wire Wire Line
+	4900 4350 4800 4350
+Wire Wire Line
+	4900 3950 4800 3950
+Wire Wire Line
+	4900 3550 4800 3550
+Wire Wire Line
+	4900 3150 4800 3150
+Wire Wire Line
+	4900 2750 4800 2750
+Wire Wire Line
+	4900 2400 4800 2400
+Wire Wire Line
+	4900 2050 4800 2050
+$Comp
+L Device:LED DA-7
+U 1 1 61F99CFC
+P 5050 4750
+F 0 "DA-7" H 5043 4970 50  0000 C CNN
+F 1 "LED" H 5043 4877 50  0000 C CNN
+F 2 "LEDs:LED_D3.0mm" H 5050 4750 50  0001 C CNN
+F 3 "~" H 5050 4750 50  0001 C CNN
+	1    5050 4750
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:LED DA-6
+U 1 1 61F9987B
+P 5050 4350
+F 0 "DA-6" H 5043 4570 50  0000 C CNN
+F 1 "LED" H 5043 4477 50  0000 C CNN
+F 2 "LEDs:LED_D3.0mm" H 5050 4350 50  0001 C CNN
+F 3 "~" H 5050 4350 50  0001 C CNN
+	1    5050 4350
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:LED DA-5
+U 1 1 61F99015
+P 5050 3950
+F 0 "DA-5" H 5043 4170 50  0000 C CNN
+F 1 "LED" H 5043 4077 50  0000 C CNN
+F 2 "LEDs:LED_D3.0mm" H 5050 3950 50  0001 C CNN
+F 3 "~" H 5050 3950 50  0001 C CNN
+	1    5050 3950
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:LED DA-4
+U 1 1 61F98CCB
+P 5050 3550
+F 0 "DA-4" H 5043 3770 50  0000 C CNN
+F 1 "LED" H 5043 3677 50  0000 C CNN
+F 2 "LEDs:LED_D3.0mm" H 5050 3550 50  0001 C CNN
+F 3 "~" H 5050 3550 50  0001 C CNN
+	1    5050 3550
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:LED DA-3
+U 1 1 61F989BC
+P 5050 3150
+F 0 "DA-3" H 5043 3370 50  0000 C CNN
+F 1 "LED" H 5043 3277 50  0000 C CNN
+F 2 "LEDs:LED_D3.0mm" H 5050 3150 50  0001 C CNN
+F 3 "~" H 5050 3150 50  0001 C CNN
+	1    5050 3150
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:LED DA-2
+U 1 1 61F9806B
+P 5050 2750
+F 0 "DA-2" H 5043 2970 50  0000 C CNN
+F 1 "LED" H 5043 2877 50  0000 C CNN
+F 2 "LEDs:LED_D3.0mm" H 5050 2750 50  0001 C CNN
+F 3 "~" H 5050 2750 50  0001 C CNN
+	1    5050 2750
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:R_Small_US R8
+U 1 1 61F96935
+P 4700 4750
+F 0 "R8" V 4490 4750 50  0000 C CNN
+F 1 "150" V 4583 4750 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805_HandSoldering" H 4700 4750 50  0001 C CNN
+F 3 "~" H 4700 4750 50  0001 C CNN
+	1    4700 4750
+	0    1    1    0   
+$EndComp
+$Comp
+L Device:R_Small_US R7
+U 1 1 61F96500
+P 4700 4350
+F 0 "R7" V 4490 4350 50  0000 C CNN
+F 1 "150" V 4583 4350 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805_HandSoldering" H 4700 4350 50  0001 C CNN
+F 3 "~" H 4700 4350 50  0001 C CNN
+	1    4700 4350
+	0    1    1    0   
+$EndComp
+$Comp
+L Device:R_Small_US R6
+U 1 1 61F95DAF
+P 4700 3950
+F 0 "R6" V 4490 3950 50  0000 C CNN
+F 1 "150" V 4583 3950 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805_HandSoldering" H 4700 3950 50  0001 C CNN
+F 3 "~" H 4700 3950 50  0001 C CNN
+	1    4700 3950
+	0    1    1    0   
+$EndComp
+$Comp
+L Device:R_Small_US R5
+U 1 1 61F95708
+P 4700 3550
+F 0 "R5" V 4490 3550 50  0000 C CNN
+F 1 "150" V 4583 3550 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805_HandSoldering" H 4700 3550 50  0001 C CNN
+F 3 "~" H 4700 3550 50  0001 C CNN
+	1    4700 3550
+	0    1    1    0   
+$EndComp
+$Comp
+L Device:R_Small_US R4
+U 1 1 61F951FE
+P 4700 3150
+F 0 "R4" V 4490 3150 50  0000 C CNN
+F 1 "150" V 4583 3150 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805_HandSoldering" H 4700 3150 50  0001 C CNN
+F 3 "~" H 4700 3150 50  0001 C CNN
+	1    4700 3150
+	0    1    1    0   
+$EndComp
+$Comp
+L Device:R_Small_US R3
+U 1 1 61F94D91
+P 4700 2750
+F 0 "R3" V 4490 2750 50  0000 C CNN
+F 1 "150" V 4583 2750 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805_HandSoldering" H 4700 2750 50  0001 C CNN
+F 3 "~" H 4700 2750 50  0001 C CNN
+	1    4700 2750
+	0    1    1    0   
+$EndComp
+$Comp
+L Device:LED DA-1
+U 1 1 61F942C7
+P 5050 2400
+F 0 "DA-1" H 5043 2620 50  0000 C CNN
+F 1 "LED" H 5043 2527 50  0000 C CNN
+F 2 "LEDs:LED_D3.0mm" H 5050 2400 50  0001 C CNN
+F 3 "~" H 5050 2400 50  0001 C CNN
+	1    5050 2400
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:R_Small_US R2
+U 1 1 61F907E0
+P 4700 2400
+F 0 "R2" V 4490 2400 50  0000 C CNN
+F 1 "150" V 4583 2400 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805_HandSoldering" H 4700 2400 50  0001 C CNN
+F 3 "~" H 4700 2400 50  0001 C CNN
+	1    4700 2400
+	0    1    1    0   
+$EndComp
+$Comp
+L Device:R_Small_US R1
+U 1 1 61F8DC53
+P 4700 2050
+F 0 "R1" V 4490 2050 50  0000 C CNN
+F 1 "150" V 4583 2050 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805_HandSoldering" H 4700 2050 50  0001 C CNN
+F 3 "~" H 4700 2050 50  0001 C CNN
+	1    4700 2050
+	0    1    1    0   
+$EndComp
+$Comp
+L Device:LED DA-0
+U 1 1 61F8B9B6
+P 5050 2050
+F 0 "DA-0" H 5043 2270 50  0000 C CNN
+F 1 "LED" H 5043 2177 50  0000 C CNN
+F 2 "LEDs:LED_D3.0mm" H 5050 2050 50  0001 C CNN
+F 3 "~" H 5050 2050 50  0001 C CNN
+	1    5050 2050
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	4600 2050 4100 2050
+Wire Wire Line
+	4100 2350 4300 2350
+Wire Wire Line
+	4300 2350 4300 3150
+Wire Wire Line
+	4300 3150 4600 3150
+Wire Wire Line
+	4100 2250 4350 2250
+Wire Wire Line
+	4350 2250 4350 2750
+Wire Wire Line
+	4350 2750 4600 2750
+Wire Wire Line
+	4100 2150 4400 2150
+Wire Wire Line
+	4400 2150 4400 2400
+Wire Wire Line
+	4400 2400 4600 2400
+Wire Wire Line
+	4250 3550 4600 3550
+Wire Wire Line
+	4200 3950 4600 3950
+Wire Wire Line
+	4150 4350 4600 4350
+Wire Wire Line
+	4100 4750 4600 4750
+Text Label 5200 2050 0    50   ~ 0
+Vcc
+Text Label 5200 2400 0    50   ~ 0
+Vcc
+Text Label 5200 2750 0    50   ~ 0
+Vcc
+Text Label 5200 3150 0    50   ~ 0
+Vcc
+Text Label 5200 3550 0    50   ~ 0
+Vcc
+Text Label 5200 3950 0    50   ~ 0
+Vcc
+Text Label 5200 4350 0    50   ~ 0
+Vcc
+Text Label 5200 4750 0    50   ~ 0
+Vcc
+Text Label 3500 1650 0    50   ~ 0
+Vcc
+Text Label 2850 2250 2    50   ~ 0
+Gnd
+Text Label 3500 3350 2    50   ~ 0
+Gnd
+$Comp
+L Connector:Conn_01x04_Male J1
+U 1 1 61FD4B4C
+P 950 3250
+F 0 "J1" H 1059 3536 50  0000 C CNN
+F 1 "Conn_01x04_Male" H 1059 3443 50  0000 C CNN
+F 2 "Socket_Strips:Socket_Strip_Straight_1x04_Pitch2.54mm" H 950 3250 50  0001 C CNN
+F 3 "~" H 950 3250 50  0001 C CNN
+	1    950  3250
+	1    0    0    -1  
+$EndComp
+Text Label 1150 3150 0    50   ~ 0
+Vcc
+Text Label 1150 3450 0    50   ~ 0
+Gnd
+Text Label 1150 3250 0    50   ~ 0
+SCL
+Text Label 1150 3350 0    50   ~ 0
+SDA
+Text Label 2850 2050 2    50   ~ 0
+SDA
+Text Label 2850 2150 2    50   ~ 0
+SCL
+$Comp
+L power:+5V #PWR0101
+U 1 1 61FD66D6
+P 750 1800
+F 0 "#PWR0101" H 750 1650 50  0001 C CNN
+F 1 "+5V" H 765 1976 50  0000 C CNN
+F 2 "" H 750 1800 50  0001 C CNN
+F 3 "" H 750 1800 50  0001 C CNN
+	1    750  1800
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:GND #PWR0102
+U 1 1 61FD73FF
+P 750 2050
+F 0 "#PWR0102" H 750 1800 50  0001 C CNN
+F 1 "GND" H 755 1874 50  0000 C CNN
+F 2 "" H 750 2050 50  0001 C CNN
+F 3 "" H 750 2050 50  0001 C CNN
+	1    750  2050
+	1    0    0    -1  
+$EndComp
+Text Label 750  1800 2    50   ~ 0
+Vcc
+Text Label 750  2050 2    50   ~ 0
+Gnd
+$Comp
+L Jumper:SolderJumper_3_Open JP4
+U 1 1 61FD8380
+P 1450 5250
+F 0 "JP4" V 1497 5319 50  0000 L CNN
+F 1 "A1" V 1404 5319 50  0000 L CNN
+F 2 "SparkFun:SMT-JUMPER_3_NO_SILK" H 1450 5250 50  0001 C CNN
+F 3 "~" H 1450 5250 50  0001 C CNN
+	1    1450 5250
+	0    -1   -1   0   
+$EndComp
+$Comp
+L Jumper:SolderJumper_3_Open JP2
+U 1 1 61FDAF48
+P 950 5250
+F 0 "JP2" V 997 5319 50  0000 L CNN
+F 1 "A2" V 904 5319 50  0000 L CNN
+F 2 "SparkFun:SMT-JUMPER_3_NO_SILK" H 950 5250 50  0001 C CNN
+F 3 "~" H 950 5250 50  0001 C CNN
+	1    950  5250
+	0    -1   -1   0   
+$EndComp
+$Comp
+L Jumper:SolderJumper_3_Open JP1
+U 1 1 61FDCCA5
+P 950 4700
+F 0 "JP1" V 997 4769 50  0000 L CNN
+F 1 "A3" V 904 4769 50  0000 L CNN
+F 2 "SparkFun:SMT-JUMPER_3_NO_SILK" H 950 4700 50  0001 C CNN
+F 3 "~" H 950 4700 50  0001 C CNN
+	1    950  4700
+	0    -1   -1   0   
+$EndComp
+$Comp
+L Jumper:SolderJumper_3_Open JP3
+U 1 1 61FDF48A
+P 1450 4700
+F 0 "JP3" V 1497 4769 50  0000 L CNN
+F 1 "A4" V 1404 4769 50  0000 L CNN
+F 2 "SparkFun:SMT-JUMPER_3_NO_SILK" H 1450 4700 50  0001 C CNN
+F 3 "~" H 1450 4700 50  0001 C CNN
+	1    1450 4700
+	0    -1   -1   0   
+$EndComp
+Text Label 2850 2400 2    50   ~ 0
+Vcc
+Text Label 1100 4700 0    50   ~ 0
+A3
+Text Label 1600 4700 0    50   ~ 0
+A4
+Text Label 1100 5250 0    50   ~ 0
+A5
+Text Label 1600 5250 0    50   ~ 0
+A6
+Text Label 950  4500 2    50   ~ 0
+Vcc
+Text Label 1450 4500 2    50   ~ 0
+Vcc
+Text Label 950  5050 2    50   ~ 0
+Vcc
+Text Label 1450 5050 2    50   ~ 0
+Vcc
+Text Label 950  4900 2    50   ~ 0
+Gnd
+Text Label 1450 4900 2    50   ~ 0
+Gnd
+Text Label 950  5450 2    50   ~ 0
+Gnd
+Text Label 1450 5450 2    50   ~ 0
+Gnd
+Text Label 2850 2500 2    50   ~ 0
+Gnd
+Text Label 2850 2600 2    50   ~ 0
+Gnd
+Text Label 2850 2700 2    50   ~ 0
+A3
+Text Label 2850 2800 2    50   ~ 0
+A4
+Text Label 2850 2900 2    50   ~ 0
+A5
+Text Label 2850 3000 2    50   ~ 0
+A6
+$Comp
+L Device:C_Small C2
+U 1 1 61FEB345
+P 5950 3400
+F 0 "C2" H 6042 3447 50  0000 L CNN
+F 1 ".1uF" H 6042 3354 50  0000 L CNN
+F 2 "Capacitors_SMD:C_0805_HandSoldering" H 5950 3400 50  0001 C CNN
+F 3 "~" H 5950 3400 50  0001 C CNN
+	1    5950 3400
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:C_Small C4
+U 1 1 61FEBC2F
+P 1400 1900
+F 0 "C4" H 1492 1947 50  0000 L CNN
+F 1 "10uF" H 1492 1854 50  0000 L CNN
+F 2 "Capacitors_SMD:C_0805_HandSoldering" H 1400 1900 50  0001 C CNN
+F 3 "~" H 1400 1900 50  0001 C CNN
+	1    1400 1900
+	1    0    0    -1  
+$EndComp
+Text Label 5950 3300 2    50   ~ 0
+Vcc
+Text Label 1400 1800 2    50   ~ 0
+Vcc
+Text Label 5950 3500 2    50   ~ 0
+Gnd
+Text Label 1400 2000 2    50   ~ 0
+Gnd
+$Comp
+L Connector:Conn_01x04_Male J2
+U 1 1 620069AF
+P 950 3900
+F 0 "J2" H 1059 4186 50  0000 C CNN
+F 1 "Conn_01x04_Male" H 1059 4093 50  0000 C CNN
+F 2 "Socket_Strips:Socket_Strip_Straight_1x04_Pitch2.54mm" H 950 3900 50  0001 C CNN
+F 3 "~" H 950 3900 50  0001 C CNN
+	1    950  3900
+	1    0    0    -1  
+$EndComp
+Text Label 1150 3800 0    50   ~ 0
+Vcc
+Text Label 1150 4100 0    50   ~ 0
+Gnd
+Text Label 1150 3900 0    50   ~ 0
+SCL
+Text Label 1150 4000 0    50   ~ 0
+SDA
+$Comp
+L symbols:PCA9634 U2
+U 1 1 62009D1B
+P 6400 2450
+F 0 "U2" H 6375 3436 50  0000 C CNN
+F 1 "PCA9634" H 6375 3343 50  0000 C CNN
+F 2 "Housings_SOIC:SOIC-20W_7.5x12.8mm_Pitch1.27mm" H 6400 2850 50  0001 C CNN
+F 3 "" H 6400 2850 50  0001 C CNN
+	1    6400 2450
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	7000 2750 7000 4750
+Wire Wire Line
+	7050 4350 7050 2650
+Wire Wire Line
+	7050 2650 7000 2650
+Wire Wire Line
+	7000 2550 7100 2550
+Wire Wire Line
+	7100 2550 7100 3950
+Wire Wire Line
+	7150 3550 7150 2450
+Wire Wire Line
+	7150 2450 7000 2450
+Wire Wire Line
+	7800 4750 7700 4750
+Wire Wire Line
+	7800 4350 7700 4350
+Wire Wire Line
+	7800 3950 7700 3950
+Wire Wire Line
+	7800 3550 7700 3550
+Wire Wire Line
+	7800 3150 7700 3150
+Wire Wire Line
+	7800 2750 7700 2750
+Wire Wire Line
+	7800 2400 7700 2400
+Wire Wire Line
+	7800 2050 7700 2050
+$Comp
+L Device:LED DB-7
+U 1 1 62009D64
+P 7950 4750
+F 0 "DB-7" H 7943 4970 50  0000 C CNN
+F 1 "LED" H 7943 4877 50  0000 C CNN
+F 2 "LEDs:LED_D3.0mm" H 7950 4750 50  0001 C CNN
+F 3 "~" H 7950 4750 50  0001 C CNN
+	1    7950 4750
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:LED DB-6
+U 1 1 62009D6E
+P 7950 4350
+F 0 "DB-6" H 7943 4570 50  0000 C CNN
+F 1 "LED" H 7943 4477 50  0000 C CNN
+F 2 "LEDs:LED_D3.0mm" H 7950 4350 50  0001 C CNN
+F 3 "~" H 7950 4350 50  0001 C CNN
+	1    7950 4350
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:LED DB-5
+U 1 1 62009D78
+P 7950 3950
+F 0 "DB-5" H 7943 4170 50  0000 C CNN
+F 1 "LED" H 7943 4077 50  0000 C CNN
+F 2 "LEDs:LED_D3.0mm" H 7950 3950 50  0001 C CNN
+F 3 "~" H 7950 3950 50  0001 C CNN
+	1    7950 3950
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:LED DB-4
+U 1 1 62009D82
+P 7950 3550
+F 0 "DB-4" H 7943 3770 50  0000 C CNN
+F 1 "LED" H 7943 3677 50  0000 C CNN
+F 2 "LEDs:LED_D3.0mm" H 7950 3550 50  0001 C CNN
+F 3 "~" H 7950 3550 50  0001 C CNN
+	1    7950 3550
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:LED DB-3
+U 1 1 62009D8C
+P 7950 3150
+F 0 "DB-3" H 7943 3370 50  0000 C CNN
+F 1 "LED" H 7943 3277 50  0000 C CNN
+F 2 "LEDs:LED_D3.0mm" H 7950 3150 50  0001 C CNN
+F 3 "~" H 7950 3150 50  0001 C CNN
+	1    7950 3150
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:LED DB-2
+U 1 1 62009D96
+P 7950 2750
+F 0 "DB-2" H 7943 2970 50  0000 C CNN
+F 1 "LED" H 7943 2877 50  0000 C CNN
+F 2 "LEDs:LED_D3.0mm" H 7950 2750 50  0001 C CNN
+F 3 "~" H 7950 2750 50  0001 C CNN
+	1    7950 2750
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:R_Small_US R16
+U 1 1 62009DA0
+P 7600 4750
+F 0 "R16" V 7390 4750 50  0000 C CNN
+F 1 "150" V 7483 4750 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805_HandSoldering" H 7600 4750 50  0001 C CNN
+F 3 "~" H 7600 4750 50  0001 C CNN
+	1    7600 4750
+	0    1    1    0   
+$EndComp
+$Comp
+L Device:R_Small_US R15
+U 1 1 62009DAA
+P 7600 4350
+F 0 "R15" V 7390 4350 50  0000 C CNN
+F 1 "150" V 7483 4350 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805_HandSoldering" H 7600 4350 50  0001 C CNN
+F 3 "~" H 7600 4350 50  0001 C CNN
+	1    7600 4350
+	0    1    1    0   
+$EndComp
+$Comp
+L Device:R_Small_US R14
+U 1 1 62009DB4
+P 7600 3950
+F 0 "R14" V 7390 3950 50  0000 C CNN
+F 1 "150" V 7483 3950 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805_HandSoldering" H 7600 3950 50  0001 C CNN
+F 3 "~" H 7600 3950 50  0001 C CNN
+	1    7600 3950
+	0    1    1    0   
+$EndComp
+$Comp
+L Device:R_Small_US R13
+U 1 1 62009DBE
+P 7600 3550
+F 0 "R13" V 7390 3550 50  0000 C CNN
+F 1 "150" V 7483 3550 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805_HandSoldering" H 7600 3550 50  0001 C CNN
+F 3 "~" H 7600 3550 50  0001 C CNN
+	1    7600 3550
+	0    1    1    0   
+$EndComp
+$Comp
+L Device:R_Small_US R12
+U 1 1 62009DC8
+P 7600 3150
+F 0 "R12" V 7390 3150 50  0000 C CNN
+F 1 "150" V 7483 3150 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805_HandSoldering" H 7600 3150 50  0001 C CNN
+F 3 "~" H 7600 3150 50  0001 C CNN
+	1    7600 3150
+	0    1    1    0   
+$EndComp
+$Comp
+L Device:R_Small_US R11
+U 1 1 62009DD2
+P 7600 2750
+F 0 "R11" V 7390 2750 50  0000 C CNN
+F 1 "150" V 7483 2750 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805_HandSoldering" H 7600 2750 50  0001 C CNN
+F 3 "~" H 7600 2750 50  0001 C CNN
+	1    7600 2750
+	0    1    1    0   
+$EndComp
+$Comp
+L Device:LED DB-1
+U 1 1 62009DDC
+P 7950 2400
+F 0 "DB-1" H 7943 2620 50  0000 C CNN
+F 1 "LED" H 7943 2527 50  0000 C CNN
+F 2 "LEDs:LED_D3.0mm" H 7950 2400 50  0001 C CNN
+F 3 "~" H 7950 2400 50  0001 C CNN
+	1    7950 2400
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:R_Small_US R10
+U 1 1 62009DE6
+P 7600 2400
+F 0 "R10" V 7390 2400 50  0000 C CNN
+F 1 "150" V 7483 2400 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805_HandSoldering" H 7600 2400 50  0001 C CNN
+F 3 "~" H 7600 2400 50  0001 C CNN
+	1    7600 2400
+	0    1    1    0   
+$EndComp
+$Comp
+L Device:R_Small_US R9
+U 1 1 62009DF0
+P 7600 2050
+F 0 "R9" V 7390 2050 50  0000 C CNN
+F 1 "150" V 7483 2050 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805_HandSoldering" H 7600 2050 50  0001 C CNN
+F 3 "~" H 7600 2050 50  0001 C CNN
+	1    7600 2050
+	0    1    1    0   
+$EndComp
+$Comp
+L Device:LED DB-0
+U 1 1 62009DFA
+P 7950 2050
+F 0 "DB-0" H 7943 2270 50  0000 C CNN
+F 1 "LED" H 7943 2177 50  0000 C CNN
+F 2 "LEDs:LED_D3.0mm" H 7950 2050 50  0001 C CNN
+F 3 "~" H 7950 2050 50  0001 C CNN
+	1    7950 2050
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	7500 2050 7000 2050
+Wire Wire Line
+	7000 2350 7200 2350
+Wire Wire Line
+	7200 2350 7200 3150
+Wire Wire Line
+	7200 3150 7500 3150
+Wire Wire Line
+	7000 2250 7250 2250
+Wire Wire Line
+	7250 2250 7250 2750
+Wire Wire Line
+	7250 2750 7500 2750
+Wire Wire Line
+	7000 2150 7300 2150
+Wire Wire Line
+	7300 2150 7300 2400
+Wire Wire Line
+	7300 2400 7500 2400
+Wire Wire Line
+	7150 3550 7500 3550
+Wire Wire Line
+	7100 3950 7500 3950
+Wire Wire Line
+	7050 4350 7500 4350
+Wire Wire Line
+	7000 4750 7500 4750
+Text Label 8100 2050 0    50   ~ 0
+Vcc
+Text Label 8100 2400 0    50   ~ 0
+Vcc
+Text Label 8100 2750 0    50   ~ 0
+Vcc
+Text Label 8100 3150 0    50   ~ 0
+Vcc
+Text Label 8100 3550 0    50   ~ 0
+Vcc
+Text Label 8100 3950 0    50   ~ 0
+Vcc
+Text Label 8100 4350 0    50   ~ 0
+Vcc
+Text Label 8100 4750 0    50   ~ 0
+Vcc
+Text Label 6400 1650 0    50   ~ 0
+Vcc
+Text Label 5750 2250 2    50   ~ 0
+Gnd
+Text Label 6400 3350 2    50   ~ 0
+Gnd
+Text Label 5750 2050 2    50   ~ 0
+SDA
+Text Label 5750 2150 2    50   ~ 0
+SCL
+Text Label 5750 2400 2    50   ~ 0
+Vcc
+Text Label 5750 2600 2    50   ~ 0
+Gnd
+Text Label 5750 2700 2    50   ~ 0
+A3
+Text Label 5750 2800 2    50   ~ 0
+A4
+Text Label 5750 2900 2    50   ~ 0
+A5
+Text Label 5750 3000 2    50   ~ 0
+A6
+$Comp
+L symbols:PCA9634 U3
+U 1 1 620146E3
+P 9300 2450
+F 0 "U3" H 9275 3436 50  0000 C CNN
+F 1 "PCA9634" H 9275 3343 50  0000 C CNN
+F 2 "Housings_SOIC:SOIC-20W_7.5x12.8mm_Pitch1.27mm" H 9300 2850 50  0001 C CNN
+F 3 "" H 9300 2850 50  0001 C CNN
+	1    9300 2450
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	9900 2750 9900 4750
+Wire Wire Line
+	9950 4350 9950 2650
+Wire Wire Line
+	9950 2650 9900 2650
+Wire Wire Line
+	9900 2550 10000 2550
+Wire Wire Line
+	10000 2550 10000 3950
+Wire Wire Line
+	10050 3550 10050 2450
+Wire Wire Line
+	10050 2450 9900 2450
+Wire Wire Line
+	10700 4750 10600 4750
+Wire Wire Line
+	10700 4350 10600 4350
+Wire Wire Line
+	10700 3950 10600 3950
+Wire Wire Line
+	10700 3550 10600 3550
+Wire Wire Line
+	10700 3150 10600 3150
+Wire Wire Line
+	10700 2750 10600 2750
+Wire Wire Line
+	10700 2400 10600 2400
+Wire Wire Line
+	10700 2050 10600 2050
+$Comp
+L Device:LED DX-5
+U 1 1 6201472C
+P 10850 4750
+F 0 "DX-5" H 10843 4970 50  0000 C CNN
+F 1 "LED" H 10843 4877 50  0000 C CNN
+F 2 "LEDs:LED_D3.0mm" H 10850 4750 50  0001 C CNN
+F 3 "~" H 10850 4750 50  0001 C CNN
+	1    10850 4750
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:LED DX-4
+U 1 1 62014736
+P 10850 4350
+F 0 "DX-4" H 10843 4570 50  0000 C CNN
+F 1 "LED" H 10843 4477 50  0000 C CNN
+F 2 "LEDs:LED_D3.0mm" H 10850 4350 50  0001 C CNN
+F 3 "~" H 10850 4350 50  0001 C CNN
+	1    10850 4350
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:LED DX-3
+U 1 1 62014740
+P 10850 3950
+F 0 "DX-3" H 10843 4170 50  0000 C CNN
+F 1 "LED" H 10843 4077 50  0000 C CNN
+F 2 "LEDs:LED_D3.0mm" H 10850 3950 50  0001 C CNN
+F 3 "~" H 10850 3950 50  0001 C CNN
+	1    10850 3950
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:LED DX-2
+U 1 1 6201474A
+P 10850 3550
+F 0 "DX-2" H 10843 3770 50  0000 C CNN
+F 1 "LED" H 10843 3677 50  0000 C CNN
+F 2 "LEDs:LED_D3.0mm" H 10850 3550 50  0001 C CNN
+F 3 "~" H 10850 3550 50  0001 C CNN
+	1    10850 3550
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:LED DX-1
+U 1 1 62014754
+P 10850 3150
+F 0 "DX-1" H 10843 3370 50  0000 C CNN
+F 1 "LED" H 10843 3277 50  0000 C CNN
+F 2 "LEDs:LED_D3.0mm" H 10850 3150 50  0001 C CNN
+F 3 "~" H 10850 3150 50  0001 C CNN
+	1    10850 3150
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:LED DX-0
+U 1 1 6201475E
+P 10850 2750
+F 0 "DX-0" H 10843 2970 50  0000 C CNN
+F 1 "LED" H 10843 2877 50  0000 C CNN
+F 2 "LEDs:LED_D3.0mm" H 10850 2750 50  0001 C CNN
+F 3 "~" H 10850 2750 50  0001 C CNN
+	1    10850 2750
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:R_Small_US R24
+U 1 1 62014768
+P 10500 4750
+F 0 "R24" V 10290 4750 50  0000 C CNN
+F 1 "150" V 10383 4750 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805_HandSoldering" H 10500 4750 50  0001 C CNN
+F 3 "~" H 10500 4750 50  0001 C CNN
+	1    10500 4750
+	0    1    1    0   
+$EndComp
+$Comp
+L Device:R_Small_US R23
+U 1 1 62014772
+P 10500 4350
+F 0 "R23" V 10290 4350 50  0000 C CNN
+F 1 "150" V 10383 4350 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805_HandSoldering" H 10500 4350 50  0001 C CNN
+F 3 "~" H 10500 4350 50  0001 C CNN
+	1    10500 4350
+	0    1    1    0   
+$EndComp
+$Comp
+L Device:R_Small_US R22
+U 1 1 6201477C
+P 10500 3950
+F 0 "R22" V 10290 3950 50  0000 C CNN
+F 1 "150" V 10383 3950 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805_HandSoldering" H 10500 3950 50  0001 C CNN
+F 3 "~" H 10500 3950 50  0001 C CNN
+	1    10500 3950
+	0    1    1    0   
+$EndComp
+$Comp
+L Device:R_Small_US R21
+U 1 1 62014786
+P 10500 3550
+F 0 "R21" V 10290 3550 50  0000 C CNN
+F 1 "150" V 10383 3550 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805_HandSoldering" H 10500 3550 50  0001 C CNN
+F 3 "~" H 10500 3550 50  0001 C CNN
+	1    10500 3550
+	0    1    1    0   
+$EndComp
+$Comp
+L Device:R_Small_US R20
+U 1 1 62014790
+P 10500 3150
+F 0 "R20" V 10290 3150 50  0000 C CNN
+F 1 "150" V 10383 3150 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805_HandSoldering" H 10500 3150 50  0001 C CNN
+F 3 "~" H 10500 3150 50  0001 C CNN
+	1    10500 3150
+	0    1    1    0   
+$EndComp
+$Comp
+L Device:R_Small_US R19
+U 1 1 6201479A
+P 10500 2750
+F 0 "R19" V 10290 2750 50  0000 C CNN
+F 1 "150" V 10383 2750 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805_HandSoldering" H 10500 2750 50  0001 C CNN
+F 3 "~" H 10500 2750 50  0001 C CNN
+	1    10500 2750
+	0    1    1    0   
+$EndComp
+$Comp
+L Device:LED DB-P
+U 1 1 620147A4
+P 10850 2400
+F 0 "DB-P" H 10843 2620 50  0000 C CNN
+F 1 "LED" H 10843 2527 50  0000 C CNN
+F 2 "LEDs:LED_D3.0mm" H 10850 2400 50  0001 C CNN
+F 3 "~" H 10850 2400 50  0001 C CNN
+	1    10850 2400
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:R_Small_US R18
+U 1 1 620147AE
+P 10500 2400
+F 0 "R18" V 10290 2400 50  0000 C CNN
+F 1 "150" V 10383 2400 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805_HandSoldering" H 10500 2400 50  0001 C CNN
+F 3 "~" H 10500 2400 50  0001 C CNN
+	1    10500 2400
+	0    1    1    0   
+$EndComp
+$Comp
+L Device:R_Small_US R17
+U 1 1 620147B8
+P 10500 2050
+F 0 "R17" V 10290 2050 50  0000 C CNN
+F 1 "150" V 10383 2050 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805_HandSoldering" H 10500 2050 50  0001 C CNN
+F 3 "~" H 10500 2050 50  0001 C CNN
+	1    10500 2050
+	0    1    1    0   
+$EndComp
+$Comp
+L Device:LED DA-P
+U 1 1 620147C2
+P 10850 2050
+F 0 "DA-P" H 10843 2270 50  0000 C CNN
+F 1 "LED" H 10843 2177 50  0000 C CNN
+F 2 "LEDs:LED_D3.0mm" H 10850 2050 50  0001 C CNN
+F 3 "~" H 10850 2050 50  0001 C CNN
+	1    10850 2050
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	10400 2050 9900 2050
+Wire Wire Line
+	9900 2350 10100 2350
+Wire Wire Line
+	10100 2350 10100 3150
+Wire Wire Line
+	10100 3150 10400 3150
+Wire Wire Line
+	9900 2250 10150 2250
+Wire Wire Line
+	10150 2250 10150 2750
+Wire Wire Line
+	10150 2750 10400 2750
+Wire Wire Line
+	9900 2150 10200 2150
+Wire Wire Line
+	10200 2150 10200 2400
+Wire Wire Line
+	10200 2400 10400 2400
+Wire Wire Line
+	10050 3550 10400 3550
+Wire Wire Line
+	10000 3950 10400 3950
+Wire Wire Line
+	9950 4350 10400 4350
+Wire Wire Line
+	9900 4750 10400 4750
+Text Label 11000 2050 0    50   ~ 0
+Vcc
+Text Label 11000 2400 0    50   ~ 0
+Vcc
+Text Label 11000 2750 0    50   ~ 0
+Vcc
+Text Label 11000 3150 0    50   ~ 0
+Vcc
+Text Label 11000 3550 0    50   ~ 0
+Vcc
+Text Label 11000 3950 0    50   ~ 0
+Vcc
+Text Label 11000 4350 0    50   ~ 0
+Vcc
+Text Label 11000 4750 0    50   ~ 0
+Vcc
+Text Label 9300 1650 0    50   ~ 0
+Vcc
+Text Label 8650 2250 2    50   ~ 0
+Gnd
+Text Label 9300 3350 2    50   ~ 0
+Gnd
+Text Label 8650 2050 2    50   ~ 0
+SDA
+Text Label 8650 2150 2    50   ~ 0
+SCL
+Text Label 8650 2400 2    50   ~ 0
+Vcc
+Text Label 8650 2500 2    50   ~ 0
+Gnd
+Text Label 8650 2700 2    50   ~ 0
+A3
+Text Label 8650 2800 2    50   ~ 0
+A4
+Text Label 8650 2900 2    50   ~ 0
+A5
+Text Label 8650 3000 2    50   ~ 0
+A6
+Text Notes 2650 2500 2    50   ~ 0
+chip 0\n
+Text Notes 5600 2500 2    50   ~ 0
+chip 1\n
+Text Label 5750 2500 2    50   ~ 0
+Vcc
+Text Label 8650 2600 2    50   ~ 0
+Vcc
+Text Notes 8500 2500 2    50   ~ 0
+Chip 2
+$Comp
+L Device:C_Small C1
+U 1 1 62034B07
+P 3000 3450
+F 0 "C1" H 3092 3497 50  0000 L CNN
+F 1 ".1uF" H 3092 3404 50  0000 L CNN
+F 2 "Capacitors_SMD:C_0805_HandSoldering" H 3000 3450 50  0001 C CNN
+F 3 "~" H 3000 3450 50  0001 C CNN
+	1    3000 3450
+	1    0    0    -1  
+$EndComp
+Text Label 3000 3350 2    50   ~ 0
+Vcc
+Text Label 3000 3550 2    50   ~ 0
+Gnd
+$Comp
+L Device:C_Small C3
+U 1 1 6203D669
+P 8800 3350
+F 0 "C3" H 8892 3397 50  0000 L CNN
+F 1 ".1uF" H 8892 3304 50  0000 L CNN
+F 2 "Capacitors_SMD:C_0805_HandSoldering" H 8800 3350 50  0001 C CNN
+F 3 "~" H 8800 3350 50  0001 C CNN
+	1    8800 3350
+	1    0    0    -1  
+$EndComp
+Text Label 8800 3250 2    50   ~ 0
+Vcc
+Text Label 8800 3450 2    50   ~ 0
+Gnd
+$Comp
+L Mechanical:MountingHole H1
+U 1 1 62171F31
+P 1950 3950
+F 0 "H1" H 2050 3997 50  0000 L CNN
+F 1 "MountingHole" H 2050 3904 50  0000 L CNN
+F 2 "Mounting_Holes:MountingHole_4.3mm_M4" H 1950 3950 50  0001 C CNN
+F 3 "~" H 1950 3950 50  0001 C CNN
+	1    1950 3950
+	1    0    0    -1  
+$EndComp
+$Comp
+L Mechanical:MountingHole H2
+U 1 1 62172FD7
+P 1950 4150
+F 0 "H2" H 2050 4197 50  0000 L CNN
+F 1 "MountingHole" H 2050 4104 50  0000 L CNN
+F 2 "Mounting_Holes:MountingHole_4.3mm_M4" H 1950 4150 50  0001 C CNN
+F 3 "~" H 1950 4150 50  0001 C CNN
+	1    1950 4150
+	1    0    0    -1  
+$EndComp
+Text Notes 4050 1400 0    50   ~ 0
+18 LEDs: P76543210 P76543210\nCall left byte B, right byte A.\nplus 6 extra LEDs
+$EndSCHEMATC
