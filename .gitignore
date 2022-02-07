@@ -3,9 +3,10 @@ bcros/
 env/
 ui-test/imgs/
 out/
+ocr/imgs/
+ocr/maps/
 *.swo
 *.swp
-*.pdf
 *.map
 js.old/*
 js/*.js
