@@ -33,9 +33,9 @@
         "other_text_thickness": 0.15,
         "other_text_upright": false,
         "pads": {
-          "drill": 4.299999,
-          "height": 4.299999,
-          "width": 4.299999
+          "drill": 0.0,
+          "height": 14.0,
+          "width": 4.75
         },
         "silk_line_width": 0.12,
         "silk_text_italic": false,
@@ -48,7 +48,13 @@
           "min_clearance": 0.508
         }
       },
-      "diff_pair_dimensions": [],
+      "diff_pair_dimensions": [
+        {
+          "gap": 0.0,
+          "via_gap": 0.0,
+          "width": 0.0
+        }
+      ],
       "drc_exclusions": [],
       "meta": {
         "filename": "board_design_settings.json",
@@ -100,25 +106,32 @@
         "allow_blind_buried_vias": false,
         "allow_microvias": false,
         "max_error": 0.005,
-        "min_clearance": 0.0,
+        "min_clearance": 0.15239999999999998,
         "min_copper_edge_clearance": 0.024999999999999998,
-        "min_hole_clearance": 0.25,
+        "min_hole_clearance": 0.24638,
         "min_hole_to_hole": 0.25,
         "min_microvia_diameter": 0.19999999999999998,
         "min_microvia_drill": 0.09999999999999999,
         "min_silk_clearance": 0.0,
-        "min_through_hole_diameter": 0.200152,
+        "min_through_hole_diameter": 0.3,
         "min_track_width": 0.15239999999999998,
         "min_via_annular_width": 0.049999999999999996,
-        "min_via_diameter": 0.17779999999999999,
+        "min_via_diameter": 0.3,
         "use_height_for_length_calcs": true
       },
       "track_widths": [
         0.0,
         0.635,
-        2.54
+        2.286,
+        2.54,
+        4.572
       ],
-      "via_dimensions": [],
+      "via_dimensions": [
+        {
+          "diameter": 0.0,
+          "drill": 0.0
+        }
+      ],
       "zones_allow_external_fillets": false,
       "zones_use_no_outline": true
     },
@@ -345,7 +358,7 @@
     "classes": [
       {
         "bus_width": 12.0,
-        "clearance": 0.2032,
+        "clearance": 0.19177,
         "diff_pair_gap": 0.25,
         "diff_pair_via_gap": 0.25,
         "diff_pair_width": 0.2,
@@ -357,7 +370,28 @@
         "schematic_color": "rgba(0, 0, 0, 0.000)",
         "track_width": 0.2286,
         "via_diameter": 0.508,
-        "via_drill": 0.20066,
+        "via_drill": 0.3,
+        "wire_width": 6.0
+      },
+      {
+        "bus_width": 12.0,
+        "clearance": 0.254,
+        "diff_pair_gap": 0.25,
+        "diff_pair_via_gap": 0.25,
+        "diff_pair_width": 0.2,
+        "line_style": 0,
+        "microvia_diameter": 0.3,
+        "microvia_drill": 0.1,
+        "name": "power",
+        "nets": [
+          "/+5V_in1",
+          "/GND_in1"
+        ],
+        "pcb_color": "rgba(0, 0, 0, 0.000)",
+        "schematic_color": "rgba(0, 0, 0, 0.000)",
+        "track_width": 2.032,
+        "via_diameter": 0.508,
+        "via_drill": 0.3,
         "wire_width": 6.0
       }
     ],
@@ -370,7 +404,7 @@
     "last_paths": {
       "gencad": "",
       "idf": "",
-      "netlist": "",
+      "netlist": "../../../../../../../Applications/KiCad/KiCad.app/Contents/Applications/",
       "specctra_dsn": "",
       "step": "",
       "vrml": ""

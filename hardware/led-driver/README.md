@@ -6,8 +6,20 @@ I'm planning to use yellow/orange 590nm LEDs which is what the [IBM 1620 Jr](htt
 ![Rendering of the board.](board.jpg)
 
 The board uses [PCA9634](https://www.nxp.com/docs/en/data-sheet/PCA9634.pdf) LED I2C PWM driver chips.
-Each chip drives 8 LEDs, so I use three chips. The extra 6 LED outputs are wired and can be connected to other console LEDs.
+Each chip drives 8 LEDs, so each board has three chips. The extra 6 LED outputs are wired and can be connected to other console LEDs.
 This supports the irregular console lights that don't fit into groups of 18.
 
-The chips have I2C addresss *aaaa001*, *aaaa011*, and *aaaa101*, where *aaaa* address bits select the board based on jumpers, the next two bits select the chip on the board, 0, 1, or 2, and the low-order bit is 1 to avoid conflicts with the chip's other addresses.
+The LED chips have I2C addresses *001bbbb*,
+*011bbbb*, and *101bbbb* where *bbbb* are the board bits from the solder jumpers. The first two bits select the chip on the board (0, 1, 2).
 The first chip handles the low-order byte, the second chip handles the high-order byte, and the third chip handles the two parity lights.
+
+The board has some optional functionality that can be installed as needed.
+
+A [PCA9555](https://www.nxp.com/docs/en/data-sheet/PCA9555.pdf) 16-bit GPIO can read 16 switches from the console.
+Its I2C address is *0100bbb*.
+
+A [MCP47CVB01](https://ww1.microchip.com/downloads/en/DeviceDoc/MCP47CXBXX-Data-Sheet-DS20006089B.pdf) DAC chip provides a current to drive the console meter. Its I2C address is *10010bb*.
+
+Two [ADS7828EB](https://www.ti.com/lit/gpn/ads7828) provide 8-channel analog-to-digital conversion.
+This can read the console potentiometers.
+The I2C addresses are *100100b* and *100101b*, using a single board bit. The second-last bit selects the chip on the board.
